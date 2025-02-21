@@ -1,0 +1,34 @@
+'use client';
+import { APP_NAME } from "@/lib/constants";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+
+
+const NotFound = () => {
+  const router = useRouter();
+
+
+  return (
+    <div className="flex h-screen w-screen flex-col items-center justify-center">
+      <Image
+        src='/images/logo.svg'
+        alt={`${APP_NAME} logo`}
+        width={48}
+        height={48}
+        priority={true}
+      />
+      <div className="p-6 s-1/3 rounded-lg bg-card shadow-md">
+        <h1 className="text-3xl font-boldcmb-4">Page Not Found</h1>
+        <p className="text-destructive mb-4">The page you are looking for does not exist.</p>
+        <Button variant="outline" className="mt-4 mb-2" onClick={() => router.push("/")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Home
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default NotFound;  
