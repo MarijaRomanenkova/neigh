@@ -6,7 +6,7 @@ const HomePage = async () => {
   // Convert rating to number
   const formattedProducts = latestProducts.map(product => ({
     ...product,
-    rating: Number(product.rating), // Convert rating to number
+    rating: product.rating, 
   }));
 
   return ( 
