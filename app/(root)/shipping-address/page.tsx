@@ -4,7 +4,7 @@ import { getUserById } from '@/lib/actions/user.actions';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { ShippingAddress } from '@/types';
-import ShippingAddressForm from './shippint-address-form';
+import ShippingAddressForm from './shipping-address-form';
 import CheckoutSteps from '@/components/shared/checkout-steps';
 
 export const metadata: Metadata = {

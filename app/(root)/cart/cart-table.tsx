@@ -19,9 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 
-// NOTE: The code here has changed from the original course code so that the
-// Buttons no longer share the same state and show the loader independently from
-// other items in the cart
 function AddButton({ item }: { item: CartItem }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();

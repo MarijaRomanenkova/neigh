@@ -2,9 +2,10 @@
 
 import {
   shippingAddressSchema,
-  signInFormSchema, 
+  signInFormSchema,
   signUpFormSchema,
-  updateUserSchema
+  paymentMethodSchema,
+  updateUserSchema,
 } from '@/lib/validators';
 import { auth, signIn, signOut } from '@/auth';
 import { hashSync } from 'bcrypt-ts-edge';
@@ -15,6 +16,7 @@ import { z } from 'zod';
 import { PAGE_SIZE } from '../constants';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
+import { getMyCart } from './cart.actions';
 
 // Sign in the user with credentials
 export async function signInWithCredentials(
@@ -41,6 +43,13 @@ export async function signInWithCredentials(
 // Sign user out
 export async function signOutUser() {
   // get current users cart and delete it so it does not persist to next user
+  const currentCart = await getMyCart();
+
+  if (currentCart?.id) {
+    await prisma.cart.delete({ where: { id: currentCart.id } });
+  } else {
+    console.warn('No cart found for deletion.');
+  }
   await signOut();
 }
 
@@ -119,8 +128,33 @@ export async function updateUserAddress(data: ShippingAddress) {
   }
 }
 
+// Update user's payment method
+export async function updateUserPaymentMethod(
+  data: z.infer<typeof paymentMethodSchema>
+) {
+  try {
+    const session = await auth();
+    const currentUser = await prisma.user.findFirst({
+      where: { id: session?.user?.id },
+    });
 
-  
+    if (!currentUser) throw new Error('User not found');
+
+    const paymentMethod = paymentMethodSchema.parse(data);
+
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { paymentMethod: paymentMethod.type },
+    });
+
+    return {
+      success: true,
+      message: 'User updated successfully',
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
 
 // Update the user profile
 export async function updateProfile(user: { name: string; email: string }) {
@@ -149,9 +183,6 @@ export async function updateProfile(user: { name: string; email: string }) {
       message: 'User updated successfully',
     };
   } catch (error) {
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-          throw error;
-        }
     return { success: false, message: formatError(error) };
   }
 }
@@ -205,9 +236,6 @@ export async function deleteUser(id: string) {
       message: 'User deleted successfully',
     };
   } catch (error) {
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-          throw error;
-        }
     return {
       success: false,
       message: formatError(error),
@@ -233,9 +261,6 @@ export async function updateUser(user: z.infer<typeof updateUserSchema>) {
       message: 'User updated successfully',
     };
   } catch (error) {
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-          throw error;
-        }
     return { success: false, message: formatError(error) };
   }
 }
