@@ -13,7 +13,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export function ProductCarousel({ data }: { data: Product[] }) {
-  console.log('data[0].banner', data[0].banner)
 
   return (
     <Carousel
@@ -36,7 +35,7 @@ export function ProductCarousel({ data }: { data: Product[] }) {
               <div className='relative mx-auto'>
                 <Image
                   alt={product.name}
-                  src={product.banner || '/placeholder.jpg'}
+                  src={`/images/${product.banner}` || '/placeholder.jpg'}
                   width={1200}
                   height={600}
                   sizes='100vw'

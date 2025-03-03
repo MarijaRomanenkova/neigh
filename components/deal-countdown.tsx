@@ -82,6 +82,7 @@ const DealCountdown = () => {
             alt='promotion'
             width={300}
             height={200}
+            className='w-full h-auto' 
           />
         </div>
       </section>
@@ -116,6 +117,7 @@ const DealCountdown = () => {
           alt='promotion'
           width={300}
           height={200}
+          className='w-full h-auto' 
         />
       </div>
     </section>

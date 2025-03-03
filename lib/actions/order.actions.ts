@@ -265,6 +265,14 @@ export async function updateOrderToPaid({
       ...updatedOrder,
       shippingAddress: updatedOrder.shippingAddress as ShippingAddress,
       paymentResult: updatedOrder.paymentResult as PaymentResult,
+      itemsPrice: updatedOrder.itemsPrice.toString(),
+      totalPrice: updatedOrder.totalPrice.toString(),
+      shippingPrice: updatedOrder.shippingPrice.toString(),
+      taxPrice: updatedOrder.taxPrice.toString(),
+      orderitems: updatedOrder.orderitems.map(item => ({
+        ...item,
+        price: item.price.toString()
+      }))
     },
   });
 }

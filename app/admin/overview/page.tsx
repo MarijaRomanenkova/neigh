@@ -111,7 +111,7 @@ const AdminOverviewPage = async () => {
                     <TableCell>
                       {formatDateTime(order.createdAt).dateOnly}
                     </TableCell>
-                    <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
+                    <TableCell>{formatCurrency(order.totalPrice.toString())}</TableCell>
                     <TableCell>
                       <Link href={`/order/${order.id}`}>
                         <span className='px-2'>Details</span>
