@@ -13,6 +13,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export function ProductCarousel({ data }: { data: Product[] }) {
+  console.log('data[0].banner', data[0].banner)
+
   return (
     <Carousel
       className='w-full mb-12'

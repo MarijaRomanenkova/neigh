@@ -11,6 +11,7 @@ import DealCountdown from '@/components/deal-countdown';
 const Homepage = async () => {
   const latestProducts = await getLatestProducts();
   const featuredProducts = await getFeaturedProducts();
+  console.log('featuredProducts', featuredProducts[0].banner)
 
   return (
     <>
