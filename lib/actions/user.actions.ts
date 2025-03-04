@@ -8,7 +8,7 @@ import {
   updateUserSchema,
 } from '@/lib/validators';
 import { auth, signIn, signOut } from '@/auth';
-import { hashSync } from 'bcrypt-ts-edge';
+import { hashSync } from 'bcrypt-ts';
 import { prisma } from '@/db/prisma';
 import { formatError } from '@/lib/utils';
 import { ShippingAddress } from '@/types';

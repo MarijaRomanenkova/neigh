@@ -1,5 +1,5 @@
 {
-  "name": "prostore",
+  "name": "eshops",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -31,6 +31,7 @@
     "@stripe/react-stripe-js": "^3.0.0",
     "@stripe/stripe-js": "^5.2.0",
     "@uploadthing/react": "^7.1.2",
+    "bcrypt-ts": "^6.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.5.1",

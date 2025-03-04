@@ -4,7 +4,7 @@ import { authConfig } from './auth.config';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/db/prisma';
 import { cookies } from 'next/headers';
-import { compare } from 'bcrypt-ts-edge';
+import { compare } from 'bcrypt-ts';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const config = {
