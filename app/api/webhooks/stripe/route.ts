@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     req.headers.get('stripe-signature') as string,
     process.env.STRIPE_WEBHOOK_SECRET as string
   );
+  console.log('event', event);
   // charge.succeeded indicates a successful payment
   if (event.type === 'charge.succeeded') {
     // Retrieve the order ID from the payment metadata
