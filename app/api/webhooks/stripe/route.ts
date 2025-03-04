@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-<<<<<<< HEAD
     if (event.type === 'charge.succeeded') {
       const charge = event.data.object as Stripe.Charge;
 
@@ -47,15 +46,6 @@ export async function POST(req: NextRequest) {
     console.error('Webhook error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
-=======
-    console.log('Received event:', event.type);
-
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json(
-      { error: 'Webhook error' },
->>>>>>> 38ca21d (stript fix)
       { status: 400 }
     );
   }
