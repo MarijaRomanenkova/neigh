@@ -2,40 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { updateOrderToPaid } from '@/lib/actions/order.actions';
 
-// Initialize Stripe with the secret API key from environment variables
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-// Define the POST handler function for the Stripe webhook
 export async function POST(req: NextRequest) {
-  // Construct the event using the raw request body, the Stripe signature header, and the webhook secret.
-  // This ensures that the request is indeed from Stripe and has not been tampered with.
-  const event = await stripe.webhooks.constructEvent(
-    await req.text(),
-    req.headers.get('stripe-signature') as string,
-    process.env.STRIPE_WEBHOOK_SECRET as string
-  );
-  console.log('event', event);
-  // charge.succeeded indicates a successful payment
-  if (event.type === 'charge.succeeded') {
-    // Retrieve the order ID from the payment metadata
-    const { object } = event.data;
+  try {
+    const body = await req.text();
+    const signature = req.headers.get('stripe-signature');
 
-    // Update the order status to paid
-    await updateOrderToPaid({
-      orderId: object.metadata.orderId,
-      paymentResult: {
-        id: object.id,
-        status: 'COMPLETED',
-        email_address: object.billing_details.email!,
-        pricePaid: (object.amount / 100).toFixed(),
-      },
-    });
+    if (!signature) {
+      return NextResponse.json(
+        { error: 'No signature header' },
+        { status: 400 }
+      );
+    }
 
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+
+    console.log('event', event);
+    // charge.succeeded indicates a successful payment
+    if (event.type === 'charge.succeeded') {
+      const charge = event.data.object as Stripe.Charge;
+      
+      // Check if orderId exists in metadata
+      if (!charge.metadata?.orderId) {
+        return NextResponse.json({
+          error: 'No orderId found in payment metadata'
+        }, { status: 400 });
+      }
+
+      await updateOrderToPaid({
+        orderId: charge.metadata.orderId,
+        paymentResult: {
+          id: charge.id,
+          status: 'COMPLETED',
+          email_address: charge.billing_details.email!,
+          pricePaid: (charge.amount / 100).toFixed(),
+        },
+      });
+
+      return NextResponse.json({
+        message: 'updateOrderToPaid was successful',
+      });
+    }
     return NextResponse.json({
-      message: 'updateOrderToPaid was successful',
+      message: 'event is not charge.succeeded',
     });
+  } catch (error) {
+    console.error('Error processing Stripe webhook:', error);
+    return NextResponse.json(
+      { error: 'An error occurred while processing the webhook' },
+      { status: 500 }
+    );
   }
-  return NextResponse.json({
-    message: 'event is not charge.succeeded',
-  });
 }
