@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Menu from '@/components/shared/header/menu';
 import MainNav from './main-nav';
 
+// Server component
 export default function UserLayout({
   children,
 }: Readonly<{
@@ -17,8 +18,8 @@ export default function UserLayout({
             <Link href='/' className='w-22'>
               <Image
                 src='/images/logo.svg'
-                height={48}
-                width={48}
+                height={36}
+                width={36}
                 alt={APP_NAME}
               />
             </Link>

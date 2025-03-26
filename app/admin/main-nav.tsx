@@ -10,16 +10,20 @@ const links = [
     href: '/admin/overview',
   },
   {
-    title: 'Products',
-    href: '/admin/products',
+    title: 'tasks',
+    href: '/admin/tasks',
   },
   {
-    title: 'Orders',
-    href: '/admin/orders',
+    title: 'Payments',
+    href: '/admin/payments',
   },
   {
     title: 'Users',
     href: '/admin/users',
+  },
+  {
+    title: 'Messages',
+    href: '/admin/messages',
   },
 ];
 

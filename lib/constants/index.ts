@@ -1,8 +1,7 @@
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Store App";
-export const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Store App using Next.js 15, PostgreSQL, Shadcn UI";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Neigh";
+export const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Neigh is a platform for connecting neighbors and finding tasks to do around the house.";
 export const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000";
-export const LATEST_PRODUCTS_LIMIT = Number(process.env.LATEST_PRODUCTS_LIMIT) || 4;
-
+export const LATEST_TASKS_LIMIT = Number(process.env.LATEST_TASKS_LIMIT) || 12;
 export const signInDefaultValues = {
   email: '',
   password: '',
@@ -31,29 +30,19 @@ export const DEFAULT_PAYMENT_METHOD =
 
 export const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 12;
 
-export const productDefaultValues = {
+export const taskDefaultValues = {
   name: '',
   slug: '',
-  category: '',
-  images: [],
-  brand: '',
+  categoryId: '',  // Changed from category
+  images: [] as string[],  // Added type annotation
   description: '',
-  price: '0',
-  stock: 0,
-  rating: '0',
-  numReviews: '0',
-  isFeatured: false,
-  banner: null,
+  price: 0
 };
 
 export const USER_ROLES = process.env.USER_ROLES
   ? process.env.USER_ROLES.split(', ')
   : ['admin', 'user'];
 
-export const reviewFormDefaultValues = {
-  title: '',
-  comment: '',
-  rating: 0,
-};
 
 export const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+

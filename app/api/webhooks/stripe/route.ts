@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { updateOrderToPaid } from '@/lib/actions/order.actions';
+import { updatePaymentToPaid } from '@/lib/actions/payment.actions';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -34,14 +34,13 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      await updateOrderToPaid({
-        orderId: charge.metadata.orderId,
-        paymentResult: {
-          id: charge.id,
-          status: 'COMPLETED',
-          email_address: charge.billing_details.email!,
-          pricePaid: (charge.amount / 100).toFixed(),
-        },
+      await updatePaymentToPaid(charge.metadata.paymentId, {
+        id: charge.id,
+        status: 'COMPLETED',
+        email_address: charge.billing_details.email!,
+        pricePaid: (charge.amount / 100).toFixed(),
+        amount: (charge.amount / 100).toFixed(),
+        created_at: new Date().toISOString(),
       });
 
       return NextResponse.json({
@@ -54,7 +53,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error processing Stripe webhook:', error);
     return NextResponse.json(
-      { error: 'An error occurred while processing the webhook' },
+      { 
+        error: 'Failed to create conversation', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     );
   }

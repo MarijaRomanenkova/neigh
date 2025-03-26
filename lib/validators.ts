@@ -9,22 +9,18 @@ const currency = z
     'Price must have exactly two decimal places'
   );
 
-// Schema for inserting products
-export const insertProductSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  slug: z.string().min(3, 'Slug must be at least 3 characters'),
-  category: z.string().min(3, 'Category must be at least 3 characters'),
-  brand: z.string().min(3, 'Brand must be at least 3 characters'),
-  description: z.string().min(3, 'Description must be at least 3 characters'),
-  stock: z.coerce.number(),
-  images: z.array(z.string()).min(1, 'Product must have at least one image'),
-  isFeatured: z.boolean(),
-  banner: z.string().nullable(),
-  price: currency,
+// Schema for inserting tasks
+export const insertTaskSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  categoryId: z.string(),
+  images: z.array(z.string()),
+  description: z.string().min(12, 'Description must be at least 12 characters'),
+  price: z.number().int().nonnegative('Hours must be zero or positive').optional(),
 });
 
-// Schema for updating products
-export const updateProductSchema = insertProductSchema.extend({
+// Schema for updating tasks
+export const updateTaskSchema = insertTaskSchema.extend({
   id: z.string().min(1, 'Id is required'),
 });
 
@@ -49,36 +45,14 @@ export const signUpFormSchema = z
     path: ['confirmPassword'],
   });
 
-// Cart Schemas
-export const cartItemSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
+// Invoice Items Schema
+export const invoiceItemsSchema = z.object({
+  taskId: z.string().min(1, 'task is required'),
   name: z.string().min(1, 'Name is required'),
-  slug: z.string().min(1, 'Slug is required'),
-  qty: z.number().int().nonnegative('Quantity must be a positive number'),
-  image: z.string().min(1, 'Image is required'),
+  qty: z.number().int().nonnegative('Quantity must be a positive number').optional(),
   price: currency,
 });
 
-export const insertCartSchema = z.object({
-  items: z.array(cartItemSchema),
-  itemsPrice: currency,
-  totalPrice: currency,
-  shippingPrice: currency,
-  taxPrice: currency,
-  sessionCartId: z.string().min(1, 'Session cart id is required'),
-  userId: z.string().optional().nullable(),
-});
-
-// Schema for the shipping address
-export const shippingAddressSchema = z.object({
-  fullName: z.string().min(3, 'Name must be at least 3 characters'),
-  streetAddress: z.string().min(3, 'Address must be at least 3 characters'),
-  city: z.string().min(3, 'City must be at least 3 characters'),
-  postalCode: z.string().min(3, 'Postal code must be at least 3 characters'),
-  country: z.string().min(3, 'Country must be at least 3 characters'),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-});
 
 // Schema for payment method
 export const paymentMethodSchema = z
@@ -90,41 +64,48 @@ export const paymentMethodSchema = z
     message: 'Invalid payment method',
   });
 
-// Schema for inserting order
-export const insertOrderSchema = z.object({
-  userId: z.string().min(1, 'User is required'),
-  itemsPrice: currency,
-  shippingPrice: currency,
-  taxPrice: currency,
-  totalPrice: currency,
+// Schema for creating an invoice
+export const insertInvoiceSchema = z.object({
+  clientId: z.string().min(1, 'Client is required'),
+  contractorId: z.string().min(1, 'Contractor is required'),
+  invoiceItem: z.array(invoiceItemsSchema),
+  totalPrice: currency
+});
+
+export const updateInvoiceSchema = insertInvoiceSchema.partial().extend({
+  id: z.string().min(1, 'Invoice ID is required'),
+  clientId: z.string().min(1, 'Client is required'),
+  contractorId: z.string().min(1, 'Contractor is required'),
+  invoiceItem: z.array(invoiceItemsSchema),
+  totalPrice: currency
+});
+
+// Schema for creating a payment
+export const insertPaymentSchema = z.object({
+  amount: currency,
   paymentMethod: z.string().refine((data) => PAYMENT_METHODS.includes(data), {
-    message: 'Invalid payment method',
+    message: 'Invalid payment method'
   }),
-  shippingAddress: shippingAddressSchema,
+  invoiceIds: z.array(z.string().min(1, 'Invoice ID is required'))
 });
 
-// Schema for inserting an order item
-export const insertOrderItemSchema = z.object({
-  productId: z.string(),
-  slug: z.string(),
-  image: z.string(),
-  name: z.string(),
-  price: currency,
-  qty: z.number(),
-});
-
-// Schema for the PayPal paymentResult
+// Schema for payment result
 export const paymentResultSchema = z.object({
   id: z.string(),
   status: z.string(),
   email_address: z.string(),
-  pricePaid: z.string(),
+  amount: currency,
+  created_at: z.string()
 });
 
 // Schema for updating the user profile
 export const updateProfileSchema = z.object({
-  name: z.string().min(3, 'Name must be at leaast 3 characters'),
-  email: z.string().min(3, 'Email must be at leaast 3 characters'),
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  fullName: z.string().optional(),
+  email: z.string().min(3, 'Email must be at least 3 characters'),
+  address: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  companyId: z.string().optional().describe('Contractor legal ID number'),
 });
 
 // Schema to update users
@@ -133,15 +114,46 @@ export const updateUserSchema = updateProfileSchema.extend({
   role: z.string().min(1, 'Role is required'),
 });
 
-// Schema to insert reviews
-export const insertReviewSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string().min(3, 'Description must be at least 3 characters'),
-  productId: z.string().min(1, 'Product is required'),
-  userId: z.string().min(1, 'User is required'),
-  rating: z.coerce
-    .number()
-    .int()
-    .min(1, 'Rating must be at least 1')
-    .max(5, 'Rating must be at most 5'),
+
+export const invoiceSchema = z.object({
+  id: z.string().uuid(),
+  taskId: z.string().uuid(),
+  name: z.string(),
+  qty: z.number().int().nonnegative('Quantity must be a positive number'),
+  price: currency,
+  contractorId: z.string().uuid(),
+  clientId: z.string().uuid(),
 });
+
+export const cartSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid().nullable(),
+  sessionCartId: z.string(),
+  totalPrice: z.number().or(z.string()).pipe(z.coerce.number().multipleOf(0.01)),
+  createdAt: z.date().or(z.string().datetime()).default(() => new Date()),
+  invoices: z.array(z.object({
+    id: z.string().uuid()
+  })).optional()
+});
+
+// For inserting a new cart
+export const insertCartSchema = cartSchema.omit({ 
+  id: true, 
+  createdAt: true,
+  invoices: true
+});
+
+// For updating a cart
+export const updateCartSchema = cartSchema.partial().omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertTaskAssignmentSchema = z.object({
+  taskId: z.string().min(1, 'Task is required'),
+  contractorId: z.string().min(1, 'Contractor is required'),
+  statusId: z.string().min(1, 'Status is required'),
+  clientId: z.string().min(1, 'Client is required'),
+});
+
+export const updateTaskAssignmentSchema = insertTaskAssignmentSchema.partial();

@@ -1,17 +1,16 @@
 'use server';
 
 import {
-  shippingAddressSchema,
   signInFormSchema,
   signUpFormSchema,
   paymentMethodSchema,
   updateUserSchema,
+  updateProfileSchema,
 } from '@/lib/validators';
 import { auth, signIn, signOut } from '@/auth';
 import { hashSync } from 'bcrypt-ts';
 import { prisma } from '@/db/prisma';
 import { formatError } from '@/lib/utils';
-import { ShippingAddress } from '@/types';
 import { z } from 'zod';
 import { PAGE_SIZE } from '../constants';
 import { revalidatePath } from 'next/cache';
@@ -29,13 +28,17 @@ export async function signInWithCredentials(
       password: formData.get('password'),
     });
 
-    await signIn('credentials', user);
+    // We don't want to throw a redirect from here so we can handle it in the component
+    await signIn('credentials', {
+      ...user,
+      redirect: false
+    });
 
     return { success: true, message: 'Signed in successfully' };
   } catch (error) {
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-          throw error;
-        }
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
     return { success: false, message: 'Invalid email or password' };
   }
 }
@@ -95,37 +98,13 @@ export async function getUserById(userId: string) {
     where: { id: userId },
   });
   if (!user) throw new Error('User not found');
-  return user;
-}
-
-// Update the user's address
-export async function updateUserAddress(data: ShippingAddress) {
-  try {
-    const session = await auth();
-
-    const currentUser = await prisma.user.findFirst({
-      where: { id: session?.user?.id },
-    });
-
-    if (!currentUser) throw new Error('User not found');
-
-    const address = shippingAddressSchema.parse(data);
-
-    await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { address },
-    });
-
-    return {
-      success: true,
-      message: 'User updated successfully',
-    };
-  } catch (error) {
-      if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-          throw error;
-        }
-    return { success: false, message: formatError(error) };
-  }
+  
+  // Handle Decimal objects by converting them to regular numbers
+  return {
+    ...user,
+    clientRating: user.clientRating !== null ? Number(user.clientRating) : null,
+    contractorRating: user.contractorRating !== null ? Number(user.contractorRating) : null
+  };
 }
 
 // Update user's payment method
@@ -157,7 +136,7 @@ export async function updateUserPaymentMethod(
 }
 
 // Update the user profile
-export async function updateProfile(user: { name: string; email: string }) {
+export async function updateProfile(user: z.infer<typeof updateProfileSchema>) {
   try {
     const session = await auth();
 
@@ -175,12 +154,17 @@ export async function updateProfile(user: { name: string; email: string }) {
       },
       data: {
         name: user.name,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        companyId: user.companyId,
+        // Handle address as a string that gets converted to JSON
+        address: user.address ? JSON.stringify({ address: user.address }) : undefined,
       },
     });
 
     return {
       success: true,
-      message: 'User updated successfully',
+      message: 'Profile updated successfully',
     };
   } catch (error) {
     return { success: false, message: formatError(error) };

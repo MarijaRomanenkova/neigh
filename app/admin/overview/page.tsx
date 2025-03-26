@@ -7,7 +7,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getOrderSummary } from '@/lib/actions/order.actions';
+import { getPaymentSummary } from '@/lib/actions/payment.actions';
 import { formatCurrency, formatDateTime, formatNumber } from '@/lib/utils';
 import { BadgeDollarSign, Barcode, CreditCard, Users } from 'lucide-react';
 import { Metadata } from 'next';
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 const AdminOverviewPage = async () => {
   await requireAdmin();
 
-  const summary = await getOrderSummary();
+  const summary = await getPaymentSummary();
 
   return (
     <div className='space-y-2'>
@@ -36,7 +36,7 @@ const AdminOverviewPage = async () => {
           <CardContent>
             <div className='text-2xl font-bold'>
               {formatCurrency(
-                summary.totalSales._sum.totalPrice?.toString() || 0
+                summary.totalSales._sum.amount?.toString() || 0
               )}
             </div>
           </CardContent>
@@ -48,7 +48,7 @@ const AdminOverviewPage = async () => {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {formatNumber(summary.ordersCount)}
+              {formatNumber(summary.paymentsCount)}
             </div>
           </CardContent>
         </Card>
@@ -65,12 +65,12 @@ const AdminOverviewPage = async () => {
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Products</CardTitle>
+            <CardTitle className='text-sm font-medium'>tasks</CardTitle>
             <Barcode />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {formatNumber(summary.productsCount)}
+              {formatNumber(summary.tasksCount)}
             </div>
           </CardContent>
         </Card>
@@ -103,17 +103,14 @@ const AdminOverviewPage = async () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {summary.latestSales.map((order) => (
-                  <TableRow key={order.id}>
+                {summary.latestSales.map((payment) => (
+                  <TableRow key={payment.id}>
                     <TableCell>
-                      {order?.user?.name ? order.user.name : 'Deleted User'}
+                      {formatDateTime(payment.createdAt).dateOnly}
                     </TableCell>
+                    <TableCell>{formatCurrency(payment.amount.toString())}</TableCell>
                     <TableCell>
-                      {formatDateTime(order.createdAt).dateOnly}
-                    </TableCell>
-                    <TableCell>{formatCurrency(order.totalPrice.toString())}</TableCell>
-                    <TableCell>
-                      <Link href={`/order/${order.id}`}>
+                      <Link href={`/payment/${payment.id}`}>
                         <span className='px-2'>Details</span>
                       </Link>
                     </TableCell>

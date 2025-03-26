@@ -1,6 +1,5 @@
+'use client';
 import Link from 'next/link';
-import { auth } from '@/auth';
-import { signOutUser } from '@/lib/actions/user.actions';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,81 +7,133 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { UserIcon } from 'lucide-react';
+import { UserIcon, LogOut, ShieldCheck } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 
-const UserButton = async () => {
-  const session = await auth();
-
-  if (!session) {
+const UserButton = () => {
+  const { data: session, status } = useSession();
+  const [isClient, setIsClient] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Set client-side rendering flag and handle loading timeout
+  useEffect(() => {
+    setIsClient(true);
+    
+    // If loading takes more than 3 seconds, show the sign-in button anyway
+    const timer = setTimeout(() => {
+      if (status === 'loading') {
+        console.log("Session loading timeout reached, showing fallback UI");
+        setLoadingTimeout(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [status]);
+  
+  // Log the session status to help debug
+  useEffect(() => {
+    console.log("Auth status:", status, session ? "User found" : "No user");
+  }, [status, session]);
+  
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
+    return null;
+  }
+  
+  // Show fallback UI if loading takes too long
+  if (status === 'loading' && !loadingTimeout) {
     return (
-      <Button asChild>
-        <Link href='/sign-in'>
-          <UserIcon /> Sign In
-        </Link>
+      <Button variant="ghost" size="sm" className="opacity-70">
+        <UserIcon className="h-5 w-5 mr-2" />
+        <span>Loading...</span>
       </Button>
     );
   }
 
-  const firstInitial = session.user?.name?.charAt(0).toUpperCase() ?? 'U';
+  // If we have a session or loading timed out but we're authenticated
+  if (session) {
+    const firstInitial = session.user?.name?.charAt(0)?.toUpperCase() ?? 'U';
+    const isAdmin = session?.user?.role === 'admin';
+    
+    const handleSignOut = async () => {
+      try {
+        await signOut({ callbackUrl: '/' });
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
+    };
 
-  return (
-    <div className='flex gap-2 items-center'>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <div className='flex items-center'>
+    return (
+      <div className='flex gap-2 items-center'>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant='ghost'
-              className='relativee w-8 h-8 rounded-full ml-2 flex items-center justify-center bg-gray-200'
+              size="sm"
+              className='relative w-10 h-10 rounded-full flex items-center justify-center bg-gray-200'
             >
               {firstInitial}
             </Button>
-          </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className='w-56' align='end' forceMount>
-          <DropdownMenuLabel className='font-normal'>
-            <div className='flex flex-col space-y-1'>
-              <div className='text-sm font-medium leading-none'>
-                {session.user?.name}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className='w-56' align='end'>
+            <DropdownMenuLabel className='font-normal'>
+              <div className='flex flex-col space-y-1'>
+                <div className='text-sm font-medium leading-none'>
+                  {session.user?.name}
+                </div>
+                <div className='text-sm text-muted-foreground leading-none'>
+                  {session.user?.email}
+                </div>
+                {isAdmin && (
+                  <div className='text-xs text-primary mt-1'>
+                    Administrator
+                  </div>
+                )}
               </div>
-              <div className='text-sm text-muted-foreground leading-none'>
-                {session.user?.email}
-              </div>
-            </div>
-          </DropdownMenuLabel>
+            </DropdownMenuLabel>
 
-          <DropdownMenuItem>
-            <Link href='/user/profile' className='w-full'>
-              User Profile
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Link href='/user/orders' className='w-full'>
-              Order History
-            </Link>
-          </DropdownMenuItem>
-
-          {session?.user?.role === 'admin' && (
-            <DropdownMenuItem>
-              <Link href='/admin/overview' className='w-full'>
-                Admin
+            <DropdownMenuItem asChild>
+              <Link href='/user/profile' className='w-full cursor-pointer'>
+                <UserIcon className="h-5 w-5 mr-2" />
+                User Profile
               </Link>
             </DropdownMenuItem>
-          )}
+            
+            {/* Admin users see the admin dashboard */}
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href='/admin/overview' className='w-full cursor-pointer'>
+                    <ShieldCheck className="h-5 w-5 mr-2" />
+                    Admin Dashboard
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
+            
+            <DropdownMenuSeparator />
 
-          <DropdownMenuItem className='p-0 mb-1'>
-            <form action={signOutUser} className='w-full'>
-              <Button
-                className='w-full py-4 px-2 h-4 justify-start'
-                variant='ghost'
-              >
-                Sign Out
-              </Button>
-            </form>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+            <DropdownMenuItem onSelect={handleSignOut}>
+              <LogOut className="h-5 w-5 mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+  
+  // Otherwise show sign in button
+  return (
+    <Button size="sm" asChild>
+      <Link href='/sign-in'>
+        <UserIcon className="h-5 w-5 mr-2" /> Sign In
+      </Link>
+    </Button>
   );
 };
 

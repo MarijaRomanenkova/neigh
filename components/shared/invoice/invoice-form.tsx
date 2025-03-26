@@ -1,0 +1,300 @@
+'use client';
+
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertInvoiceSchema } from "@/lib/validators";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { Invoice } from "@/types";
+import { useState, useEffect } from "react";
+import { createInvoice } from "@/lib/actions/invoice.actions";
+import { useRouter } from "next/navigation";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
+
+type InvoiceFormProps = {
+  type: 'Create' | 'Update';
+  invoice?: Invoice;
+  prefillData?: {
+    taskId?: string;
+    taskName?: string;
+    taskPrice?: string | number;
+    clientId?: string;
+    clientName?: string;
+    contractorId?: string;
+    taskAssignmentId?: string;
+  };
+};
+
+const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
+  const [totalPrice, setTotalPrice] = useState("0.00");
+
+  // Initialize the form with prefill data if available
+  const form = useForm<z.infer<typeof insertInvoiceSchema>>({
+    resolver: zodResolver(insertInvoiceSchema),
+    defaultValues: {
+      clientId: prefillData?.clientId || "",
+      contractorId: prefillData?.contractorId || "",
+      invoiceItem: prefillData?.taskId ? [
+        {
+          taskId: prefillData.taskId,
+          name: prefillData.taskName || "Task Service",
+          price: typeof prefillData.taskPrice === 'number' 
+            ? prefillData.taskPrice.toFixed(2) 
+            : prefillData.taskPrice || "0.00",
+          qty: 1
+        }
+      ] : [],
+      totalPrice: typeof prefillData?.taskPrice === 'number' 
+        ? prefillData.taskPrice.toFixed(2) 
+        : prefillData?.taskPrice || "0.00"
+    }
+  });
+
+  // Initialize invoice items based on prefill data
+  useEffect(() => {
+    if (prefillData?.taskId) {
+      const initialItem = {
+        taskId: prefillData.taskId,
+        name: prefillData.taskName || "Task Service",
+        price: typeof prefillData.taskPrice === 'number' 
+          ? prefillData.taskPrice.toFixed(2) 
+          : prefillData.taskPrice || "0.00",
+        qty: 1
+      };
+      setInvoiceItems([initialItem]);
+      
+      // Set initial total price
+      const price = typeof prefillData.taskPrice === 'number' 
+        ? prefillData.taskPrice 
+        : parseFloat(prefillData.taskPrice || "0");
+      setTotalPrice(price.toFixed(2));
+    }
+  }, [prefillData]);
+
+  const handleAddItem = () => {
+    const newItem = {
+      taskId: "",
+      name: "",
+      price: "0.00",
+      qty: 1
+    };
+    setInvoiceItems([...invoiceItems, newItem]);
+    form.setValue("invoiceItem", [...form.getValues("invoiceItem"), newItem]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const updatedItems = invoiceItems.filter((_, i) => i !== index);
+    setInvoiceItems(updatedItems);
+    form.setValue("invoiceItem", updatedItems);
+    
+    // Recalculate total price
+    const total = updatedItems.reduce((sum, item) => {
+      return sum + (parseFloat(item.price) * (item.qty || 1));
+    }, 0);
+    setTotalPrice(total.toFixed(2));
+    form.setValue("totalPrice", total.toFixed(2));
+  };
+
+  const handleItemChange = (index: number, field: string, value: any) => {
+    const updatedItems = [...invoiceItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setInvoiceItems(updatedItems);
+    
+    // Set the form value with type-safe approach
+    if (field === 'taskId') {
+      form.setValue(`invoiceItem.${index}.taskId` as const, value);
+    } else if (field === 'name') {
+      form.setValue(`invoiceItem.${index}.name` as const, value);
+    } else if (field === 'price') {
+      form.setValue(`invoiceItem.${index}.price` as const, value);
+    } else if (field === 'qty') {
+      form.setValue(`invoiceItem.${index}.qty` as const, value);
+    }
+    
+    // Recalculate total price for price or qty changes
+    if (field === 'price' || field === 'qty') {
+      const total = updatedItems.reduce((sum, item) => {
+        return sum + (parseFloat(item.price) * (item.qty || 1));
+      }, 0);
+      setTotalPrice(total.toFixed(2));
+      form.setValue("totalPrice", total.toFixed(2));
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof insertInvoiceSchema>) => {
+    try {
+      const result = await createInvoice(values);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Invoice created successfully",
+        });
+        router.push('/user/dashboard/contractor/invoices');
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to create invoice",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create invoice:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="clientId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Client ID</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Client ID" readOnly={Boolean(prefillData?.clientId)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="contractorId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contractor ID</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Contractor ID" readOnly={Boolean(prefillData?.contractorId)} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        {/* Client Info (display only) */}
+        {prefillData?.clientName && (
+          <div className="bg-muted p-4 rounded-md mb-4">
+            <h3 className="font-medium mb-2">Client Information</h3>
+            <p>{prefillData.clientName}</p>
+          </div>
+        )}
+        
+        {/* Invoice Items Table */}
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Task ID</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoiceItems.map((item, index) => (
+                <TableRow key={`invoice-item-${index}`}>
+                  <TableCell>
+                    <Input 
+                      value={item.taskId} 
+                      onChange={(e) => handleItemChange(index, 'taskId', e.target.value)}
+                      disabled={Boolean(prefillData?.taskId && index === 0)}
+                      className="w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input 
+                      value={item.name} 
+                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                      className="w-full"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input 
+                      type="number" 
+                      value={item.qty} 
+                      onChange={(e) => handleItemChange(index, 'qty', parseInt(e.target.value))}
+                      className="w-20"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input 
+                      value={item.price} 
+                      onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                      className="w-full"
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleRemoveItem(index)}
+                      disabled={Boolean(prefillData?.taskId && index === 0 && invoiceItems.length === 1)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {invoiceItems.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                    No invoice items added yet
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <Button type="button" onClick={handleAddItem} variant="outline">
+            Add Item
+          </Button>
+          
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Total:</p>
+            <p className="text-lg font-semibold">{formatCurrency(parseFloat(totalPrice))}</p>
+            <Input 
+              type="hidden" 
+              {...form.register("totalPrice")} 
+              value={totalPrice}
+            />
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full">
+          {type === 'Create' ? 'Create Invoice' : 'Update Invoice'}
+        </Button>
+      </form>
+    </Form>
+  );
+};
+
+export default InvoiceForm; 

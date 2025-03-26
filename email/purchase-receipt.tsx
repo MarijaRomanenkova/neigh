@@ -5,70 +5,55 @@ import {
   Head,
   Heading,
   Html,
-  Img,
   Preview,
   Row,
   Section,
   Tailwind,
   Text,
 } from '@react-email/components';
-import { Order } from '@/types';
+import { Payment } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import sampleData from '@/db/sample-data';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 PurchaseReceiptEmail.PreviewProps = {
-  order: {
-    id: crypto.randomUUID(),
-    userId: '123',
-    user: {
-      name: 'John Doe',
-      email: 'test@test.com',
-    },
-    paymentMethod: 'Stripe',
-    shippingAddress: {
-      fullName: 'John Doe',
-      streetAddress: '123 Main st',
-      city: 'New York',
-      postalCode: '10001',
-      country: 'US',
-    },
+  payment: {
+    id: 'PAYMENT-123',
     createdAt: new Date(),
-    totalPrice: '100',
-    taxPrice: '10',
-    shippingPrice: '10',
-    itemsPrice: '80',
-    orderitems: sampleData.products.map((x) => ({
-      name: x.name,
-      orderId: '123',
-      productId: '123',
-      slug: x.slug,
-      qty: x.stock,
-      image: x.images[0],
-      price: x.price.toString(),
-    })),
-    isDelivered: true,
-    deliveredAt: new Date(),
     isPaid: true,
     paidAt: new Date(),
-    paymentResult: {
-      id: '123',
-      status: 'succeeded',
-      pricePaid: '100',
-      email_address: 'test@test.com',
+    totalPrice: '100',
+    taxPrice: '21',
+    paymentMethod: 'PayPal',
+    invoices: [
+      {
+        id: 'INV-123',
+        invoiceNumber: 'INV-123',
+        totalPrice: 100,
+        client: {
+          name: 'John Doe'
+        }
+      }
+    ],
+    user: {
+      name: 'John Doe',
+      email: 'test@test.com'
     },
-  },
-} satisfies OrderInformationProps;
+    paymentResult: {
+      id: 'TR-123',
+      status: 'succeeded',
+      amount: '100',
+      email_address: 'test@test.com',
+      created_at: new Date().toISOString()
+    }
+  }
+} satisfies PaymentInformationProps;
 
 const dateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
 
-type OrderInformationProps = {
-  order: Order;
+type PaymentInformationProps = {
+  payment: Payment;
 };
 
-export default function PurchaseReceiptEmail({ order }: OrderInformationProps) {
+export default function PurchaseReceiptEmail({ payment }: PaymentInformationProps) {
   return (
     <Html>
       <Preview>View order receipt</Preview>
@@ -83,14 +68,14 @@ export default function PurchaseReceiptEmail({ order }: OrderInformationProps) {
                   <Text className='mb-0 mr-4 text-gray-500 whitespace-nowrap text-nowrap'>
                     Order ID
                   </Text>
-                  <Text className='mt-0 mr-4'>{order.id.toString()}</Text>
+                  <Text className='mt-0 mr-4'>{payment.id.toString()}</Text>
                 </Column>
                 <Column>
                   <Text className='mb-0 mr-4 text-gray-500 whitespace-nowrap text-nowrap'>
                     Purchase Date
                   </Text>
                   <Text className='mt-0 mr-4'>
-                    {dateFormatter.format(order.createdAt)}
+                    {dateFormatter.format(payment.createdAt)}
                   </Text>
                 </Column>
                 <Column>
@@ -98,39 +83,26 @@ export default function PurchaseReceiptEmail({ order }: OrderInformationProps) {
                     Price Paid
                   </Text>
                   <Text className='mt-0 mr-4'>
-                    {formatCurrency(order.totalPrice)}
+                    {formatCurrency(payment.totalPrice)}
                   </Text>
                 </Column>
               </Row>
             </Section>
             <Section className='border border-solid border-gray-500 rounded-lg p-4 md:p-6 my-4'>
-              {order.orderitems.map((item) => (
-                <Row key={item.productId} className='mt-8'>
-                  <Column className='w-20'>
-                    <Img
-                      width='80'
-                      alt={item.name}
-                      className='rounded'
-                      src={
-                        item.image.startsWith('/')
-                          ? `${process.env.NEXT_PUBLIC_SERVER_URL}${item.image}`
-                          : item.image
-                      }
-                    />
-                  </Column>
+              {payment.invoices.map((invoice) => (
+                <Row key={invoice.id} className='mt-8'>
+                 
                   <Column className='align-top'>
-                    {item.name} x {item.qty}
+                    {invoice.invoiceNumber}
                   </Column>
                   <Column align='right' className='align-top'>
-                    {formatCurrency(item.price)}
+                    {formatCurrency(invoice.totalPrice)}
                   </Column>
                 </Row>
               ))}
               {[
-                { name: 'Items', price: order.itemsPrice },
-                { name: 'Tax', price: order.taxPrice },
-                { name: 'Shipping', price: order.shippingPrice },
-                { name: 'Total', price: order.totalPrice },
+                { name: 'Subtotal', price: payment.totalPrice },
+                { name: 'Total', price: payment.totalPrice },
               ].map(({ name, price }) => (
                 <Row key={name} className='py-1'>
                   <Column align='right'>{name}: </Column>

@@ -8,16 +8,25 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { signInWithCredentials } from '@/lib/actions/user.actions';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const CredentialsSignInForm = () => {
   const [data, action] = useActionState(signInWithCredentials, {
     success: false,
     message: '',
   });
-
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  
+  // If sign-in was successful, force a hard reload
+  useEffect(() => {
+    if (data?.success) {
+      // Force a full page reload to initialize the session
+      window.location.href = callbackUrl;
+    }
+  }, [data?.success, callbackUrl]);
 
   const SignInButton = () => {
     const { pending } = useFormStatus();

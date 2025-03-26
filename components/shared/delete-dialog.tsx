@@ -14,13 +14,17 @@ import {
   AlertDialogTrigger,
 } from '../ui/alert-dialog';
 
+type DeleteDialogProps = {
+  id: string;
+  action: (id: string) => Promise<{ success: boolean; message: string }>;
+  variant?: 'default' | 'destructive' | 'outline';
+};
+
 const DeleteDialog = ({
   id,
   action,
-}: {
-  id: string;
-  action: (id: string) => Promise<{ success: boolean; message: string }>;
-}) => {
+  variant = 'default'
+}: DeleteDialogProps) => {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -46,7 +50,7 @@ const DeleteDialog = ({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size='sm' variant='destructive' className='ml-2'>
+        <Button size='sm' variant={variant} className='ml-2'>
           Delete
         </Button>
       </AlertDialogTrigger>
@@ -60,7 +64,7 @@ const DeleteDialog = ({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button
-            variant='destructive'
+            variant={variant}
             size='sm'
             disabled={isPending}
             onClick={handleDeleteClick}

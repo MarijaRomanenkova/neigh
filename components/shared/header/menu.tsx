@@ -1,7 +1,9 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import ModeToggle from './mode-toggle';
 import Link from 'next/link';
-import { EllipsisVertical, ShoppingCart } from 'lucide-react';
+import { EllipsisVertical, ShoppingCart, MessageSquare } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -11,33 +13,107 @@ import {
 } from '@/components/ui/sheet';
 import UserButton from './user-button';
 import Search from './search';
+import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+
+// Real API call to fetch unread message count
+const useUnreadMessages = () => {
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { status } = useSession();
+  
+  useEffect(() => {
+    // Only fetch messages if the user is authenticated
+    if (status !== 'authenticated') return;
+    
+    const getUnreadCount = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/messages/unread');
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setCount(data.count);
+      } catch (err) {
+        console.error('Failed to fetch unread message count:', err);
+        setError('Failed to fetch unread messages');
+        // Keep the old count if there's an error
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Fetch immediately
+    getUnreadCount();
+    
+    // Set up polling interval
+    const interval = setInterval(getUnreadCount, 30000); // Poll every 30 seconds
+    
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
+  }, [status]);
+  
+  return count;
+};
 
 const Menu = () => {
+  const unreadMessagesCount = useUnreadMessages();
+  const hasUnreadMessages = unreadMessagesCount > 0;
+  
   return (
     <div className='flex justify-end gap-3'>
       <nav className='hidden md:flex w-full max-w-xs gap-1'>
         <ModeToggle />
-        <Button asChild variant='ghost'>
-          <Link href='/cart'>
-            <ShoppingCart /> Cart
-          </Link>
-        </Button>
+        <div className="relative">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/user/dashboard/messages">
+              <MessageSquare className="h-5 w-5" />
+            </Link>
+          </Button>
+          {hasUnreadMessages && (
+            <Badge 
+              className="absolute -top-1 -right-1 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
+            >
+              {unreadMessagesCount}
+            </Badge>
+          )}
+        </div>
         <UserButton />
       </nav>
       <nav className='md:hidden'>
         <Sheet>
           <SheetTrigger className='align-middle'>
-            <EllipsisVertical />
+            <EllipsisVertical className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent className='flex flex-col items-start'>
             <div className='mt-10'>
-              <Search />
+              <Search initialCategories={[]} />
             </div>
             <SheetTitle>Menu</SheetTitle>
             <ModeToggle />
+            <Button asChild variant='ghost' className="relative w-full justify-start">
+              <Link href='/user/dashboard/messages'>
+                <MessageSquare className="h-5 w-5 mr-2" /> 
+                Messages
+                {hasUnreadMessages && (
+                  <Badge 
+                    className="ml-2 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
+                  >
+                    {unreadMessagesCount}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
             <Button asChild variant='ghost'>
               <Link href='/cart'>
-                <ShoppingCart /> Cart
+                <ShoppingCart className="h-5 w-5 mr-2" /> Cart
               </Link>
             </Button>
             <UserButton />

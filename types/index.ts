@@ -1,40 +1,148 @@
 import { z } from 'zod';
 import {
-  insertProductSchema,
+  insertTaskSchema,
   insertCartSchema,
-  cartItemSchema,
-  shippingAddressSchema,
-  insertOrderItemSchema,
-  insertOrderSchema,
+  insertInvoiceSchema,
   paymentResultSchema,
-  insertReviewSchema,
+  invoiceSchema,
+  invoiceItemsSchema,
 } from '@/lib/validators';
+import { Decimal } from '@prisma/client/runtime/library';
 
-export type Product = z.infer<typeof insertProductSchema> & {
+export interface Task {
   id: string;
-  rating: string;
-  numReviews: number;
+  name: string;
+  description: string;
+  createdAt: Date;
+  slug: string;
+  categoryId: string;
+  images: string[];
+  price: number;
+  statusId: string;
+  createdById: string | null;
+  author?: {
+    name: string;
+    email?: string;
+  };
+}
+
+export type Cart = {
+  id: string;
+  userId?: string;
+  sessionCartId: string;
+  invoices: Invoice[];
+  totalPrice: string | Decimal;
   createdAt: Date;
 };
 
-export type Cart = z.infer<typeof insertCartSchema>;
-export type CartItem = z.infer<typeof cartItemSchema>;
-export type ShippingAddress = z.infer<typeof shippingAddressSchema>;
-export type OrderItem = z.infer<typeof insertOrderItemSchema>;
-export type Order = z.infer<typeof insertOrderSchema> & {
+export type Payment = {
   id: string;
   createdAt: Date;
   isPaid: boolean;
   paidAt: Date | null;
-  isDelivered: boolean;
-  deliveredAt: Date | null;
-  orderitems: OrderItem[];
-  user: { name: string; email: string };
+  totalPrice: string;
+  taxPrice: string;
+  paymentMethod: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  invoices: {
+    id: string;
+    invoiceNumber: string;
+    totalPrice: number;
+    client: {
+      name: string;
+    };
+  }[];
+  paymentResult?: {
+    id: string;
+    status: string;
+    amount: string;
+    email_address: string;
+    created_at: string;
+  };
+};
+
+export type PaymentResult = {
+  id: string;
+  status: string;
+  email_address: string;
+  pricePaid: string;
+  amount: string;
+  created_at: string;
+};
+
+export type UpdatePaymentToPaidParams = {
+  paymentId: string;
   paymentResult: PaymentResult;
 };
-export type PaymentResult = z.infer<typeof paymentResultSchema>;
-export type Review = z.infer<typeof insertReviewSchema> & {
+
+export type InvoiceItem = {
   id: string;
-  createdAt: Date;
-  user?: { name: string };
+  name: string;
+  taskId: string;
+  price: string | Decimal;
+  qty?: number;
+  hours?: number;
+  description?: string;
+  invoiceId: string;
 };
+
+export type Invoice = {
+  id: string;
+  invoiceNumber: string;
+  totalPrice: string | Decimal;
+  clientId: string;
+  contractorId: string;
+  client: {
+    name: string;
+    email: string;
+  };
+  contractor: {
+    name: string;
+    email: string;
+  };
+  items: InvoiceItem[];
+  createdAt: Date;
+  isPaid?: boolean;
+  paidAt?: Date | null;
+};
+
+export type InvoiceItems = {
+  name: string;
+  taskId: string;
+  price: string;
+  qty?: number;
+};
+
+export type InvoiceItemsArray = InvoiceItems[];
+
+export type CartActionResponse = {
+  success: boolean;
+  message?: string;
+  cart?: Cart;
+}
+
+export type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  _count: {
+    tasks: number;
+  };
+};
+
+export interface ExtendedUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+  fullName?: string | null;
+  phoneNumber?: string | null;
+  companyId?: string | null;
+  address?: Record<string, unknown> | string | null;
+  clientRating?: number | null;
+  contractorRating?: number | null;
+}
