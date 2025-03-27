@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * Payment Method Form Component
+ * @module Components
+ * @group Payments
+ * 
+ * This client-side component renders a form for selecting a payment method.
+ * It allows users to choose between available payment options (Stripe/PayPal).
+ */
+
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransition } from 'react';
@@ -20,6 +30,17 @@ import { ArrowRight, Loader } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { updateUserPaymentMethod } from '@/lib/actions/user.actions';
 
+/**
+ * Payment Method Form Component
+ * 
+ * Renders a form with radio buttons for each available payment method.
+ * Submits the selected payment method to the server and redirects to the next step.
+ * Uses React Hook Form with Zod validation to ensure data integrity.
+ * 
+ * @param {Object} props - Component properties
+ * @param {string | null} props.preferredPaymentMethod - User's currently selected payment method
+ * @returns {JSX.Element} The rendered payment method form
+ */
 const PaymentMethodForm = ({
   preferredPaymentMethod,
 }: {
@@ -37,6 +58,13 @@ const PaymentMethodForm = ({
 
   const [isPending, startTransition] = useTransition();
 
+  /**
+   * Handles form submission
+   * Updates the user's payment method preference on the server
+   * Redirects to the place order page on success
+   * 
+   * @param {z.infer<typeof paymentMethodSchema>} values - Form values containing the selected payment method
+   */
   const onSubmit = async (values: z.infer<typeof paymentMethodSchema>) => {
     startTransition(async () => {
       const res = await updateUserPaymentMethod(values);

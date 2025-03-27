@@ -1,4 +1,10 @@
 'use client';
+/**
+ * @module InvoiceForm
+ * @description A form component for creating or updating invoices.
+ * This component handles dynamic invoice item management, total price calculation,
+ * and submission of the invoice data.
+ */
 
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -23,6 +29,19 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 
+/**
+ * @interface InvoiceFormProps
+ * @property {'Create' | 'Update'} type - Determines whether the form is for creating or updating an invoice
+ * @property {Invoice} [invoice] - Existing invoice data for updates
+ * @property {Object} [prefillData] - Optional data to prefill the form
+ * @property {string} [prefillData.taskId] - Task ID to prefill
+ * @property {string} [prefillData.taskName] - Task name to prefill
+ * @property {string|number} [prefillData.taskPrice] - Task price to prefill
+ * @property {string} [prefillData.clientId] - Client ID to prefill
+ * @property {string} [prefillData.clientName] - Client name to prefill
+ * @property {string} [prefillData.contractorId] - Contractor ID to prefill
+ * @property {string} [prefillData.taskAssignmentId] - Task assignment ID to prefill
+ */
 type InvoiceFormProps = {
   type: 'Create' | 'Update';
   invoice?: Invoice;
@@ -37,6 +56,13 @@ type InvoiceFormProps = {
   };
 };
 
+/**
+ * InvoiceForm component for creating or updating invoices.
+ * Handles invoice item management, total price calculation, and form submission.
+ * 
+ * @param {InvoiceFormProps} props - Component props
+ * @returns {JSX.Element} Form for creating or updating invoices
+ */
 const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
   const { toast } = useToast();
   const router = useRouter();
@@ -86,6 +112,9 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     }
   }, [prefillData]);
 
+  /**
+   * Adds a new empty invoice item to the form.
+   */
   const handleAddItem = () => {
     const newItem = {
       taskId: "",
@@ -97,6 +126,12 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     form.setValue("invoiceItem", [...form.getValues("invoiceItem"), newItem]);
   };
 
+  /**
+   * Removes an invoice item from the form at the specified index.
+   * Recalculates total price after removal.
+   * 
+   * @param {number} index - The index of the item to remove
+   */
   const handleRemoveItem = (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     setInvoiceItems(updatedItems);
@@ -110,6 +145,14 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     form.setValue("totalPrice", total.toFixed(2));
   };
 
+  /**
+   * Updates a specific field of an invoice item at the specified index.
+   * Recalculates total price if price or quantity changes.
+   * 
+   * @param {number} index - The index of the item to update
+   * @param {string} field - The field name to update (taskId, name, price, qty)
+   * @param {any} value - The new value for the field
+   */
   const handleItemChange = (index: number, field: string, value: any) => {
     const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
@@ -136,6 +179,12 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     }
   };
 
+  /**
+   * Handles form submission, creating a new invoice with the entered data.
+   * Displays a toast notification on success or failure.
+   * 
+   * @param {z.infer<typeof insertInvoiceSchema>} values - The form values
+   */
   const onSubmit = async (values: z.infer<typeof insertInvoiceSchema>) => {
     try {
       const result = await createInvoice(values);

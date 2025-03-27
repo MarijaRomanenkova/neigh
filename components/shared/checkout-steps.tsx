@@ -1,6 +1,31 @@
+/**
+ * Checkout Steps Component
+ * @module Components
+ * @group Shared/Checkout
+ * 
+ * This component renders a progress indicator for the checkout process.
+ * It shows the sequential steps involved in completing an order.
+ */
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Checkout Steps Component
+ * 
+ * Renders a horizontal stepper showing the stages of checkout:
+ * - User Login
+ * - Shipping Address
+ * - Payment Method
+ * - Place Order
+ * 
+ * Highlights the current step and shows connecting lines between steps.
+ * Responsive design adapts to different screen sizes.
+ * 
+ * @param {Object} props - Component properties
+ * @param {number} [props.current=0] - Zero-based index of current step
+ * @returns {JSX.Element} The rendered checkout steps indicator
+ */
 const CheckoutSteps = ({ current = 0 }) => {
   return (
     <div className='flex-between flex-col md:flex-row space-x-2 space-y-2 mb-10'>

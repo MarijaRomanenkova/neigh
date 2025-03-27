@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Invoice Details Component
+ * @module Components
+ * @group Shared/Invoice
+ * 
+ * This client-side component renders a detailed view of an invoice,
+ * including item breakdown, pricing, and payment status.
+ */
+
 import { Invoice } from '@/types';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import {
@@ -12,10 +21,30 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+/**
+ * Props for the InvoiceDetails component
+ * @interface InvoiceDetailsProps
+ * @property {Invoice} invoice - The invoice data to display
+ */
 type InvoiceDetailsProps = {
   invoice: Invoice;
 };
 
+/**
+ * Invoice Details Component
+ * 
+ * Renders a comprehensive invoice view with:
+ * - Invoice header with number and issue date
+ * - Client and contractor information
+ * - Itemized list of services/products with quantities and prices
+ * - Total amount calculation
+ * - Payment status and date information
+ * 
+ * Uses shadcn/ui Card and Table components for consistent styling.
+ * 
+ * @param {InvoiceDetailsProps} props - Component properties
+ * @returns {JSX.Element} The rendered invoice details
+ */
 const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
   // Convert Decimal to number for calculations
   const total = Number(invoice.totalPrice);
@@ -30,7 +59,7 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Date Issued</p>
-            <p>{formatDateTime(invoice.createdAt).dateOnly}</p>
+            <p>{formatDateTime(invoice.createdAt)}</p>
           </div>
         </div>
       </CardHeader>
@@ -104,7 +133,7 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
           </p>
           {invoice.paidAt && (
             <p className="text-sm text-muted-foreground">
-              Paid on: {formatDateTime(invoice.paidAt).dateTime}
+              Paid on: {formatDateTime(invoice.paidAt)}
             </p>
           )}
         </div>

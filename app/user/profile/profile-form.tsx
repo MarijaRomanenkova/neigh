@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * User Profile Form Component
+ * @module Components
+ * @group Forms
+ * 
+ * This client-side component provides a form for users to update their profile information.
+ * It handles form validation, submission, and syncing with the session data.
+ */
+
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -20,6 +30,20 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ExtendedUser } from '@/types';
 
+/**
+ * Profile Form Component
+ * 
+ * Renders a form for updating user profile information including:
+ * - Account information (username, email)
+ * - Personal information (full name, phone number)
+ * - Address information
+ * - Company ID
+ * 
+ * The form pre-populates with the user's current data from their session
+ * and updates both the database and session upon successful submission.
+ * 
+ * @returns {JSX.Element} The rendered profile form
+ */
 const ProfileForm = () => {
   const { data: session, update, status } = useSession();
   const router = useRouter();

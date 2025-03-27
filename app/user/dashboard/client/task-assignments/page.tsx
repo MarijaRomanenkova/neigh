@@ -1,3 +1,12 @@
+/**
+ * Client Task Assignments Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page displays all task assignments created by the current user in their client role.
+ * It shows task assignments with contractor details and status information.
+ */
+
 import Link from 'next/link';
 import {getAllTaskAssignmentsByClientId, deleteTaskAssignment } from '@/lib/actions/task-assignment.actions';
 import { formatId } from '@/lib/utils';
@@ -16,7 +25,22 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { TaskAssignment } from '@prisma/client';
 
-
+/**
+ * Client Task Assignments Page Component
+ * 
+ * Renders a table of all task assignments created by the client, showing:
+ * - Assignment ID
+ * - Task status
+ * - Edit and delete actions
+ * 
+ * Supports filtering by search text and category, with pagination for
+ * large numbers of assignments.
+ * Includes authentication protection and redirects unauthenticated users.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
+ * @returns {Promise<JSX.Element>} The rendered task assignments page with table
+ */
 const ClientTaskAssignmentsPage = async (props: {
   searchParams: Promise<{
     page: string;

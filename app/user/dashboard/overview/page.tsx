@@ -1,3 +1,12 @@
+/**
+ * User Dashboard Overview Page Component
+ * @module Pages
+ * @group Dashboard
+ * 
+ * This page displays an overview of the user's activity on the platform,
+ * showing statistics for both client and contractor roles.
+ */
+
 import {
   Table,
   TableBody,
@@ -17,10 +26,27 @@ import Charts from '@/app/user/dashboard/overview/charts';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 
+/**
+ * Metadata for the Dashboard Overview page
+ * Sets the page title for SEO purposes
+ */
 export const metadata: Metadata = {
   title: 'User Dashboard',
 };
 
+/**
+ * User Dashboard Overview Page Component
+ * 
+ * Displays a comprehensive overview of the user's platform activity including:
+ * - Client role metrics (outgoing payments, assignments created)
+ * - Contractor role metrics (incoming payments, assignments received)
+ * - Payment history charts
+ * 
+ * Fetches data from multiple sources and displays it in cards and charts.
+ * Requires authentication, redirects to login if user is not authenticated.
+ * 
+ * @returns {Promise<JSX.Element>} The rendered dashboard overview page
+ */
 export default async function UserOverviewPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');

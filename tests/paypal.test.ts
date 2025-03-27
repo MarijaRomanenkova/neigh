@@ -14,7 +14,7 @@ test('creates a paypal order', async () => {
   console.log(token);
   const price = 10.0;
 
-  const orderResponse = await paypal.createOrder(price);
+  const orderResponse = await paypal.createPayment(price);
   console.log(orderResponse);
 
   expect(orderResponse).toHaveProperty('id');

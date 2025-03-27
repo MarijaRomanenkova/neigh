@@ -1,13 +1,34 @@
+/**
+ * User Profile Page Component
+ * @module Pages
+ * @group Profile
+ * 
+ * This page provides the interface for users to view and update their profile information.
+ * It includes personal details, contact information, and account settings.
+ */
+
 import { Metadata } from 'next';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import ProfileForm from './profile-form';
 
+/**
+ * Metadata for the Profile page
+ * Sets the page title and description for SEO purposes
+ */
 export const metadata: Metadata = {
   title: 'Profile Settings | Neighbours',
   description: 'Update your personal and business information'
 };
 
+/**
+ * User Profile Page Component
+ * 
+ * Renders the user profile settings page with form for updating personal information.
+ * Redirects unauthenticated users to the sign-in page.
+ * 
+ * @returns {Promise<JSX.Element>} The rendered profile page with settings form
+ */
 export default async function ProfilePage() {
   const session = await auth();
   

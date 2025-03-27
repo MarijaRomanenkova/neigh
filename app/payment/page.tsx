@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * Payment Page Component
+ * @module Pages
+ * @group Payments
+ * 
+ * This client-side component handles the payment process for selected invoices.
+ * It supports multiple payment methods (Stripe and PayPal) and manages the entire
+ * payment flow from creation to completion.
+ */
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +31,17 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 
-// Simplified interface for invoices after retrieval
+/**
+ * Interface representing a simplified invoice structure
+ * @interface SimpleInvoice
+ * @property {string} id - Unique identifier for the invoice
+ * @property {string} invoiceNumber - Human-readable invoice number
+ * @property {number} totalPrice - Total amount to be paid
+ * @property {Object} client - Information about the client
+ * @property {string} client.name - Name of the client
+ * @property {Object} contractor - Information about the service provider
+ * @property {string} contractor.name - Name of the contractor
+ */
 interface SimpleInvoice {
   id: string;
   invoiceNumber: string;
@@ -34,6 +54,17 @@ interface SimpleInvoice {
   };
 }
 
+/**
+ * Main payment page component
+ * 
+ * Handles the entire payment flow:
+ * 1. Retrieves selected invoices from session storage
+ * 2. Creates a payment record in the database
+ * 3. Initializes the selected payment method (Stripe or PayPal)
+ * 4. Processes the payment and handles success/failure
+ * 
+ * @returns {JSX.Element} The rendered payment page with payment options
+ */
 export default function PaymentPage() {
   const router = useRouter();
   const { toast } = useToast();

@@ -1,11 +1,24 @@
 'use client';
+
+/**
+ * Main Navigation Component
+ * @module Components
+ * @group Navigation
+ * 
+ * This client-side component renders the main navigation links for the user dashboard.
+ * It highlights the current active section based on the URL path.
+ */
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { LayoutDashboard, ScrollText, ClipboardList, FileCheck, Send, Download } from 'lucide-react';
 
-// Define navigation links with icons
+/**
+ * Navigation link configuration
+ * @type {Array<{title: string, href: string, icon: JSX.Element}>}
+ */
 const links = [
   {
     title: 'Dashboard',
@@ -34,6 +47,17 @@ const links = [
   }
 ];
 
+/**
+ * Main Navigation Component
+ * 
+ * Renders a horizontal navigation bar with icons and text for the main
+ * sections of the user dashboard. Automatically highlights the current
+ * active section based on the URL path.
+ * 
+ * @param {Object} props - Component properties
+ * @param {string} [props.className] - Additional CSS classes to apply
+ * @returns {JSX.Element} The rendered navigation component
+ */
 const MainNav = ({
   className,
   ...props

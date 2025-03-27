@@ -1,11 +1,25 @@
 'use client';
 
+/**
+ * @module TaskContactButton
+ * @description A button component that initiates conversation with a task owner.
+ * This component handles checking for existing conversations and creating new ones if needed.
+ */
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
+/**
+ * @interface TaskContactButtonProps
+ * @property {string} taskId - The unique identifier of the task
+ * @property {string} taskOwnerId - The unique identifier of the task owner
+ * @property {'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'} [variant='default'] - Button styling variant
+ * @property {'default' | 'sm' | 'lg' | 'icon'} [size='default'] - Button size
+ * @property {string} [className] - Optional CSS class names to apply to the button
+ */
 interface TaskContactButtonProps {
   taskId: string;
   taskOwnerId: string;
@@ -14,6 +28,18 @@ interface TaskContactButtonProps {
   className?: string;
 }
 
+/**
+ * TaskContactButton component that allows users to initiate conversations with task owners.
+ * Handles authentication check, existing conversation lookup, and creation of new conversations.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.taskId - The ID of the task
+ * @param {string} props.taskOwnerId - The ID of the task owner
+ * @param {'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'} [props.variant='default'] - Button styling variant
+ * @param {'default' | 'sm' | 'lg' | 'icon'} [props.size='default'] - Button size
+ * @param {string} [props.className] - Optional class name for styling
+ * @returns {JSX.Element} A button that initiates contact with the task owner
+ */
 const TaskContactButton = ({ 
   taskId, 
   taskOwnerId,
@@ -26,6 +52,13 @@ const TaskContactButton = ({
   const router = useRouter();
   const { data: session } = useSession();
   
+  /**
+   * Handles the contact button click by checking authentication, validating the request,
+   * checking for existing conversations, and creating a new one if needed.
+   * 
+   * @async
+   * @returns {Promise<void>}
+   */
   const handleContact = async () => {
     if (!session?.user?.id) {
       router.push('/login');
@@ -115,12 +148,12 @@ const TaskContactButton = ({
         
         router.push(`/user/dashboard/messages/${newConversation.id}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error starting conversation:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to start conversation',
+        description: error instanceof Error ? error.message : 'Failed to start conversation',
       });
     } finally {
       setLoading(false);

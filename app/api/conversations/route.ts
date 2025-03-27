@@ -1,7 +1,30 @@
+/**
+ * Conversations API Route
+ * @module API
+ * @group Chat
+ * 
+ * This API endpoint manages conversations between users.
+ * It supports retrieving conversations for a user and creating new conversations.
+ * Conversations are related to tasks and include participants.
+ */
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/prisma';
 import { auth } from '@/auth';
 
+/**
+ * GET handler for conversations
+ * 
+ * Retrieves all conversations where the authenticated user is a participant.
+ * Can be filtered by taskId via query parameter.
+ * Returns conversations with participants, task details, and the latest message.
+ * 
+ * @param {Request} req - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with conversations or error details
+ * @example
+ * // Query with task filter
+ * GET /api/conversations?taskId=123
+ */
 export async function GET(req: Request) {
   try {
     const session = await auth();
@@ -66,6 +89,18 @@ export async function GET(req: Request) {
   }
 }
 
+/**
+ * POST handler for conversations
+ * 
+ * Creates a new conversation for a specific task and set of participants.
+ * The authenticated user is automatically added as a participant.
+ * 
+ * @param {Request} req - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with created conversation or error details
+ * @example
+ * // Request body format
+ * // { "taskId": "123", "participantIds": ["user1", "user2"] }
+ */
 export async function POST(req: Request) {
   try {
     const session = await auth();

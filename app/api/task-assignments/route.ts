@@ -1,8 +1,34 @@
+/**
+ * Task Assignment API Route
+ * @module API
+ * @group Tasks
+ * 
+ * This API endpoint handles the assignment of tasks to contractors by clients.
+ * It creates task assignment records in the database and updates task statuses.
+ */
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/prisma';
 import { auth } from '@/auth';
 import { insertTaskAssignmentSchema } from '@/lib/validators';
 
+/**
+ * POST handler for task assignment
+ * 
+ * Creates a new task assignment linking a task to a contractor.
+ * Updates the task status to reflect the assignment.
+ * 
+ * Security:
+ * - Requires authentication
+ * - Validates that the user is the owner of the task
+ * - Prevents duplicate assignments to the same contractor
+ * 
+ * @param {Request} req - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with assignment data or error details
+ * @example
+ * // Request body format
+ * // { "taskId": "123", "clientId": "456", "contractorId": "789", "statusId": "in_progress" }
+ */
 export async function POST(req: Request) {
   try {
     const session = await auth();

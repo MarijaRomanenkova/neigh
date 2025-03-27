@@ -1,8 +1,30 @@
+/**
+ * @module db/seed
+ * @description Database seeding script that populates the database with initial test data.
+ * This script creates categories, task statuses, users, tasks, and task assignments for testing purposes.
+ * It first cleans any existing data to ensure a fresh start.
+ * 
+ * To run this script: npx ts-node db/seed.ts
+ */
+
 import { PrismaClient } from '@prisma/client'
 import { hashSync } from 'bcrypt-ts'
 
 const prisma = new PrismaClient()
 
+/**
+ * Main seeding function that populates the database with test data.
+ * Executes in sequence:
+ * 1. Cleans existing data
+ * 2. Creates categories
+ * 3. Creates task statuses
+ * 4. Creates users with hashed passwords
+ * 5. Creates tasks
+ * 6. Creates task assignments
+ * 
+ * @async
+ * @returns {Promise<void>}
+ */
 async function main() {
   // Clean up existing data
   console.log('Cleaning up existing data...')
@@ -180,6 +202,9 @@ async function main() {
   console.log('Database seeded successfully!')
 }
 
+/**
+ * Execute the seeding process and handle any errors
+ */
 main()
   .catch((e) => {
     console.error(e)

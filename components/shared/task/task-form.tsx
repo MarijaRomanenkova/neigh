@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Task Form Component
+ * @module Components
+ * @group Shared/Task
+ * 
+ * This client-side component provides a form for creating and updating tasks,
+ * with validation, image uploads, and category selection.
+ */
+
 import { useToast } from '@/hooks/use-toast';
 import { taskDefaultValues } from '@/lib/constants';
 import { insertTaskSchema, updateTaskSchema } from '@/lib/validators';
@@ -34,6 +43,17 @@ import {
 import { prisma } from '@/db/prisma';
 import { auth } from "@/auth";
 
+/**
+ * Props for the TaskForm component
+ * @interface TaskFormProps
+ * @property {'Create'|'Update'} type - The form mode (create new task or update existing)
+ * @property {Task|null} task - Existing task data for update mode (null for create)
+ * @property {string} [taskId] - ID of the task being updated
+ * @property {Object[]} categories - Available categories for selection
+ * @property {string} categories[].id - Category ID
+ * @property {string} categories[].name - Category name
+ * @property {string} userId - ID of the user creating/updating the task
+ */
 type TaskFormProps = {
   type: 'Create' | 'Update';
   task: Task | null;
@@ -45,6 +65,23 @@ type TaskFormProps = {
   userId: string;
 };
 
+/**
+ * Task Form Component
+ * 
+ * Renders a comprehensive form for creating and updating tasks with:
+ * - Name and slug fields with automatic slug generation
+ * - Category selection from available options
+ * - Price input with proper validation
+ * - Image upload functionality with preview
+ * - Description editor
+ * - Proper validation using Zod schemas
+ * - Toast notifications for success/error states
+ * 
+ * Handles both creation and update workflows with appropriate API calls.
+ * 
+ * @param {TaskFormProps} props - Component properties
+ * @returns {JSX.Element} The rendered task form
+ */
 const TaskForm = ({
   type,
   task = null,
@@ -55,6 +92,7 @@ const TaskForm = ({
   const router = useRouter();
   const { toast } = useToast();
 
+  // Initialize form with appropriate schema and default values
   const form = useForm<z.infer<typeof insertTaskSchema>>({
     resolver:
       type === 'Update'
@@ -69,6 +107,12 @@ const TaskForm = ({
         : taskDefaultValues,
   });
 
+  /**
+   * Form submission handler
+   * Handles both create and update scenarios with appropriate API calls
+   * 
+   * @param {z.infer<typeof insertTaskSchema>} values - Form values
+   */
   const onSubmit: SubmitHandler<z.infer<typeof insertTaskSchema>> = async (
     values
   ) => {
@@ -99,7 +143,7 @@ const TaskForm = ({
         return;
       }
 
-      const res = await updateTask({ ...values, id: taskId });
+      const res = await updateTask({ ...values, id: taskId } as z.infer<typeof insertTaskSchema> & { id: string });
 
       if (!res.success) {
         toast({
@@ -115,6 +159,7 @@ const TaskForm = ({
     }
   };
 
+  // Watch images field for preview functionality
   const images = form.watch('images');
 
 

@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Task Assignment Button Component
+ * @module Components
+ * @group Shared/Chat
+ * 
+ * This client-side component provides a button and confirmation dialog
+ * for task owners to assign tasks to contractors.
+ */
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
@@ -15,6 +24,15 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 
+/**
+ * Props for the TaskAssignButton component
+ * @interface TaskAssignButtonProps
+ * @property {string} taskId - ID of the task to be assigned
+ * @property {string} taskOwnerId - ID of the task owner (client)
+ * @property {string} contractorId - ID of the contractor to assign the task to
+ * @property {string} [className] - Optional CSS class names
+ * @property {Function} [onAssigned] - Optional callback function after successful assignment
+ */
 interface TaskAssignButtonProps {
   taskId: string;
   taskOwnerId: string;
@@ -23,6 +41,19 @@ interface TaskAssignButtonProps {
   onAssigned?: () => void;
 }
 
+/**
+ * Task Assignment Button Component
+ * 
+ * Renders a button with confirmation dialog for task assignment with:
+ * - Authorization check to ensure only task owners can assign tasks
+ * - Confirmation dialog with details about assignment implications
+ * - API integration to update task status and create assignment record
+ * - Loading state during assignment process
+ * - Success/error notifications via toast
+ * 
+ * @param {TaskAssignButtonProps} props - Component properties
+ * @returns {JSX.Element|null} The rendered button or null if user is not authorized
+ */
 export default function TaskAssignButton({ 
   taskId, 
   taskOwnerId,
@@ -40,6 +71,10 @@ export default function TaskAssignButton({
     return null;
   }
 
+  /**
+   * Handles the task assignment process
+   * Fetches task status, creates assignment record, and manages UI states
+   */
   const handleAssignTask = async () => {
     if (isAssigning) return;
     
@@ -112,7 +147,7 @@ export default function TaskAssignButton({
         <DialogHeader>
           <DialogTitle>Assign Task</DialogTitle>
           <DialogDescription>
-            This will assign the task to the contractor and change its status to "In Progress".
+            This will assign the task to the contractor and change its status to &quot;In Progress&quot;.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

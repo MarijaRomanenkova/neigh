@@ -1,3 +1,12 @@
+/**
+ * Client Payments Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page displays all payments made by the current user in their client role.
+ * It shows payment history with details like date, amount, and payment status.
+ */
+
 import { Metadata } from 'next';
 import { getMyPayments } from '@/lib/actions/payment.actions';
 import { formatCurrency, formatDateTime, formatId } from '@/lib/utils';
@@ -12,10 +21,30 @@ import {
 } from '@/components/ui/table';
 import Pagination from '@/components/shared/pagination';
 
+/**
+ * Metadata for the Payments page
+ * Sets the page title for SEO purposes
+ */
 export const metadata: Metadata = {
   title: 'My Payments',
 };
 
+/**
+ * Client Payments Page Component
+ * 
+ * Renders a table of all payments made by the user, showing:
+ * - Payment ID
+ * - Creation date
+ * - Total amount
+ * - Payment status (paid/unpaid)
+ * - Link to payment details
+ * 
+ * Supports pagination for large payment histories.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{page: string}>} props.searchParams - URL search parameters for pagination
+ * @returns {Promise<JSX.Element>} The rendered payments page with table
+ */
 const PaymentsPage = async (props: {
   searchParams: Promise<{ page: string }>;
 }) => {

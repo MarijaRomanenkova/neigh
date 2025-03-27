@@ -1,3 +1,12 @@
+/**
+ * Contractor Task Assignments Page Component
+ * @module Pages
+ * @group Dashboard/Contractor
+ * 
+ * This page displays all task assignments for the logged-in contractor.
+ * It shows task assignments with client details, invoice status, and payment information.
+ */
+
 import Link from 'next/link';
 import { getAllTaskAssignmentsByContractorId } from '@/lib/actions/task-assignment.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
@@ -17,6 +26,24 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 
+/**
+ * Contractor Task Assignments Page Component
+ * 
+ * Renders a grid of cards showing all task assignments assigned to the contractor, with:
+ * - Task name and description
+ * - Client information
+ * - Task status with color coding
+ * - Invoice and payment status
+ * - Pricing information
+ * - Option to issue invoice for completed tasks
+ * 
+ * Includes authentication protection and redirects unauthenticated users.
+ * Supports filtering and pagination for large numbers of assignments.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
+ * @returns {Promise<JSX.Element>} The rendered task assignments page with card grid
+ */
 const ContractorTaskAssignmentsPage = async (props: {
   searchParams: Promise<{
     page: string;

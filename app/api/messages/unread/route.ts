@@ -1,7 +1,31 @@
+/**
+ * Unread Messages Count API Route
+ * @module API
+ * @group Chat
+ * 
+ * This API endpoint provides a count of unread messages for the current user.
+ * It helps support notifications and visual indicators of unread messages
+ * across all conversations where the user is a participant.
+ */
+
 import { NextResponse } from "next/server";
 import { auth } from '@/auth';
 import { prisma } from "@/db/prisma";
 
+/**
+ * GET handler for unread message count
+ * 
+ * Counts all unread messages for the authenticated user across all conversations.
+ * Only counts messages that:
+ * - Are in conversations where the user is a participant
+ * - Were not sent by the user themself
+ * - Have not been marked as read
+ * 
+ * @returns {Promise<NextResponse>} JSON response with unread message count
+ * @example
+ * // Response format
+ * // { "count": 10 }
+ */
 export async function GET() {
   try {
     const session = await auth();

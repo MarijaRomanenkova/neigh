@@ -1,5 +1,11 @@
 'use server';
 
+/**
+ * Shopping cart management functions for adding and removing invoices
+ * @module CartActions
+ * @group API
+ */
+
 import { cookies } from 'next/headers';
 import { Invoice } from '@/types';
 import { convertToPlainObject, formatError} from '../utils';
@@ -9,11 +15,35 @@ import { insertInvoiceSchema, insertCartSchema } from '../validators';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 
+/**
+ * Calculates the total price for an array of invoices
+ * 
+ * @param invoices - Array of invoice objects with totalPrice property
+ * @returns Object containing the calculated totalPrice
+ */
 function calcPrice(invoices: Invoice[]) {
   const totalPrice = invoices.reduce((sum, invoice) => sum + Number(invoice.totalPrice), 0);
   return { totalPrice };
 }
 
+/**
+ * Adds an invoice to the user's cart
+ * 
+ * @param invoiceId - The unique identifier of the invoice to add
+ * @returns Object containing success status, message, and updated cart data
+ * 
+ * @example
+ * // In an invoice detail component
+ * const handleAddToCart = async () => {
+ *   const result = await addInvoiceToCart(invoice.id);
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', result.message);
+ *   } else {
+ *     showNotification('Error', result.message);
+ *   }
+ * };
+ */
 export async function addInvoiceToCart(invoiceId: string) {
   try {
     // Check for cart cookie
@@ -102,6 +132,9 @@ export async function addInvoiceToCart(invoiceId: string) {
   }
 }
 
+/**
+ * Type definition for a cart with included invoice and client details
+ */
 type CartWithInvoices = Prisma.CartGetPayload<{
   include: {
     invoices: {
@@ -112,6 +145,29 @@ type CartWithInvoices = Prisma.CartGetPayload<{
   }
 }>;
 
+/**
+ * Retrieves the current user's cart with all invoice details
+ * 
+ * @returns The cart object with included invoices, or null if no cart exists
+ * 
+ * @example
+ * // In a cart page component
+ * const Cart = async () => {
+ *   const cart = await getMyCart();
+ *   
+ *   if (!cart || cart.invoices.length === 0) {
+ *     return <EmptyCart />;
+ *   }
+ *   
+ *   return (
+ *     <div>
+ *       <h1>Your Cart</h1>
+ *       <CartItems items={cart.invoices} />
+ *       <CartSummary totalPrice={cart.totalPrice} />
+ *     </div>
+ *   );
+ * };
+ */
 export async function getMyCart(): Promise<CartWithInvoices | null> {
   try {
     const sessionCartId = (await cookies()).get('sessionCartId')?.value;
@@ -136,6 +192,34 @@ export async function getMyCart(): Promise<CartWithInvoices | null> {
   }
 }
 
+/**
+ * Removes an invoice from the user's cart
+ * 
+ * @param invoiceId - The unique identifier of the invoice to remove
+ * @returns Object containing success status, message, and updated cart data
+ * 
+ * @example
+ * // In a cart item component
+ * const CartItem = ({ invoice }) => {
+ *   const handleRemove = async () => {
+ *     const result = await removeInvoiceFromCart(invoice.id);
+ *     
+ *     if (result.success) {
+ *       showNotification('Success', result.message);
+ *     } else {
+ *       showNotification('Error', result.message);
+ *     }
+ *   };
+ *   
+ *   return (
+ *     <div className="cart-item">
+ *       <p>Invoice #{invoice.invoiceNumber}</p>
+ *       <p>${invoice.totalPrice}</p>
+ *       <button onClick={handleRemove}>Remove</button>
+ *     </div>
+ *   );
+ * };
+ */
 export async function removeInvoiceFromCart(invoiceId: string) {
   try {
     // Check for cart cookie

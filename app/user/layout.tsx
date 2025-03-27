@@ -1,10 +1,31 @@
+/**
+ * User Layout Component
+ * @module Layouts
+ * @group User
+ * 
+ * This layout component provides the common structure for all user-related pages,
+ * including the navigation bar, logo, and user menu.
+ */
+
 import { APP_NAME } from '@/lib/constants';
 import Image from 'next/image';
 import Link from 'next/link';
 import Menu from '@/components/shared/header/menu';
 import MainNav from './main-nav';
 
-// Server component
+/**
+ * User Layout Component
+ * 
+ * Renders the common layout for all pages in the user section including:
+ * - Top navigation bar with app logo
+ * - Main navigation for user dashboard sections
+ * - User menu for account management
+ * - Container for the page content
+ * 
+ * @param {Object} props - Component properties
+ * @param {React.ReactNode} props.children - Child components to render within the layout
+ * @returns {JSX.Element} The rendered layout
+ */
 export default function UserLayout({
   children,
 }: Readonly<{

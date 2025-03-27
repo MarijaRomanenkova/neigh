@@ -1,3 +1,12 @@
+/**
+ * Stripe Payment Success Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page is displayed after a successful Stripe payment.
+ * It verifies the payment and displays a confirmation message.
+ */
+
 import { Button } from '@/components/ui/button';
 import { getPaymentById } from '@/lib/actions/payment.actions';
 import Link from 'next/link';
@@ -6,6 +15,23 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
+/**
+ * Stripe Payment Success Page Component
+ * 
+ * Handles the callback from Stripe after payment completion.
+ * Verifies the payment with the Stripe API and checks that it matches our records.
+ * Displays a success message if everything is valid.
+ * 
+ * Security:
+ * - Validates the payment intent ID from the query parameters
+ * - Ensures the payment intent's metadata matches our payment record
+ * - Checks that the payment status is "succeeded"
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{id: string}>} props.params - Route parameters containing the payment ID
+ * @param {Promise<{payment_intent: string}>} props.searchParams - URL search parameters containing the payment intent ID
+ * @returns {Promise<JSX.Element>} The rendered success page
+ */
 const SuccessPage = async (props: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ payment_intent: string }>;

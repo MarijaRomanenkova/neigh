@@ -1,3 +1,12 @@
+/**
+ * Client Invoice Detail Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page displays detailed information about a specific invoice received by the client.
+ * It includes invoice items, totals, and payment options if the invoice is unpaid.
+ */
+
 import { getInvoiceByNumber } from '@/lib/actions/invoice.actions';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -9,12 +18,23 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Invoice } from '@/types';
 
+/**
+ * Props for the ClientInvoicePage component
+ * @interface Props
+ * @property {Promise<{invoiceNumber: string}>} params - Route parameters containing the invoice number
+ */
 interface Props {
   params: Promise<{
     invoiceNumber: string;
   }>;
 }
 
+/**
+ * Generate metadata for the invoice detail page
+ * 
+ * @param {Props} props - Component properties
+ * @returns {Promise<Metadata>} Page metadata with invoice number in title
+ */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { invoiceNumber } = await params;
   return {
@@ -22,6 +42,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * Client Invoice Detail Page Component
+ * 
+ * Renders detailed information for a specific invoice including:
+ * - Invoice header with number, date, and status
+ * - Contractor and client details
+ * - Line items with descriptions and costs
+ * - Total amounts and taxes
+ * - Payment options for unpaid invoices
+ * 
+ * Includes authentication and authorization checks to ensure the 
+ * invoice belongs to the current user.
+ * 
+ * @param {Props} props - Component properties
+ * @returns {Promise<JSX.Element>} The rendered invoice detail page
+ */
 async function ClientInvoicePage({ params }: Props) {
   // Await the params object to get the invoiceNumber
   const { invoiceNumber } = await params;

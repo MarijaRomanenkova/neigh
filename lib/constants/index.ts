@@ -1,12 +1,48 @@
+/**
+ * Application Constants
+ * @module Lib/Constants
+ * 
+ * This module defines application-wide constants used throughout the codebase.
+ * Constants are categorized by function and provide default values when environment variables are not set.
+ */
+
+/**
+ * Application name - Used for branding, email sender name, and metadata
+ * @type {string}
+ */
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Neigh";
+
+/**
+ * Application description - Used for SEO and metadata
+ * @type {string}
+ */
 export const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Neigh is a platform for connecting neighbors and finding tasks to do around the house.";
+
+/**
+ * Server URL - Base URL for the application
+ * @type {string}
+ */
 export const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000";
+
+/**
+ * Maximum number of tasks to display in the latest tasks section
+ * @type {number}
+ */
 export const LATEST_TASKS_LIMIT = Number(process.env.LATEST_TASKS_LIMIT) || 12;
+
+/**
+ * Default values for the sign-in form
+ * @type {Object}
+ */
 export const signInDefaultValues = {
   email: '',
   password: '',
 };
 
+/**
+ * Default values for the sign-up form
+ * @type {Object}
+ */
 export const signUpDefaultValues = {
   name: '',
   email: '',
@@ -14,6 +50,10 @@ export const signUpDefaultValues = {
   confirmPassword: '',
 };
 
+/**
+ * Default values for the shipping address form
+ * @type {Object}
+ */
 export const shippingAddressDefaultValues = {
   fullName: '',
   streetAddress: '',
@@ -22,14 +62,31 @@ export const shippingAddressDefaultValues = {
   country: '',
 };
 
+/**
+ * Available payment methods for the application
+ * @type {string[]}
+ */
 export const PAYMENT_METHODS = process.env.PAYMENT_METHODS
   ? process.env.PAYMENT_METHODS.split(', ')
   : ['PayPal', 'Stripe', 'CashOnDelivery'];
+
+/**
+ * Default payment method for new users
+ * @type {string}
+ */
 export const DEFAULT_PAYMENT_METHOD =
   process.env.DEFAULT_PAYMENT_METHOD || 'PayPal';
 
+/**
+ * Number of items to display per page in paginated lists
+ * @type {number}
+ */
 export const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 12;
 
+/**
+ * Default values for the task creation form
+ * @type {Object}
+ */
 export const taskDefaultValues = {
   name: '',
   slug: '',
@@ -39,10 +96,17 @@ export const taskDefaultValues = {
   price: 0
 };
 
+/**
+ * Available user roles in the application
+ * @type {string[]}
+ */
 export const USER_ROLES = process.env.USER_ROLES
   ? process.env.USER_ROLES.split(', ')
   : ['admin', 'user'];
 
-
+/**
+ * Email address used as the sender for system emails
+ * @type {string}
+ */
 export const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 

@@ -1,3 +1,12 @@
+/**
+ * Place Payment Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page is the final step in the checkout process where users review and place their payment.
+ * It displays payment method, invoice details, and total amount before final submission.
+ */
+
 import { auth } from '@/auth';
 import { getMyCart } from '@/lib/actions/cart.actions';
 import { getUserById } from '@/lib/actions/user.actions';
@@ -18,10 +27,30 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import PlaceOrderForm from './place-order-form';
 
+/**
+ * Metadata for the Place Payment page
+ * Sets the page title for SEO purposes
+ */
 export const metadata: Metadata = {
   title: 'Place Order',
 };
 
+/**
+ * Place Payment Page Component
+ * 
+ * Displays a summary of the payment about to be made, including:
+ * - Selected payment method with option to edit
+ * - List of invoices included in the payment
+ * - Order summary with total amount
+ * - Button to place the order and create the payment
+ * 
+ * Security:
+ * - Validates that the user is authenticated
+ * - Ensures the cart is not empty
+ * - Verifies payment method is selected
+ * 
+ * @returns {Promise<JSX.Element>} The rendered place payment page
+ */
 const PlacePaymentPage = async () => {
   const cart = await getMyCart();
   const session = await auth();

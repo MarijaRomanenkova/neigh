@@ -1,3 +1,13 @@
+/**
+ * Admin Tasks Management Page
+ * @module Admin
+ * @group Admin Pages
+ * 
+ * This page provides administrators with a comprehensive interface to manage tasks,
+ * including listing, filtering, editing, and deleting tasks.
+ * It requires admin privileges to access.
+ */
+
 import Link from 'next/link';
 import { getAllTasks, deleteTask } from '@/lib/actions/task.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
@@ -15,6 +25,24 @@ import DeleteDialog from '@/components/shared/delete-dialog';
 import { requireAdmin } from '@/lib/auth-guard';
 import { UserIcon } from 'lucide-react';
 
+/**
+ * Admin Tasks Page Component
+ * 
+ * This server component displays a management interface for tasks with:
+ * - Task ID, name, author, price, and category
+ * - Filtering capabilities by search text and category
+ * - Pagination for large result sets
+ * - Links to edit individual tasks
+ * - Task deletion functionality
+ * - Button to create new tasks
+ * 
+ * The page enforces admin-only access through the requireAdmin middleware.
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
+ * @returns {JSX.Element} Admin tasks management interface
+ */
 const AdminTasksPage = async (props: {
   searchParams: Promise<{
     page: string;
@@ -22,14 +50,17 @@ const AdminTasksPage = async (props: {
     category: string;
   }>;
 }) => {
+  // Verify admin access
   await requireAdmin();
 
   const searchParams = await props.searchParams;
 
+  // Extract search parameters
   const page = Number(searchParams.page) || 1;
   const searchText = searchParams.query || '';
   const category = searchParams.category || '';
 
+  // Fetch tasks with filtering and pagination
   const tasks = await getAllTasks({
     query: searchText,
     page,
@@ -38,6 +69,7 @@ const AdminTasksPage = async (props: {
 
   return (
     <div className='space-y-2'>
+      {/* Page header with search filter info and create button */}
       <div className='flex-between'>
         <div className='flex items-center gap-3'>
           <h1 className='h2-bold'>Tasks</h1>
@@ -57,6 +89,7 @@ const AdminTasksPage = async (props: {
         </Button>
       </div>
 
+      {/* Tasks table */}
       <Table>
         <TableHeader>
           <TableRow>
@@ -93,6 +126,8 @@ const AdminTasksPage = async (props: {
           ))}
         </TableBody>
       </Table>
+      
+      {/* Pagination controls */}
       {tasks.totalPages > 1 && (
         <Pagination page={page} totalPages={tasks.totalPages} />
       )}

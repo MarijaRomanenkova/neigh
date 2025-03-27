@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * User Button Component
+ * @module Components
+ * @group Shared/Header
+ * 
+ * This client-side component provides user authentication controls
+ * with dropdown menu for account actions and profile information.
+ */
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +23,21 @@ import { UserIcon, LogOut, ShieldCheck } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+/**
+ * User Button Component
+ * 
+ * Renders authentication controls with:
+ * - User avatar with initials as trigger
+ * - Profile information display 
+ * - Sign out functionality
+ * - Admin-specific navigation options
+ * - Different states for authenticated/unauthenticated users
+ * - Loading state with fallback handling
+ * 
+ * Manages session state and hydration with next-auth.
+ * 
+ * @returns {JSX.Element|null} The rendered user button or null during hydration
+ */
 const UserButton = () => {
   const { data: session, status } = useSession();
   const [isClient, setIsClient] = useState(false);
@@ -58,6 +83,10 @@ const UserButton = () => {
     const firstInitial = session.user?.name?.charAt(0)?.toUpperCase() ?? 'U';
     const isAdmin = session?.user?.role === 'admin';
     
+    /**
+     * Handles user sign out
+     * Redirects to home page after successful sign out
+     */
     const handleSignOut = async () => {
       try {
         await signOut({ callbackUrl: '/' });

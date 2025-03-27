@@ -1,3 +1,17 @@
+/**
+ * Complete NextAuth configuration and authentication system
+ * @module Auth
+ * @group Authentication
+ * 
+ * This file extends the base authentication configuration from auth.config.ts
+ * and implements the full authentication system including:
+ * - Credential-based authentication (email/password)
+ * - Session management with JWT strategy
+ * - Custom callbacks for session and token handling
+ * - Database integration with Prisma adapter
+ * - Shopping cart merging during authentication
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import NextAuth from 'next-auth';
 import { authConfig } from './auth.config';
@@ -7,6 +21,16 @@ import { cookies } from 'next/headers';
 import { compare } from 'bcrypt-ts';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
+/**
+ * Complete authentication configuration
+ * 
+ * Extends the base configuration from auth.config.ts with:
+ * - Session configuration (JWT strategy)
+ * - Prisma adapter for database integration
+ * - Cookie settings for various authentication tokens
+ * - Credential provider for email/password login
+ * - Callbacks for session and JWT handling
+ */
 export const config = {
   pages: {
     signIn: '/sign-in',
@@ -47,6 +71,14 @@ export const config = {
     },
   },
   providers: [
+    /**
+     * Credentials provider for email/password authentication
+     * 
+     * Validates user credentials against the database:
+     * 1. Finds user by email
+     * 2. Compares password hash
+     * 3. Returns user data or null if authentication fails
+     */
     CredentialsProvider({
       credentials: {
         email: { type: 'email' },
@@ -86,6 +118,21 @@ export const config = {
   ],
   callbacks: {
     ...authConfig.callbacks,
+    /**
+     * Callback to customize session object
+     * 
+     * Runs when a session is checked.
+     * Enhances the session with user data from the token:
+     * - Sets user ID (sub claim from token)
+     * - Sets user role
+     * - Updates name if session was updated
+     * 
+     * @param session - Current session object
+     * @param user - User object from the database
+     * @param trigger - What triggered this callback (e.g., 'update')
+     * @param token - JWT token containing user data
+     * @returns Enhanced session object
+     */
     async session({ session, user, trigger, token }: any) {
       // Set the user ID from the token
       session.user.id = token.sub;
@@ -99,6 +146,22 @@ export const config = {
 
       return session;
     },
+    /**
+     * Callback to customize JWT token
+     * 
+     * Runs when a JWT is created or updated.
+     * Enhances the token with additional user data:
+     * - Sets user ID and role
+     * - Handles default name (using email if name is 'NO_NAME')
+     * - Merges shopping carts during sign-in/sign-up
+     * - Updates token on session updates
+     * 
+     * @param token - Current token object
+     * @param user - User object from database or credentials
+     * @param trigger - What triggered this callback (e.g., 'signIn', 'update')
+     * @param session - Current session object
+     * @returns Enhanced token object
+     */
     async jwt({ token, user, trigger, session }: any) {
       // Assign user fields to token
       if (user) {
@@ -151,4 +214,12 @@ export const config = {
   },
 };
 
+/**
+ * NextAuth handlers and utility functions
+ * 
+ * - handlers: API route handlers for NextAuth
+ * - auth: Function to get the session and user
+ * - signIn: Function to programmatically sign in
+ * - signOut: Function to programmatically sign out
+ */
 export const { handlers, auth, signIn, signOut } = NextAuth(config);

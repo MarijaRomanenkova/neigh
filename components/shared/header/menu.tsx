@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Header Menu Component
+ * @module Components
+ * @group Shared/Header
+ * 
+ * This client-side component renders the main navigation menu with responsive
+ * desktop and mobile layouts, user authentication controls, and notification badges.
+ */
+
 import { Button } from '@/components/ui/button';
 import ModeToggle from './mode-toggle';
 import Link from 'next/link';
@@ -17,7 +26,16 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
-// Real API call to fetch unread message count
+/**
+ * Custom hook for fetching and tracking unread message count
+ * 
+ * Provides real-time tracking of unread messages with:
+ * - Initial loading on component mount
+ * - Periodic polling for updates
+ * - Error handling and retry logic
+ * 
+ * @returns {number} Count of unread messages
+ */
 const useUnreadMessages = () => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -28,6 +46,9 @@ const useUnreadMessages = () => {
     // Only fetch messages if the user is authenticated
     if (status !== 'authenticated') return;
     
+    /**
+     * Fetches the current unread message count from the API
+     */
     const getUnreadCount = async () => {
       try {
         setLoading(true);
@@ -63,6 +84,20 @@ const useUnreadMessages = () => {
   return count;
 };
 
+/**
+ * Menu Component
+ * 
+ * Renders a responsive navigation menu with:
+ * - Dark/light mode toggle
+ * - Messages link with unread count badge
+ * - User authentication button
+ * - Shopping cart link
+ * - Mobile slide-out menu for smaller screens
+ * 
+ * Automatically adapts layout based on screen size.
+ * 
+ * @returns {JSX.Element} The rendered menu component
+ */
 const Menu = () => {
   const unreadMessagesCount = useUnreadMessages();
   const hasUnreadMessages = unreadMessagesCount > 0;

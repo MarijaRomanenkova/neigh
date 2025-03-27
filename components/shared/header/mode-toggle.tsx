@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * Theme Mode Toggle Component
+ * @module Components
+ * @group Shared/Header
+ * 
+ * This client-side component provides a dropdown menu for switching
+ * between light, dark, and system color themes.
+ */
+
 import { useState, useEffect } from "react";
 import {
   DropdownMenu,
@@ -13,15 +23,29 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { SunIcon, MoonIcon, SunMoon } from "lucide-react";
 
-
+/**
+ * Mode Toggle Component
+ * 
+ * Renders a theme selector dropdown with:
+ * - Dynamic icon based on current theme
+ * - Options for light, dark, and system themes
+ * - Client-side hydration handling
+ * - Checkbox indicators for the active theme
+ * 
+ * Integrates with next-themes for theme management.
+ * 
+ * @returns {JSX.Element|null} The rendered theme toggle or null during hydration
+ */
 const ModeToggle = () => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
+  // Handle client-side hydration
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Don't render until client-side hydration is complete
   if (!mounted) return null;
 
   return (

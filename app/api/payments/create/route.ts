@@ -1,8 +1,36 @@
+/**
+ * Payment Creation API Route
+ * @module API
+ * @group Payments
+ * 
+ * This API endpoint handles the creation of new payment records.
+ * It creates a payment linked to multiple invoices and sets up the payment
+ * for processing with the selected payment method (Stripe or PayPal).
+ */
+
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
-import { convertToPlainObject } from '@/lib/utils';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
+/**
+ * POST handler for payment creation
+ * 
+ * Creates a new payment record linked to multiple invoices.
+ * This is the first step in the payment process, creating the database record
+ * before redirecting to the appropriate payment processor.
+ * 
+ * Security:
+ * - Requires authentication
+ * - Validates that invoices belong to the authenticated user
+ * - Only allows unpaid invoices to be included
+ * 
+ * @param {Request} request - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with payment ID or error details
+ * @example
+ * // Request body format
+ * // { "invoiceIds": ["invoice1", "invoice2"], "paymentMethod": "Stripe" }
+ */
 export async function POST(request: Request) {
   try {
     // Authenticate user
@@ -133,7 +161,7 @@ export async function POST(request: Request) {
       
       // Check for Prisma-specific errors
       if (error.name === 'PrismaClientKnownRequestError') {
-        const prismaError = error as any;
+        const prismaError = error as PrismaClientKnownRequestError;
         if (prismaError.code === 'P2025') {
           statusCode = 404;
           errorMessage = 'Record not found';
@@ -147,7 +175,7 @@ export async function POST(request: Request) {
     // Check if it's a Prisma foreign key constraint error
     if (error instanceof Error && 
         error.name === 'PrismaClientKnownRequestError' && 
-        (error as any).code === 'P2025') {
+        (error as PrismaClientKnownRequestError).code === 'P2025') {
       
       // This could be because one or more invoices don't exist
       console.log('Foreign key constraint error. Some invoices likely do not exist or are already paid');

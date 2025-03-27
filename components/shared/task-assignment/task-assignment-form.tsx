@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @module TaskAssignmentForm
+ * @description A form component for creating or updating task assignments.
+ * This component handles assigning tasks to contractors with specific statuses.
+ * It supports both creation and update modes with conditional rendering of delete functionality.
+ */
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,6 +19,16 @@ import { createTaskAssignment, deleteTaskAssignment } from '@/lib/actions/task-a
 import { Prisma } from '@prisma/client';
 import DeleteDialog from '@/components/shared/delete-dialog';
 
+/**
+ * @interface TaskAssignmentFormProps
+ * @property {string} [taskId] - Optional ID of the task to be assigned
+ * @property {string} [clientId] - Optional ID of the client who created the task
+ * @property {Array<{id: string; name: string}>} contractors - List of available contractors to assign the task to
+ * @property {Array<{id: string; name: string}>} statuses - List of available statuses for the assignment
+ * @property {'Create' | 'Update'} type - Determines if the form is for creating or updating an assignment
+ * @property {Prisma.TaskAssignmentGetPayload} [assignment] - Optional existing assignment data when updating
+ * @property {string} [assignmentId] - Optional ID of the assignment when updating
+ */
 type TaskAssignmentFormProps = {
   taskId?: string;
   clientId?: string;
@@ -37,6 +54,21 @@ type TaskAssignmentFormProps = {
   assignmentId?: string;
 };
 
+/**
+ * TaskAssignmentForm component for creating or updating task assignments.
+ * Renders a form with contractor and status selection fields.
+ * In update mode, also provides the option to delete the assignment.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.taskId] - ID of the task to be assigned
+ * @param {string} [props.clientId] - ID of the client who created the task
+ * @param {Array<{id: string; name: string}>} props.contractors - Available contractors
+ * @param {Array<{id: string; name: string}>} props.statuses - Available assignment statuses
+ * @param {'Create' | 'Update'} props.type - Whether creating or updating an assignment
+ * @param {Prisma.TaskAssignmentGetPayload} [props.assignment] - Existing assignment data (for updates)
+ * @param {string} [props.assignmentId] - ID of the assignment (for updates and deletion)
+ * @returns {JSX.Element} A form for task assignment creation or management
+ */
 export function TaskAssignmentForm({ 
   taskId, 
   clientId, 
@@ -48,6 +80,7 @@ export function TaskAssignmentForm({
 }: TaskAssignmentFormProps) {
   const { toast } = useToast();
   
+  // Initialize form with zod validation schema
   const form = useForm<z.infer<typeof insertTaskAssignmentSchema>>({
     resolver: zodResolver(insertTaskAssignmentSchema),
     defaultValues: {
@@ -58,22 +91,38 @@ export function TaskAssignmentForm({
     }
   });
 
+  /**
+   * Handles form submission to create a task assignment.
+   * Shows appropriate toast messages on success or failure.
+   * 
+   * @async
+   * @param {z.infer<typeof insertTaskAssignmentSchema>} data - The validated form data
+   * @returns {Promise<void>}
+   */
   async function onSubmit(data: z.infer<typeof insertTaskAssignmentSchema>) {
-    const result = await createTaskAssignment(data);
-    
-    if (!result.success) {
+    try {
+      const result = await createTaskAssignment(data);
+      
+      if (!result.success) {
+        toast({
+          variant: 'destructive',
+          description: result.message
+        });
+        return;
+      }
+  
       toast({
-        variant: 'destructive',
         description: result.message
       });
-      return;
+      
+      form.reset();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast({
+        variant: 'destructive',
+        description: errorMessage
+      });
     }
-
-    toast({
-      description: result.message
-    });
-    
-    form.reset();
   }
 
   return (
@@ -140,6 +189,7 @@ export function TaskAssignmentForm({
         </form>
       </Form>
 
+      {/* Render delete dialog only in Update mode */}
       {type === 'Update' && assignmentId && (
         <div className="pt-6 border-t">
           <DeleteDialog 

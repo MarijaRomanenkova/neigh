@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Conversation List Component
+ * @module Components
+ * @group Shared/Chat
+ * 
+ * This client-side component renders a list of user conversations with
+ * real-time updates, unread message indicators, and conversation previews.
+ */
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -7,6 +16,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Conversation Interface
+ * @interface Conversation
+ * @property {string} id - Unique identifier for the conversation
+ * @property {Date} updatedAt - When the conversation was last updated
+ * @property {Object|null} task - Associated task information if any
+ * @property {string} task.id - ID of the associated task
+ * @property {string} task.name - Name of the associated task
+ * @property {Object[]} participants - Users participating in the conversation
+ * @property {Object[]} messages - Messages in the conversation (newest first)
+ */
 interface Conversation {
   id: string;
   updatedAt: Date;
@@ -34,6 +54,18 @@ interface Conversation {
   }[];
 }
 
+/**
+ * Conversation List Component
+ * 
+ * Renders a list of user conversations with:
+ * - Real-time conversation updates with periodic polling
+ * - Visual indicators for unread messages
+ * - Conversation previews with last message and timestamp
+ * - Task context display when conversations are task-related
+ * - Loading and empty states
+ * 
+ * @returns {JSX.Element} The rendered conversation list
+ */
 export default function ConversationList() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +79,10 @@ export default function ConversationList() {
     return () => clearInterval(interval);
   }, []);
 
+  /**
+   * Fetches conversations from the API
+   * Updates the conversations state and handles loading states
+   */
   const fetchConversations = async () => {
     try {
       setLoading(true);

@@ -1,7 +1,28 @@
+/**
+ * Footer Component
+ * @module Components
+ * @group Layout
+ * 
+ * This component renders the application footer that appears at the bottom of every page.
+ * It displays the application branding, navigation links, contact information, and copyright notice.
+ */
+
 import Link from "next/link";
 import Image from "next/image";
 import { APP_NAME } from "@/lib/constants";
 
+/**
+ * Footer Component
+ * 
+ * Renders a two-part footer with:
+ * - Main footer section with company logo, description, and navigation links
+ * - Secondary footer with copyright information
+ * 
+ * The footer is responsive, adjusting its layout based on screen size.
+ * Column arrangement changes from stacked on mobile to horizontal on larger screens.
+ * 
+ * @returns {JSX.Element} The rendered footer
+ */
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   return (

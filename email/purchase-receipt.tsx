@@ -1,3 +1,11 @@
+/**
+ * Purchase Receipt Email Template
+ * @module Email/Templates
+ * 
+ * This component renders an HTML email template for purchase receipts.
+ * It displays payment details, invoice information, and total amounts in a formatted email.
+ */
+
 import {
   Body,
   Column,
@@ -14,6 +22,7 @@ import {
 import { Payment } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
+// Sample data for previewing the email template
 PurchaseReceiptEmail.PreviewProps = {
   payment: {
     id: 'PAYMENT-123',
@@ -21,7 +30,7 @@ PurchaseReceiptEmail.PreviewProps = {
     isPaid: true,
     paidAt: new Date(),
     totalPrice: '100',
-    taxPrice: '21',
+    taxPrice: '0',
     paymentMethod: 'PayPal',
     invoices: [
       {
@@ -47,12 +56,29 @@ PurchaseReceiptEmail.PreviewProps = {
   }
 } satisfies PaymentInformationProps;
 
+// Date formatter for displaying dates in a consistent format
 const dateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
 
+/**
+ * Props for the PurchaseReceiptEmail component
+ * @interface PaymentInformationProps
+ * @property {Payment} payment - Payment object containing all details needed for the receipt
+ */
 type PaymentInformationProps = {
   payment: Payment;
 };
 
+/**
+ * Purchase Receipt Email Component
+ * 
+ * Renders a responsive HTML email template for payment receipts with:
+ * - Payment ID and date information
+ * - List of invoices included in the payment
+ * - Subtotal and total amount calculations
+ * 
+ * @param {PaymentInformationProps} props - Component properties
+ * @returns {JSX.Element} The rendered email template
+ */
 export default function PurchaseReceiptEmail({ payment }: PaymentInformationProps) {
   return (
     <Html>
@@ -83,7 +109,7 @@ export default function PurchaseReceiptEmail({ payment }: PaymentInformationProp
                     Price Paid
                   </Text>
                   <Text className='mt-0 mr-4'>
-                    {formatCurrency(payment.totalPrice)}
+                    {formatCurrency(Number(payment.totalPrice))}
                   </Text>
                 </Column>
               </Row>
@@ -96,7 +122,7 @@ export default function PurchaseReceiptEmail({ payment }: PaymentInformationProp
                     {invoice.invoiceNumber}
                   </Column>
                   <Column align='right' className='align-top'>
-                    {formatCurrency(invoice.totalPrice)}
+                    {formatCurrency(Number(invoice.totalPrice))}
                   </Column>
                 </Row>
               ))}
@@ -107,7 +133,7 @@ export default function PurchaseReceiptEmail({ payment }: PaymentInformationProp
                 <Row key={name} className='py-1'>
                   <Column align='right'>{name}: </Column>
                   <Column align='right' width={70} className='align-top'>
-                    <Text className='m-0'>{formatCurrency(price)}</Text>
+                    <Text className='m-0'>{formatCurrency(Number(price))}</Text>
                   </Column>
                 </Row>
               ))}

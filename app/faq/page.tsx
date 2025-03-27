@@ -1,3 +1,12 @@
+/**
+ * FAQ Page Component
+ * @module Pages
+ * @group Public
+ * 
+ * This page displays a collection of frequently asked questions about the Neighbours platform
+ * organized in an accordion format for easy browsing.
+ */
+
 import { Metadata } from "next";
 import { 
   Accordion, 
@@ -6,11 +15,23 @@ import {
   AccordionTrigger 
 } from "@/components/ui/accordion";
 
+/**
+ * Metadata for the FAQ page
+ * Sets the page title and description for SEO purposes
+ */
 export const metadata: Metadata = {
   title: "FAQ - Neighbours",
   description: "Frequently Asked Questions about Neighbours and our services",
 };
 
+/**
+ * FAQ Page Component
+ * 
+ * Renders an accordion-style list of frequently asked questions and their answers.
+ * Each question is expandable/collapsible for better user experience.
+ * 
+ * @returns {JSX.Element} The rendered FAQ page
+ */
 export default function FAQPage() {
   return (
     <div className="container mx-auto py-12 px-4">

@@ -1,3 +1,13 @@
+/**
+ * Admin Dashboard Overview Page
+ * @module Admin
+ * @group Admin Pages
+ * 
+ * This page serves as the main dashboard for administrators,
+ * displaying key metrics, summary statistics, and recent sales data.
+ * It requires admin privileges to access.
+ */
+
 import {
   Table,
   TableBody,
@@ -15,18 +25,38 @@ import Link from 'next/link';
 import Charts from './charts';
 import { requireAdmin } from '@/lib/auth-guard';
 
+/**
+ * Metadata for the Admin Dashboard page
+ */
 export const metadata: Metadata = {
   title: 'Admin Dashboard',
 };
 
+/**
+ * Admin Dashboard Overview Page Component
+ * 
+ * This server component displays a comprehensive dashboard with:
+ * - Key performance metrics (revenue, sales, customers, tasks)
+ * - Sales trend chart over time
+ * - Recent sales transactions table
+ * 
+ * The page enforces admin-only access through the requireAdmin middleware.
+ * 
+ * @component
+ * @returns {JSX.Element} Admin dashboard with metrics, charts, and recent sales
+ */
 const AdminOverviewPage = async () => {
+  // Verify admin access
   await requireAdmin();
 
+  // Fetch dashboard summary data
   const summary = await getPaymentSummary();
 
   return (
     <div className='space-y-2'>
       <h1 className='h2-bold'>Dashboard</h1>
+      
+      {/* KPI metrics cards */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
@@ -75,7 +105,10 @@ const AdminOverviewPage = async () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Charts and recent sales */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-7'>
+        {/* Sales chart */}
         <Card className='col-span-4'>
           <CardHeader>
             <CardTitle>Overview</CardTitle>
@@ -88,6 +121,8 @@ const AdminOverviewPage = async () => {
             />
           </CardContent>
         </Card>
+        
+        {/* Recent sales table */}
         <Card className='col-span-3'>
           <CardHeader>
             <CardTitle>Recent Sales</CardTitle>

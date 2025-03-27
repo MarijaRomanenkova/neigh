@@ -11,7 +11,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "email": "cp .env ./node_modules/react-email && email dev --dir email --port 3001",
-    "seed": "node db/seed.mjs"
+    "seed": "node db/seed.mjs",
+    "docs": "typedoc --out docs lib/**/*.ts",
+    "docs:gen": "typedoc",
+    "docs:serve": "npx serve docs"
   },
   "engines": {
     "node": "18.x || 20.x"
@@ -71,6 +74,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
     "@prisma/client": "^6.0.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.0",
@@ -84,9 +88,12 @@
     "jest": "^29.7.0",
     "postcss": "^8",
     "prisma": "^6.0.1",
+    "prisma-erd-generator": "^2.0.4",
+    "puppeteer": "^24.4.0",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "typedoc": "^0.28.1",
     "typescript": "^5"
   }
 }

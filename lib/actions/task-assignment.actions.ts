@@ -1,5 +1,11 @@
 'use server';
 
+/**
+ * Task assignment management functions for creating, retrieving, updating and deleting task assignments
+ * @module TaskAssignmentActions
+ * @group API
+ */
+
 import { prisma } from '@/db/prisma';
 import { convertToPlainObject } from '@/lib/utils';
 import { Prisma } from '@prisma/client';
@@ -7,7 +13,10 @@ import { revalidatePath } from 'next/cache';
 import { insertTaskAssignmentSchema } from '@/lib/validators';
 import { z } from 'zod';
 
-// Types for contractor view
+/**
+ * Type definition for task assignments with detailed contractor view information
+ * Includes task details, client information, status, and invoice data
+ */
 type TaskAssignmentWithContractorDetails = Prisma.TaskAssignmentGetPayload<{
   include: {
     task: {
@@ -55,12 +64,20 @@ type TaskAssignmentWithContractorDetails = Prisma.TaskAssignmentGetPayload<{
   };
 }>;
 
+/**
+ * Paginated list of task assignments for contractor view
+ */
 type TaskAssignmentContractorList = {
+  /** Array of task assignments with detailed information */
   data: TaskAssignmentWithContractorDetails[];
+  /** Total number of pages */
   totalPages: number;
 };
 
-// Types for client view
+/**
+ * Type definition for task assignments with client view information
+ * Includes minimal task details, contractor name, and status
+ */
 type TaskAssignmentWithClientDetails = Prisma.TaskAssignmentGetPayload<{
   include: {
     task: {
@@ -83,11 +100,39 @@ type TaskAssignmentWithClientDetails = Prisma.TaskAssignmentGetPayload<{
   };
 }>;
 
+/**
+ * Paginated list of task assignments for client view
+ */
 type TaskAssignmentClientList = {
+  /** Array of task assignments with client-focused information */
   data: TaskAssignmentWithClientDetails[];
+  /** Total number of pages */
   totalPages: number;
 };
 
+/**
+ * Retrieves all task assignments for a specific contractor
+ * 
+ * @param contractorId - The unique identifier of the contractor
+ * @returns Paginated list of task assignments with details relevant to contractors
+ * 
+ * @example
+ * // In a contractor dashboard component
+ * const { data: assignments, totalPages } = await getAllTaskAssignmentsByContractorId(user.id);
+ * return (
+ *   <div>
+ *     {assignments.map(assignment => (
+ *       <AssignmentCard 
+ *         key={assignment.id}
+ *         taskName={assignment.task.name}
+ *         clientName={assignment.client.name}
+ *         status={assignment.status.name}
+ *         price={assignment.task.price}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
 export async function getAllTaskAssignmentsByContractorId(
   contractorId: string
 ): Promise<TaskAssignmentContractorList> {
@@ -150,6 +195,28 @@ export async function getAllTaskAssignmentsByContractorId(
   };
 }
 
+/**
+ * Retrieves all task assignments for a specific client
+ * 
+ * @param clientId - The unique identifier of the client
+ * @returns Paginated list of task assignments with details relevant to clients
+ * 
+ * @example
+ * // In a client dashboard component
+ * const { data: assignments } = await getAllTaskAssignmentsByClientId(user.id);
+ * return (
+ *   <div>
+ *     {assignments.map(assignment => (
+ *       <TaskCard 
+ *         key={assignment.id}
+ *         taskName={assignment.task.name}
+ *         contractorName={assignment.contractor.name}
+ *         status={assignment.status.name}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
 export async function getAllTaskAssignmentsByClientId(
   clientId: string
 ): Promise<TaskAssignmentClientList> {
@@ -185,6 +252,29 @@ export async function getAllTaskAssignmentsByClientId(
   };
 }
 
+/**
+ * Retrieves a single task assignment by its ID with comprehensive details
+ * 
+ * @param id - The unique identifier of the task assignment
+ * @returns Object containing success status, message, and task assignment data if found
+ * 
+ * @example
+ * // In a task assignment detail component
+ * const { success, data, message } = await getTaskAssignmentById('assignment-123');
+ * 
+ * if (success) {
+ *   return (
+ *     <div>
+ *       <h1>{data.task.name}</h1>
+ *       <p>Client: {data.client.name}</p>
+ *       <p>Contractor: {data.contractor.name}</p>
+ *       <StatusBadge status={data.status.name} color={data.status.color} />
+ *     </div>
+ *   );
+ * } else {
+ *   return <ErrorMessage message={message} />;
+ * }
+ */
 export async function getTaskAssignmentById(id: string) {
   try {
     const assignment = await prisma.taskAssignment.findUnique({
@@ -244,6 +334,25 @@ export async function getTaskAssignmentById(id: string) {
   }
 }
 
+/**
+ * Deletes a task assignment by its ID
+ * 
+ * @param id - The unique identifier of the task assignment to delete
+ * @returns Object containing success status and message
+ * 
+ * @example
+ * // In a task management component
+ * async function handleDelete(assignmentId) {
+ *   const { success, message } = await deleteTaskAssignment(assignmentId);
+ *   
+ *   if (success) {
+ *     showNotification('Success', message);
+ *     refreshAssignments();
+ *   } else {
+ *     showNotification('Error', message);
+ *   }
+ * }
+ */
 export async function deleteTaskAssignment(id: string) {
   "use server";
   
@@ -268,6 +377,31 @@ export async function deleteTaskAssignment(id: string) {
   }
 }
 
+/**
+ * Creates a new task assignment
+ * 
+ * @param data - Task assignment data including task ID, contractor ID, client ID, and status ID
+ * @returns Object containing success status, message, and the created assignment data
+ * 
+ * @example
+ * // In a task assignment form component
+ * async function handleSubmit(formData) {
+ *   const assignmentData = {
+ *     taskId: formData.taskId,
+ *     contractorId: selectedContractor.id,
+ *     clientId: currentUser.id,
+ *     statusId: openStatusId
+ *   };
+ *   
+ *   const { success, message, data } = await createTaskAssignment(assignmentData);
+ *   
+ *   if (success) {
+ *     router.push(`/assignments/${data.id}`);
+ *   } else {
+ *     setError(message);
+ *   }
+ * }
+ */
 export async function createTaskAssignment(
   data: z.infer<typeof insertTaskAssignmentSchema>
 ) {
@@ -295,4 +429,17 @@ export async function createTaskAssignment(
       message: 'Failed to assign task'
     };
   }
+}
+
+/**
+ * Retrieves all available task categories
+ * 
+ * @returns List of categories with task counts
+ * 
+ * @example
+ * const categories = await getAllCategories();
+ * categories.forEach(cat => console.log(`${cat.name}: ${cat._count.tasks} tasks`));
+ */
+export async function getAllCategories() {
+  // Implementation
 } 

@@ -1,3 +1,12 @@
+/**
+ * Sign Up Form Component
+ * @module Authentication
+ * @group Auth Components
+ * 
+ * This client component handles user registration with name, email, and password,
+ * utilizing React Server Actions for form submission and state management.
+ */
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -10,16 +19,64 @@ import { useFormStatus } from 'react-dom';
 import { signUpUser } from '@/lib/actions/user.actions';
 import { useSearchParams } from 'next/navigation';
 
+/**
+ * Form for user registration
+ * 
+ * This component renders a form with name, email, password, and confirm password fields,
+ * handles form submission via React Server Actions, displays error messages,
+ * and redirects to the requested page on successful registration.
+ * 
+ * Features:
+ * - Name, email, and password input fields with validation
+ * - Password confirmation field
+ * - Form submission state management
+ * - Error message display
+ * - Link to sign-in page for existing users
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <SignUpForm />
+ * ```
+ */
 const SignUpForm = () => {
+  /**
+   * Action state from the signUpUser server action
+   * 
+   * @type {[{ success: boolean, message: string }, Function]}
+   */
   const [data, action] = useActionState(signUpUser, {
     success: false,
     message: '',
   });
 
+  /**
+   * Search parameters from the URL, used to extract callback URL
+   * @type {URLSearchParams}
+   */
   const searchParams = useSearchParams();
+  
+  /**
+   * URL to redirect to after successful sign-up
+   * Defaults to home page if not specified
+   * @type {string}
+   */
   const callbackUrl = searchParams.get('callbackUrl') || '/';
 
+  /**
+   * Sign-up button component with loading state
+   * 
+   * Displays "Submitting..." when the form is submitting
+   * and disables the button to prevent multiple submissions
+   * 
+   * @component
+   */
   const SignUpButton = () => {
+    /**
+     * Form submission status from React's useFormStatus hook
+     * @type {Object}
+     * @property {boolean} pending - Whether the form is currently submitting
+     */
     const { pending } = useFormStatus();
 
     return (
@@ -79,6 +136,7 @@ const SignUpForm = () => {
           <SignUpButton />
         </div>
 
+        {/* Error message display */}
         {data && !data.success && (
           <div className='text-center text-destructive'>{data.message}</div>
         )}

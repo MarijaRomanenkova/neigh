@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * @module InvoiceListTable
+ * @description A comprehensive table component for displaying invoice lists with different views for clients and contractors.
+ * The component includes functionality for selecting invoices, viewing details, and proceeding to payment.
+ */
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +32,13 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
 
+/**
+ * @interface InvoiceListTableProps
+ * @property {Invoice[]} invoices - Array of invoice objects to display in the table
+ * @property {'client' | 'contractor'} userType - The type of user viewing the table, determines available actions
+ * @property {(invoice: Invoice) => void} [onEdit] - Optional callback function for editing an invoice
+ * @property {(invoice: Invoice) => void} [onDelete] - Optional callback function for deleting an invoice
+ */
 type InvoiceListTableProps = {
   invoices: Invoice[];
   userType: 'client' | 'contractor';
@@ -33,13 +46,24 @@ type InvoiceListTableProps = {
   onDelete?: (invoice: Invoice) => void;
 };
 
-// Helper function to truncate text
+/**
+ * Helper function to truncate text to a specified length and add ellipsis if needed.
+ * 
+ * @param {string} text - The text to truncate
+ * @param {number} maxLength - Maximum length before truncation
+ * @returns {string} The truncated text with ellipsis if applicable
+ */
 const truncateText = (text: string, maxLength: number) => {
   if (!text) return '';
   return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
 };
 
-// Helper function to format date as DD-MM-YYYY
+/**
+ * Helper function to format a date object as DD-MM-YYYY string.
+ * 
+ * @param {Date} date - The date to format
+ * @returns {string} Formatted date string in DD-MM-YYYY format
+ */
 const formatDateAsDDMMYYYY = (date: Date): string => {
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
@@ -48,6 +72,18 @@ const formatDateAsDDMMYYYY = (date: Date): string => {
   return `${day}-${month}-${year}`;
 };
 
+/**
+ * InvoiceListTable component for displaying and managing a list of invoices.
+ * Provides different functionality based on user type (client or contractor).
+ * For clients, it includes invoice selection for batch payment processing.
+ * 
+ * @param {Object} props - Component props
+ * @param {Invoice[]} props.invoices - Array of invoice objects to display
+ * @param {'client' | 'contractor'} props.userType - Type of user viewing the table
+ * @param {(invoice: Invoice) => void} [props.onEdit] - Optional callback for editing
+ * @param {(invoice: Invoice) => void} [props.onDelete] - Optional callback for deleting
+ * @returns {JSX.Element} Table component with invoice list and payment summary for clients
+ */
 const InvoiceListTable = ({ 
   invoices, 
   userType, 
@@ -64,7 +100,12 @@ const InvoiceListTable = ({
   // Calculate total price of selected invoices
   const totalPrice = selectedInvoices.reduce((sum, invoice) => sum + Number(invoice.totalPrice), 0);
 
-  // Handle checkbox toggle
+  /**
+   * Toggles selection state of an invoice for payment.
+   * Prevents selection of already paid invoices.
+   * 
+   * @param {Invoice} invoice - The invoice to toggle selection for
+   */
   const toggleInvoiceSelection = (invoice: Invoice) => {
     if (invoice.isPaid) return; // Don't allow selecting paid invoices
     
@@ -81,7 +122,10 @@ const InvoiceListTable = ({
     });
   };
 
-  // Handle proceed to payment
+  /**
+   * Handles proceeding to payment with selected invoices.
+   * Stores selected invoice IDs in session storage and navigates to payment page.
+   */
   const handleProceedToPayment = () => {
     if (selectedInvoices.length === 0) {
       toast({

@@ -1,5 +1,11 @@
 'use server';
 
+/**
+ * Payment management functions for creating, processing, and retrieving payment information
+ * @module PaymentActions
+ * @group API
+ */
+
 import { isRedirectError } from 'next/dist/client/components/redirect';
 import { convertToPlainObject, formatError } from '../utils';
 import { auth } from '@/auth';
@@ -14,11 +20,34 @@ import { PAGE_SIZE } from '../constants';
 import { Prisma } from '@prisma/client';
 import { sendPurchaseReceipt } from '@/email';
 
+/**
+ * Type definition for an invoice with associated client details
+ */
 type InvoiceWithClient = Prisma.InvoiceGetPayload<{
   include: { client: true }
 }>;
 
-// Create invoice and create the invoice items
+/**
+ * Creates a new payment based on the user's cart items
+ * 
+ * @returns Object containing success status, message, and optional redirect URL
+ * @throws Will redirect errors if they occur during the payment process
+ * 
+ * @example
+ * // In a checkout component
+ * async function handleCheckout() {
+ *   const result = await createPayment();
+ *   
+ *   if (result.success) {
+ *     router.push(result.redirectTo);
+ *   } else {
+ *     setError(result.message);
+ *     if (result.redirectTo) {
+ *       router.push(result.redirectTo);
+ *     }
+ *   }
+ * }
+ */
 export async function createPayment() {
   try {
     const session = await auth();
@@ -109,7 +138,27 @@ export async function createPayment() {
   }
 }
 
-// Get payment by id
+/**
+ * Retrieves payment information by ID with associated user and invoice data
+ * 
+ * @param paymentId - The unique identifier of the payment
+ * @returns The payment object with user and invoice data, or null if not found
+ * 
+ * @example
+ * // In a payment details component
+ * const payment = await getPaymentById('payment-123');
+ * 
+ * if (payment) {
+ *   return (
+ *     <div>
+ *       <h2>Payment #{payment.id}</h2>
+ *       <p>Total: ${payment.amount}</p>
+ *       <p>Status: {payment.isPaid ? 'Paid' : 'Pending'}</p>
+ *       <InvoiceList invoices={payment.invoices} />
+ *     </div>
+ *   );
+ * }
+ */
 export async function getPaymentById(paymentId: string) {
   const data = await prisma.payment.findFirst({
     where: { id: paymentId },
@@ -122,7 +171,23 @@ export async function getPaymentById(paymentId: string) {
   return convertToPlainObject(data);
 }
 
-// Create new paypal payment
+/**
+ * Creates a PayPal payment for an existing payment record
+ * 
+ * @param paymentId - The unique identifier of the payment to process with PayPal
+ * @returns Object containing success status, message, and PayPal payment ID
+ * 
+ * @example
+ * // In a payment processor component
+ * const { success, data, message } = await createPayPalPayment('payment-123');
+ * 
+ * if (success) {
+ *   // Use the PayPal payment ID to initialize the PayPal button
+ *   initPayPalButton(data);
+ * } else {
+ *   showError(message);
+ * }
+ */
 export async function createPayPalPayment(paymentId: string) {
   try {
     // Get order from database
@@ -162,7 +227,26 @@ export async function createPayPalPayment(paymentId: string) {
   }
 }
 
-// Approve paypal order and update order to paid
+/**
+ * Approves a PayPal payment and updates the payment record to paid status
+ * 
+ * @param paymentId - The unique identifier of the payment to approve
+ * @param data - Object containing the PayPal payment ID
+ * @returns Object containing success status and message
+ * 
+ * @example
+ * // In a PayPal callback handler
+ * async function onApprove(data) {
+ *   const { success, message } = await approvePayPalPayment('payment-123', { paymentId: data.paymentId });
+ *   
+ *   if (success) {
+ *     router.push('/payment/success');
+ *   } else {
+ *     setError(message);
+ *     router.push('/payment/error');
+ *   }
+ * }
+ */
 export async function approvePayPalPayment(
   paymentId: string,
   data: { paymentId: string }
@@ -209,7 +293,28 @@ export async function approvePayPalPayment(
   }
 }
 
-// Update payment to paid
+/**
+ * Updates a payment record to paid status and sends purchase receipt
+ * 
+ * @param paymentId - The unique identifier of the payment to mark as paid
+ * @param paymentResult - Optional payment result details from payment provider
+ * @returns void
+ * @throws Will throw an error if payment not found or already paid
+ * 
+ * @example
+ * // In a payment completion handler
+ * try {
+ *   await updatePaymentToPaid('payment-123', {
+ *     id: 'provider-payment-id',
+ *     status: 'COMPLETED',
+ *     email_address: 'customer@example.com',
+ *     amount: 199.99
+ *   });
+ *   showSuccess('Payment completed successfully');
+ * } catch (error) {
+ *   console.error('Failed to update payment:', error);
+ * }
+ */
 export async function updatePaymentToPaid(
   paymentId: string,
   paymentResult?: PaymentResult
@@ -279,7 +384,34 @@ export async function updatePaymentToPaid(
   });
 }
 
-// Get user's payments
+/**
+ * Retrieves the current user's payment history with pagination
+ * 
+ * @param options - Pagination options
+ * @param options.limit - Number of records per page
+ * @param options.page - Page number to retrieve
+ * @returns Paginated list of payments and total pages
+ * @throws Will throw an error if user is not authenticated
+ * 
+ * @example
+ * // In a user dashboard component
+ * async function PaymentHistory({ page = 1 }) {
+ *   const { data, totalPages } = await getMyPayments({ page });
+ *   
+ *   return (
+ *     <div>
+ *       <h2>Your Payment History</h2>
+ *       {data.map(payment => (
+ *         <PaymentCard 
+ *           key={payment.id}
+ *           payment={payment}
+ *         />
+ *       ))}
+ *       <Pagination currentPage={page} totalPages={totalPages} />
+ *     </div>
+ *   );
+ * }
+ */
 export async function getMyPayments({
   limit = PAGE_SIZE,
   page,
@@ -307,12 +439,36 @@ export async function getMyPayments({
   };
 }
 
+/**
+ * Type definition for monthly sales data
+ */
 type SalesDataType = {
+  /** Month in MM/YY format */
   month: string;
+  /** Total sales amount for the month */
   totalSales: number;
 }[];
 
-// Get sales data and payment summary
+/**
+ * Retrieves overall payment and sales statistics
+ * 
+ * @returns Object containing counts, totals, and sales data
+ * 
+ * @example
+ * // In an admin dashboard component
+ * const stats = await getPaymentSummary();
+ * 
+ * return (
+ *   <div>
+ *     <StatCard title="Total Sales" value={`$${stats.totalSales._sum.amount}`} />
+ *     <StatCard title="Orders" value={stats.paymentsCount} />
+ *     <StatCard title="Products" value={stats.tasksCount} />
+ *     <StatCard title="Customers" value={stats.usersCount} />
+ *     <SalesChart data={stats.salesData} />
+ *     <RecentSales sales={stats.latestSales} />
+ *   </div>
+ * );
+ */
 export async function getPaymentSummary() {
   // Get counts for each resource
   const paymentsCount = await prisma.payment.count();
@@ -350,7 +506,33 @@ export async function getPaymentSummary() {
   };
 }
 
-// Get all orders
+/**
+ * Retrieves all payments with filtering and pagination
+ * 
+ * @param options - Pagination and filter options
+ * @param options.limit - Number of records per page
+ * @param options.page - Page number to retrieve
+ * @param options.query - Search query for filtering payments
+ * @returns Paginated list of payments and total pages
+ * 
+ * @example
+ * // In an admin payments component
+ * async function PaymentsList({ page = 1, searchQuery = 'all' }) {
+ *   const { data, totalPages } = await getAllPayments({ 
+ *     page, 
+ *     query: searchQuery,
+ *     limit: 20
+ *   });
+ *   
+ *   return (
+ *     <div>
+ *       <SearchBar defaultValue={searchQuery} />
+ *       <PaymentsTable payments={data} />
+ *       <Pagination currentPage={page} totalPages={totalPages} />
+ *     </div>
+ *   );
+ * }
+ */
 export async function getAllPayments({
   limit = PAGE_SIZE,
   page,
@@ -387,7 +569,32 @@ export async function getAllPayments({
   };
 }
 
-// Update COD payment to paid
+/**
+ * Updates a Cash On Delivery (COD) payment to paid status
+ * 
+ * @param paymentId - The unique identifier of the payment to mark as paid
+ * @param paymentResult - Optional payment result details
+ * @returns Object containing success status and message
+ * 
+ * @example
+ * // In an admin order management component
+ * async function markAsPaid(paymentId) {
+ *   const result = await updateCODPaymentToPaid(paymentId, {
+ *     id: 'manual-payment',
+ *     status: 'COMPLETED',
+ *     email_address: 'customer@example.com',
+ *     amount: 199.99,
+ *     created_at: new Date().toISOString()
+ *   });
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', result.message);
+ *     refreshPayments();
+ *   } else {
+ *     showNotification('Error', result.message);
+ *   }
+ * }
+ */
 export async function updateCODPaymentToPaid(
   paymentId: string,
   paymentResult?: PaymentResult
@@ -410,15 +617,42 @@ export async function updateCODPaymentToPaid(
   }
 }
 
+/**
+ * Summary of payment data with total amount, count, and monthly breakdown
+ */
 type PaymentSummary = {
+  /** Total amount of all payments */
   totalAmount: number;
+  /** Total number of payments */
   count: number;
+  /** Monthly payment data */
   monthlyData: {
+    /** Month in YYYY-MM format */
     month: string;
+    /** Payment amount for that month */
     amount: number;
   }[];
 };
 
+/**
+ * Retrieves payment summary data for a specific client
+ * 
+ * @param clientId - The unique identifier of the client
+ * @returns Payment summary with totals and monthly data
+ * 
+ * @example
+ * // In a client analytics component
+ * const paymentData = await getPaymentSummaryByClientId('client-123');
+ * 
+ * return (
+ *   <div>
+ *     <h2>Payment Summary</h2>
+ *     <p>Total Payments: {paymentData.count}</p>
+ *     <p>Total Amount: ${paymentData.totalAmount.toFixed(2)}</p>
+ *     <MonthlyChart data={paymentData.monthlyData} />
+ *   </div>
+ * );
+ */
 export async function getPaymentSummaryByClientId(
   clientId: string
 ): Promise<PaymentSummary> {
@@ -455,6 +689,25 @@ export async function getPaymentSummaryByClientId(
   };
 }
 
+/**
+ * Retrieves payment summary data for a specific contractor
+ * 
+ * @param contractorId - The unique identifier of the contractor
+ * @returns Payment summary with totals and monthly data
+ * 
+ * @example
+ * // In a contractor dashboard component
+ * const paymentData = await getPaymentSummaryByContractorId('contractor-123');
+ * 
+ * return (
+ *   <div>
+ *     <h2>Your Earnings</h2>
+ *     <p>Total Payments: {paymentData.count}</p>
+ *     <p>Total Earned: ${paymentData.totalAmount.toFixed(2)}</p>
+ *     <EarningsChart data={paymentData.monthlyData} />
+ *   </div>
+ * );
+ */
 export async function getPaymentSummaryByContractorId(
   contractorId: string
 ): Promise<PaymentSummary> {

@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Categories Drawer Component
+ * @module Components
+ * @group Shared/Header
+ * 
+ * This client-side component renders a mobile-friendly drawer menu
+ * displaying all available categories with navigation links.
+ */
+
 import {
   Drawer,
   DrawerClose,
@@ -14,10 +23,29 @@ import Link from 'next/link';
 import { Category } from '@/types';
 import { useState, useEffect } from 'react';
 
+/**
+ * Props for the CategoriesDrawer component
+ * @interface CategoriesDrawerProps
+ * @property {Category[]} [initialCategories] - Initial categories data to display
+ */
 interface CategoriesDrawerProps {
   initialCategories?: Category[];
 }
 
+/**
+ * Categories Drawer Component
+ * 
+ * Renders a side drawer for category navigation with:
+ * - Hamburger menu trigger button
+ * - List of categories with counts
+ * - Client-side data fetching with fallback to server data
+ * - Loading and empty states
+ * 
+ * Optimized for mobile navigation to browse categories.
+ * 
+ * @param {CategoriesDrawerProps} props - Component properties
+ * @returns {JSX.Element|null} The rendered drawer or null during hydration
+ */
 const CategoriesDrawer = ({ initialCategories = [] }: CategoriesDrawerProps) => {
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [isLoading, setIsLoading] = useState(initialCategories.length === 0);
@@ -36,6 +64,9 @@ const CategoriesDrawer = ({ initialCategories = [] }: CategoriesDrawerProps) => 
 
   useEffect(() => {
     if (isClient && initialCategories.length === 0) {
+      /**
+       * Fetches categories from the API when no initial data is provided
+       */
       const fetchCategories = async () => {
         try {
           setIsLoading(true);

@@ -1,3 +1,12 @@
+/**
+ * Contractor Task Assignment Detail Page Component
+ * @module Pages
+ * @group Dashboard/Contractor
+ * 
+ * This page displays detailed information about a specific task assignment for the contractor.
+ * It shows task details, client information, and provides actions for managing the assignment.
+ */
+
 import Link from 'next/link';
 import {getAllTaskAssignmentsByContractorId } from '@/lib/actions/task-assignment.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
@@ -16,7 +25,22 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { TaskAssignment } from '@prisma/client';
 
-
+/**
+ * Contractor Task Assignment Detail Page Component
+ * 
+ * Renders detailed information for a specific task assignment, showing:
+ * - Assignment ID and status
+ * - Task details and pricing
+ * - Client information
+ * - Actions available for the assignment
+ * 
+ * Includes authentication protection and redirects unauthenticated users.
+ * Supports filtering and pagination for related data.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
+ * @returns {Promise<JSX.Element>} The rendered task assignment detail page
+ */
 const ContractorTaskAssignmentPage = async (props: {
   searchParams: Promise<{
     page: string;

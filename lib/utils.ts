@@ -1,219 +1,149 @@
-import { clsx, type ClassValue } from 'clsx';
+/**
+ * Utility Functions Module
+ * @module Lib/Utils
+ * 
+ * This module provides various utility functions used throughout the application for
+ * common tasks such as string manipulation, number formatting, error handling, date formatting,
+ * and other helper functions.
+ */
+
+import { ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
+import { ReadonlyURLSearchParams } from 'next/navigation';
 import qs from 'query-string';
 
+/**
+ * Merges multiple class names together, combining Tailwind classes efficiently
+ * @param {ClassValue[]} inputs - Array of class values to be merged
+ * @returns {string} Merged class string
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Convert prisma object into a regular JS object
-export function convertToPlainObject<T>(value: T): T {
-  if (value === null || value === undefined) {
-    return value;
+/**
+ * Converts Prisma objects to plain JavaScript objects
+ * This helps with serialization issues when working with Prisma data
+ * @template T - The type of object being converted
+ * @param {T} obj - The object to convert
+ * @returns {T} Plain JavaScript object without Prisma metadata
+ */
+export function convertToPlainObject<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * Formats a number with two decimal places
+ * @param {number} value - Number to format
+ * @returns {string} Formatted string with two decimal places
+ */
+export function formatNumberWithDecimal(value: number) {
+  return value.toFixed(2);
+}
+
+/**
+ * Formats error messages from various sources into a consistent format
+ * Handles special cases for Zod validation errors and Prisma database errors
+ * @param {unknown} error - The error to format
+ * @returns {string} Formatted error message
+ */
+export function formatError(error: unknown): string {
+  if (error instanceof ZodError) {
+    return error.errors[0].message;
   }
-  
-  // Handle case where value is a Decimal object (has toNumber method)
-  if (typeof value === 'object' && value !== null) {
-    // Check if it's a Decimal object with toNumber method
-    const valueObj = value as { toNumber?: () => number };
-    if (valueObj.toNumber && typeof valueObj.toNumber === 'function') {
-      return Number(valueObj.toNumber()) as unknown as T;
+
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
+    if (error.meta?.target) {
+      const fields = (error.meta.target as string[]).join(', ');
+      return `${fields} already exists.`;
+    } else {
+      return 'This record already exists.';
     }
-    
-    // If it's an array, map over each element
-    if (Array.isArray(value)) {
-      return value.map(item => convertToPlainObject(item)) as unknown as T;
-    }
-    
-    // If it's a regular object, process each property
-    if (typeof value === 'object' && value.constructor === Object) {
-      const result: Record<string, unknown> = {};
-      for (const key in value) {
-        if (Object.prototype.hasOwnProperty.call(value, key)) {
-          const objValue = value as Record<string, unknown>;
-          result[key] = convertToPlainObject(objValue[key]);
-        }
-      }
-      return result as unknown as T;
-    }
-    
-    // Handle Date objects
-    if (value instanceof Date) {
-      return value as T;
-    }
   }
-  
-  // Use JSON.stringify and JSON.parse as a fallback for other cases
-  try {
-    return JSON.parse(JSON.stringify(value));
-  } catch (error) {
-    console.error('Error converting object to plain object:', error);
-    return value;
+
+  if (error instanceof Error) {
+    return error.message;
   }
+
+  return String(error);
 }
 
-// Format number with decimal places
-export function formatNumberWithDecimal(num: number): string {
-  const [int, decimal] = num.toString().split('.');
-  return decimal ? `${int}.${decimal.padEnd(2, '0')}` : `${int}.00`;
+/**
+ * Rounds a number to two decimal places
+ * @param {number} num - Number to round
+ * @returns {number} Rounded number
+ */
+export function round2(num: number) {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
-// Format errors
-export function formatError(error: unknown) {
-  // Type guards for expected error types
-  const isZodError = (err: unknown): err is { 
-    name: string; 
-    errors: Record<string, { message: string }> 
-  } => {
-    return typeof err === 'object' && 
-           err !== null && 
-           'name' in err && 
-           err.name === 'ZodError' && 
-           'errors' in err;
-  };
-
-  const isPrismaError = (err: unknown): err is { 
-    name: string; 
-    code: string; 
-    meta?: { target?: string[] } 
-  } => {
-    return typeof err === 'object' && 
-           err !== null && 
-           'name' in err && 
-           err.name === 'PrismaClientKnownRequestError' &&
-           'code' in err;
-  };
-
-  // Check if the error has a message property
-  const hasMessage = (err: unknown): err is { message: string } => {
-    return typeof err === 'object' && 
-           err !== null && 
-           'message' in err;
-  };
-
-  if (isZodError(error)) {
-    // Handle Zod error
-    const fieldErrors = Object.keys(error.errors).map(
-      (field) => error.errors[field].message
-    );
-
-    return fieldErrors.join('. ');
-  } else if (isPrismaError(error) && error.code === 'P2002') {
-    // Handle Prisma error
-    const field = error.meta?.target ? error.meta.target[0] : 'Field';
-    return `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
-  } else {
-    // Handle other errors
-    if (hasMessage(error)) {
-      return typeof error.message === 'string'
-        ? error.message
-        : JSON.stringify(error.message);
-    }
-    return 'An unknown error occurred';
-  }
+/**
+ * Formats a number as currency with dollar sign
+ * @param {number} amount - Amount to format
+ * @returns {string} Formatted currency string (e.g. $123.45)
+ */
+export function formatCurrency(amount: number) {
+  return `$${amount.toFixed(2)}`;
 }
 
-// Round number to 2 decimal places
-export function round2(value: number | string) {
-  if (typeof value === 'number') {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
-  } else if (typeof value === 'string') {
-    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-  } else {
-    throw new Error('Value is not a number or string');
-  }
+/**
+ * Formats a number for display with commas for thousands
+ * @param {number} num - Number to format
+ * @returns {string} Formatted number string (e.g. 1,234,567)
+ */
+export function formatNumber(num: number) {
+  return new Intl.NumberFormat().format(num);
 }
 
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
-  currency: 'USD',
-  style: 'currency',
-  minimumFractionDigits: 2,
-});
-
-// Format currency using the formatter above
-export function formatCurrency(amount: number | string | null) {
-  if (typeof amount === 'number') {
-    return CURRENCY_FORMATTER.format(amount);
-  } else if (typeof amount === 'string') {
-    return CURRENCY_FORMATTER.format(Number(amount));
-  } else {
-    return 'NaN';
-  }
-}
-
-// Format Number
-const NUMBER_FORMATTER = new Intl.NumberFormat('en-US');
-
-export function formatNumber(number: number) {
-  return NUMBER_FORMATTER.format(number);
-}
-
-// Shorten UUID
+/**
+ * Shortens a UUID string for display purposes
+ * @param {string} id - UUID to format
+ * @returns {string} Shortened ID (first 8 characters)
+ */
 export function formatId(id: string) {
-  return `..${id.substring(id.length - 6)}`;
+  return id.substring(0, 8);
 }
 
-// Format date and times
-export const formatDateTime = (dateString: Date) => {
-  const dateTimeOptions: Intl.DateTimeFormatOptions = {
-    month: 'short', // abbreviated month name (e.g., 'Oct')
-    year: 'numeric', // abbreviated month name (e.g., 'Oct')
-    day: 'numeric', // numeric day of the month (e.g., '25')
-    hour: 'numeric', // numeric hour (e.g., '8')
-    minute: 'numeric', // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
-  };
-  const dateOptions: Intl.DateTimeFormatOptions = {
-    weekday: 'short', // abbreviated weekday name (e.g., 'Mon')
-    month: 'short', // abbreviated month name (e.g., 'Oct')
-    year: 'numeric', // numeric year (e.g., '2023')
-    day: 'numeric', // numeric day of the month (e.g., '25')
-  };
-  const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: 'numeric', // numeric hour (e.g., '8')
-    minute: 'numeric', // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
-  };
-  const formattedDateTime: string = new Date(dateString).toLocaleString(
-    'en-US',
-    dateTimeOptions
-  );
-  const formattedDate: string = new Date(dateString).toLocaleString(
-    'en-US',
-    dateOptions
-  );
-  const formattedTime: string = new Date(dateString).toLocaleString(
-    'en-US',
-    timeOptions
-  );
-  return {
-    dateTime: formattedDateTime,
-    dateOnly: formattedDate,
-    timeOnly: formattedTime,
-  };
-};
+/**
+ * Formats a date string into a readable date and time format
+ * @param {string|Date} date - Date to format
+ * @returns {string} Formatted date and time string
+ */
+export function formatDateTime(date: string | Date) {
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(date));
+}
 
-// Form the pagination links
+/**
+ * Creates a URL query string by adding, updating, or removing a parameter
+ * @param {ReadonlyURLSearchParams|null} searchParams - Current URL search parameters
+ * @param {string} key - Key of the parameter to modify
+ * @param {string} value - New value for the parameter (empty to remove)
+ * @returns {string} New URL query string
+ */
 export function formUrlQuery({
   params,
   key,
   value,
 }: {
-  params: string;
+  params: ReadonlyURLSearchParams | null;
   key: string;
-  value: string | null;
+  value: string;
 }) {
-  const query = qs.parse(params);
+  const currentUrl = qs.parse(params?.toString() || '');
 
-  query[key] = value;
+  if (value) {
+    currentUrl[key] = value;
+  } else {
+    delete currentUrl[key];
+  }
 
-  return qs.stringifyUrl(
-    {
-      url: window.location.pathname,
-      query,
-    },
-    {
-      skipNull: true,
-    }
-  );
+  return qs.stringify(currentUrl, { skipEmptyString: true, skipNull: true });
 }

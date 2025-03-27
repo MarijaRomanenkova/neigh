@@ -1,3 +1,12 @@
+/**
+ * Header Component
+ * @module Components
+ * @group Shared/Layout
+ * 
+ * This server component renders the application's main header with navigation,
+ * search functionality, and authentication-related UI elements.
+ */
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { APP_NAME } from '@/lib/constants';
@@ -9,6 +18,22 @@ import { getCategories } from '@/lib/actions/category.actions';
 import { auth } from '@/auth';
 import { LayoutDashboard } from 'lucide-react';
 
+/**
+ * Header Component
+ * 
+ * Renders the application's main header with:
+ * - Logo and app name
+ * - Categories drawer for mobile view
+ * - Search functionality
+ * - User dashboard link (for authenticated users)
+ * - Navigation menu
+ * 
+ * Adapts layout based on screen size for optimal user experience.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Category[]} props.categories - List of available categories
+ * @returns {Promise<JSX.Element>} The rendered header component
+ */
 const Header = async ({ categories }: { categories: Category[] }) => {
   // Ensure we have categories to work with
   const safeCategories = categories || [];

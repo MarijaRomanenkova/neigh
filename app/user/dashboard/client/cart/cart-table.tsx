@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * Client Cart Table Component
+ * @module Components
+ * @group Cart
+ * 
+ * This client-side component renders the user's shopping cart contents in a table.
+ * It shows invoices waiting to be paid and provides options to remove items or proceed to payment.
+ */
+
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransition } from 'react';
@@ -18,12 +28,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 
-// Define simplified types for the cart data after conversion to plain objects
+/**
+ * Client information structure
+ * @interface ClientInfo
+ * @property {string} name - Client name
+ * @property {string} email - Client email address
+ */
 interface ClientInfo {
   name: string;
   email: string;
 }
 
+/**
+ * Invoice with client information structure
+ * @interface InvoiceWithClient
+ * @property {string} id - Invoice ID
+ * @property {string} invoiceNumber - Human-readable invoice number
+ * @property {number} totalPrice - Total invoice amount
+ * @property {ClientInfo} client - Client information
+ */
 interface InvoiceWithClient {
   id: string;
   invoiceNumber: string;
@@ -31,12 +54,29 @@ interface InvoiceWithClient {
   client: ClientInfo;
 }
 
+/**
+ * Cart with invoices structure
+ * @interface CartWithInvoices
+ * @property {string} id - Cart ID
+ * @property {number} totalPrice - Total cart amount
+ * @property {InvoiceWithClient[]} invoices - Invoices in the cart
+ */
 interface CartWithInvoices {
   id: string;
   totalPrice: number;
   invoices: InvoiceWithClient[];
 }
 
+/**
+ * Remove Button Component
+ * 
+ * Button component for removing an invoice from the cart.
+ * Handles the removal action and shows loading state during the operation.
+ * 
+ * @param {Object} props - Component properties
+ * @param {InvoiceWithClient} props.invoice - The invoice to remove
+ * @returns {JSX.Element} The rendered remove button
+ */
 function RemoveButton({ invoice }: { invoice: InvoiceWithClient }) {
   const { toast } = useToast();
   const router = useRouter();
@@ -75,6 +115,22 @@ function RemoveButton({ invoice }: { invoice: InvoiceWithClient }) {
   );
 }
 
+/**
+ * Cart Table Component
+ * 
+ * Renders a table showing all invoices in the user's cart, with:
+ * - Invoice number
+ * - Client information
+ * - Amount
+ * - Remove button
+ * 
+ * Also displays cart summary and checkout button.
+ * Handles empty cart state with appropriate messaging.
+ * 
+ * @param {Object} props - Component properties
+ * @param {CartWithInvoices | null} props.cart - The cart data to display
+ * @returns {JSX.Element} The rendered cart table
+ */
 const CartTable = ({ cart }: { cart: CartWithInvoices | null }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

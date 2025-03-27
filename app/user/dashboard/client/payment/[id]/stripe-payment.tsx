@@ -1,3 +1,12 @@
+/**
+ * Stripe Payment Component
+ * @module Components
+ * @group Payments
+ * 
+ * This client-side component renders the Stripe payment form.
+ * It handles the entire Stripe payment flow, from collecting payment details to processing.
+ */
+
 import { FormEvent, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -12,6 +21,18 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
 import { SERVER_URL } from '@/lib/constants';
 
+/**
+ * Stripe Payment Component
+ * 
+ * Renders the Stripe Elements form with theme support and payment processing.
+ * Acts as a container that provides the Stripe context to the inner form.
+ * 
+ * @param {Object} props - Component properties
+ * @param {number} props.priceInCents - Payment amount in cents
+ * @param {string} props.paymentId - Payment ID from our system
+ * @param {string} props.clientSecret - Stripe client secret for the payment intent
+ * @returns {JSX.Element} The rendered Stripe payment form
+ */
 const StripePayment = ({
   priceInCents,
   paymentId,
@@ -27,7 +48,15 @@ const StripePayment = ({
 
   const { theme, systemTheme } = useTheme();
 
-  // Stripe Form Component
+  /**
+   * Stripe Form Component
+   * 
+   * Inner component that renders the actual payment form elements.
+   * Handles form submission and payment confirmation with Stripe.
+   * Manages loading states and error messages during the payment process.
+   * 
+   * @returns {JSX.Element} The rendered Stripe form elements
+   */
   const StripeForm = () => {
     const stripe = useStripe();
     const elements = useElements();

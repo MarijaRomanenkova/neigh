@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Chat Interface Component
+ * @module Components
+ * @group Shared/Chat
+ * 
+ * This client-side component provides a real-time chat interface with message history,
+ * message input, and WebSocket-based delivery for instant messaging.
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,12 +18,28 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useSocket } from '@/components/providers/socket-provider';
 
+/**
+ * User Interface
+ * @interface User
+ * @property {string} id - Unique identifier for the user
+ * @property {string|null} name - Display name of the user
+ * @property {string|null} image - URL to the user's profile image
+ */
 interface User {
   id: string;
   name: string | null;
   image: string | null;
 }
 
+/**
+ * Message Interface
+ * @interface Message
+ * @property {string} id - Unique identifier for the message
+ * @property {string} content - Text content of the message
+ * @property {Date} createdAt - Timestamp when the message was created
+ * @property {string} senderId - ID of the user who sent the message
+ * @property {User} sender - User object of the sender
+ */
 interface Message {
   id: string;
   content: string;
@@ -23,11 +48,31 @@ interface Message {
   sender: User;
 }
 
+/**
+ * Props for the ChatInterface component
+ * @interface ChatInterfaceProps
+ * @property {string} conversationId - ID of the current conversation
+ * @property {Message[]} initialMessages - Initial set of messages to display
+ */
 interface ChatInterfaceProps {
   conversationId: string;
   initialMessages: Message[];
 }
 
+/**
+ * Chat Interface Component
+ * 
+ * Renders a full-featured chat interface with:
+ * - Message history display with sender avatars
+ * - Real-time message updates via WebSockets
+ * - Message timestamp formatting
+ * - Message input with keyboard shortcuts
+ * - Automatic scrolling to new messages
+ * - Read receipts functionality
+ * 
+ * @param {ChatInterfaceProps} props - Component properties
+ * @returns {JSX.Element} The rendered chat interface
+ */
 export default function ChatInterface({ conversationId, initialMessages }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages || []);
   const [newMessage, setNewMessage] = useState('');
@@ -84,10 +129,19 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     };
   }, [socket, isConnected, conversationId, session?.user?.id, messages]);
 
+  /**
+   * Scrolls the message container to the bottom
+   */
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  /**
+   * Handles keyboard events in the message input
+   * Sends the message when Enter is pressed without Shift
+   * 
+   * @param {React.KeyboardEvent<HTMLTextAreaElement>} e - Keyboard event
+   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -95,6 +149,10 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     }
   };
 
+  /**
+   * Sends a new message
+   * Handles API request, updates local state, and emits socket event
+   */
   const handleSendMessage = async () => {
     if (!newMessage.trim() || loading || !session?.user) return;
     
@@ -134,11 +192,11 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
       
       // Clear the input
       setNewMessage('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof SyntaxError) {
         console.log('JSON parse error - API returned non-JSON response');
       } else {
-        console.log('Error sending message:', error.message || 'Unknown error');
+        console.log('Error sending message:', error instanceof Error ? error.message : 'Unknown error');
       }
       
       toast({

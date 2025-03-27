@@ -1,3 +1,13 @@
+/**
+ * Conversation Detail Page Component
+ * @module Pages
+ * @group Dashboard/Messages
+ * 
+ * This page displays a specific conversation between users.
+ * It shows the message history, conversation participants, and provides functionality 
+ * for task assignment if the conversation is related to a task.
+ */
+
 import { auth } from '@/auth';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/db/prisma';
@@ -8,6 +18,31 @@ import { cn } from '@/lib/utils';
 import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
 
+/**
+ * Conversation Detail Page Component
+ * 
+ * Renders a detailed view of a conversation including:
+ * - Message history between users
+ * - Header with participant information
+ * - Task information if the conversation is related to a task
+ * - Task assignment functionality for clients
+ * - Link to task assignment for assigned tasks
+ * 
+ * Security:
+ * - Validates that the user is authenticated
+ * - Verifies the user is a participant in the conversation
+ * - Redirects unauthorized users
+ * - Handles invalid conversation IDs
+ * 
+ * Error handling:
+ * - Gracefully handles database errors
+ * - Provides fallback UI for error states
+ * - Returns 404 for invalid/inaccessible conversations
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{id: string}>} props.params - Route parameters containing the conversation ID
+ * @returns {Promise<JSX.Element>} The rendered conversation detail page
+ */
 export default async function ConversationPage({ 
   params 
 }: { 

@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * Delete Dialog Component
+ * @module Components
+ * @group Shared/UI
+ * 
+ * This client-side component renders a confirmation dialog for delete operations.
+ * It provides a standardized way to handle delete actions with confirmation.
+ */
+
 import { useState } from 'react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,12 +24,34 @@ import {
   AlertDialogTrigger,
 } from '../ui/alert-dialog';
 
+/**
+ * Props for the DeleteDialog component
+ * @interface DeleteDialogProps
+ * @property {string} id - ID of the item to be deleted
+ * @property {function} action - Server action function that performs the deletion
+ * @property {string} [variant='default'] - Button variant (default, destructive, outline)
+ */
 type DeleteDialogProps = {
   id: string;
   action: (id: string) => Promise<{ success: boolean; message: string }>;
   variant?: 'default' | 'destructive' | 'outline';
 };
 
+/**
+ * Delete Dialog Component
+ * 
+ * Renders a confirmation dialog for delete operations with:
+ * - Delete button that triggers the dialog
+ * - Confirmation message
+ * - Cancel and confirm buttons
+ * - Loading state during deletion
+ * - Toast notifications for success/error states
+ * 
+ * Uses React's useTransition for optimistic UI updates during deletion.
+ * 
+ * @param {DeleteDialogProps} props - Component properties
+ * @returns {JSX.Element} The rendered delete dialog
+ */
 const DeleteDialog = ({
   id,
   action,
@@ -29,6 +61,10 @@ const DeleteDialog = ({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  /**
+   * Handles the delete confirmation
+   * Executes the delete action and shows appropriate toast messages
+   */
   const handleDeleteClick = () => {
     startTransition(async () => {
       const res = await action(id);

@@ -1,10 +1,27 @@
 'use client';
-import Image from 'next/image';
 
+/**
+ * @module TaskImages
+ * @description A component that displays a gallery of task-related images with a main image
+ * and thumbnails for navigation. Users can click on thumbnails to view different images.
+ */
+
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
+/**
+ * TaskImages component for displaying a gallery of images with interactive thumbnails.
+ * Shows a main large image and smaller thumbnail images below for navigation.
+ * 
+ * @param {Object} props - Component props
+ * @param {string[]} props.images - Array of image URLs to display in the gallery
+ * @returns {JSX.Element} An image gallery with main image and clickable thumbnails
+ */
 const TaskImages = ({ images }: { images: string[] }) => {
+  /**
+   * State to track the index of the currently displayed main image
+   */
   const [current, setCurrent] = useState(0);
 
   return (

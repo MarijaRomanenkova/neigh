@@ -1,3 +1,12 @@
+/**
+ * Client Tasks Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page displays all tasks created by the current user in their client role.
+ * It shows a list of tasks with options to view details, edit, or delete each task.
+ */
+
 import Link from 'next/link';
 import { deleteTask, getAllTasksByClientId } from '@/lib/actions/task.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
@@ -16,6 +25,15 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import TaskList from '@/components/shared/task/task-list';
 
+/**
+ * Client Tasks Page Component
+ * 
+ * Fetches and displays all tasks created by the authenticated user.
+ * Provides options to create new tasks and manage existing ones.
+ * Includes authentication protection and redirects unauthenticated users.
+ * 
+ * @returns {Promise<JSX.Element>} The rendered client tasks page
+ */
 export default async function ClientTasksPage() {
   const session = await auth();
   console.log('Current user session:', session?.user);

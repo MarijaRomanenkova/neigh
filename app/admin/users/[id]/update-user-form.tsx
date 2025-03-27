@@ -1,3 +1,12 @@
+/**
+ * User Update Form Component
+ * @module Admin
+ * @group Admin Components
+ * 
+ * This client component provides a form interface for updating user information,
+ * including name, email, and role, with validation and error handling.
+ */
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +35,22 @@ import { useRouter } from 'next/navigation';
 import { ControllerRenderProps, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+/**
+ * Update User Form Component
+ * 
+ * A form for editing user information with:
+ * - Email field (read-only)
+ * - Editable name field
+ * - Role selection dropdown
+ * - Form validation using Zod schema
+ * - Success/error toast notifications
+ * - Navigation back to users list on success
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Object} props.user - User data object matching the updateUserSchema
+ * @returns {JSX.Element} User update form with validation
+ */
 const UpdateUserForm = ({
   user,
 }: {
@@ -34,18 +59,31 @@ const UpdateUserForm = ({
   const router = useRouter();
   const { toast } = useToast();
 
+  /**
+   * React Hook Form instance with Zod validation
+   */
   const form = useForm<z.infer<typeof updateUserSchema>>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: user,
   });
 
+  /**
+   * Form submission handler
+   * 
+   * Sends updated user data to the server, displays appropriate
+   * toast messages, and redirects on success.
+   * 
+   * @param {Object} values - Form values validated by Zod schema
+   */
   const onSubmit = async (values: z.infer<typeof updateUserSchema>) => {
     try {
+      // Call the server action to update the user
       const res = await updateUser({
         ...values,
         id: user.id,
       });
 
+      // Handle error response
       if (!res.success) {
         return toast({
           variant: 'destructive',
@@ -53,12 +91,14 @@ const UpdateUserForm = ({
         });
       }
 
+      // Handle success
       toast({
         description: res.message,
       });
       form.reset();
       router.push('/admin/users');
     } catch (error) {
+      // Handle unexpected errors
       toast({
         variant: 'destructive',
         description: (error as Error).message,
@@ -69,7 +109,7 @@ const UpdateUserForm = ({
   return (
     <Form {...form}>
       <form method='POST' onSubmit={form.handleSubmit(onSubmit)}>
-        {/* Email */}
+        {/* Email field (read-only) */}
         <div>
           <FormField
             control={form.control}
@@ -96,7 +136,8 @@ const UpdateUserForm = ({
             )}
           />
         </div>
-        {/* Name */}
+        
+        {/* Name field */}
         <div>
           <FormField
             control={form.control}
@@ -119,7 +160,8 @@ const UpdateUserForm = ({
             )}
           />
         </div>
-        {/* Role */}
+        
+        {/* Role selection dropdown */}
         <div>
           <FormField
             control={form.control}
@@ -156,6 +198,8 @@ const UpdateUserForm = ({
             )}
           />
         </div>
+        
+        {/* Submit button */}
         <div className='flex-between mt-6'>
           <Button
             type='submit'

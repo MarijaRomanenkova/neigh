@@ -1,4 +1,11 @@
 'use server'; 
+
+/**
+ * Task management functions for creating, retrieving, updating and deleting tasks
+ * @module TaskActions
+ * @group API
+ */
+
 import { prisma } from '@/db/prisma';
 import { convertToPlainObject, formatError } from '../utils';
 import { PAGE_SIZE } from '../constants';
@@ -7,15 +14,36 @@ import { insertTaskSchema, updateTaskSchema } from '../validators';
 import { z } from 'zod';
 import { Prisma, Task } from '@prisma/client';
 
+/**
+ * Parameters for retrieving and filtering tasks
+ */
 type GetAllTasksParams = {
+  /** Search query to filter tasks by name */
   query?: string;
+  /** Category name to filter tasks by */
   category?: string;
+  /** Price range to filter tasks by (format: 'min-max') */
   price?: string;
+  /** Sort order for returned tasks */
   sort?: 'newest' | 'lowest' | 'highest';
+  /** Page number for pagination */
   page?: number;
 };
 
-// get latest tasks
+/**
+ * Retrieves the most recent tasks
+ * 
+ * @returns Array of the latest 12 tasks with author information
+ * @throws Will throw an error if the database operation fails
+ * 
+ * @example
+ * try {
+ *   const latestTasks = await getLatestTasks();
+ *   // Display tasks to the user
+ * } catch (error) {
+ *   console.error('Failed to load latest tasks');
+ * }
+ */
 export async function getLatestTasks() {
   try {
     const tasks = await prisma.task.findMany({
@@ -46,13 +74,33 @@ export async function getLatestTasks() {
   }
 }
 
+/**
+ * Retrieves a task by its URL slug
+ * 
+ * @param slug - URL-friendly identifier for the task
+ * @returns The matching task or null if not found
+ * 
+ * @example
+ * const task = await getTaskBySlug('painting-services');
+ */
 export async function getTaskBySlug(slug: string) {
   return await prisma.task.findFirst({
     where: { slug: slug },
   });
 }
 
-// Get single task by it's ID
+/**
+ * Retrieves a single task by its unique ID
+ * 
+ * @param taskId - The task's unique identifier
+ * @returns The task with author information or null if not found
+ * 
+ * @example
+ * const task = await getTaskById('task-123');
+ * if (task) {
+ *   console.log(`Found task: ${task.name} by ${task.author.name}`);
+ * }
+ */
 export async function getTaskById(taskId: string) {
   try {
     // Validate UUID format
@@ -93,7 +141,24 @@ export async function getTaskById(taskId: string) {
   }
 }
 
-// Get all tasks
+/**
+ * Retrieves tasks with filtering, sorting and pagination
+ * 
+ * @param options - Query parameters for filtering tasks
+ * @param options.query - Text to search in task names
+ * @param options.category - Category name to filter by
+ * @param options.price - Price range in format 'min-max'
+ * @param options.sort - Sort order (newest, lowest price, highest price)
+ * @param options.page - Page number for pagination
+ * @returns Paginated list of tasks and total pages
+ * 
+ * @example
+ * const { data, totalPages } = await getAllTasks({
+ *   category: 'Cleaning',
+ *   sort: 'lowest',
+ *   page: 1
+ * });
+ */
 export async function getAllTasks({
   query = 'all',
   category = 'all',
@@ -175,7 +240,18 @@ export async function getAllTasks({
   }
 }
 
-// Delete a task
+/**
+ * Deletes a task by its ID
+ * 
+ * @param id - The task's unique identifier
+ * @returns Result with success status and message
+ * 
+ * @example
+ * const result = await deleteTask('task-123');
+ * if (result.success) {
+ *   showNotification(result.message);
+ * }
+ */
 export async function deleteTask(id: string) {
   try {
     const taskExists = await prisma.task.findFirst({
@@ -197,7 +273,23 @@ export async function deleteTask(id: string) {
   }
 }
 
-// Create a task
+/**
+ * Creates a new task
+ * 
+ * @param data - Task data including user ID of the creator
+ * @returns Result with success status and message
+ * 
+ * @example
+ * const result = await createTask({
+ *   name: 'House Painting',
+ *   slug: 'house-painting',
+ *   categoryId: 'category-123',
+ *   description: 'Professional house painting service',
+ *   price: 200,
+ *   images: ['image1.jpg', 'image2.jpg'],
+ *   userId: 'user-123'
+ * });
+ */
 export async function createTask(data: z.infer<typeof insertTaskSchema> & { userId: string }) {
   console.log('createTask called with userId:', data.userId);
   
@@ -231,7 +323,19 @@ export async function createTask(data: z.infer<typeof insertTaskSchema> & { user
   }
 }
 
-// Update a task
+/**
+ * Updates an existing task
+ * 
+ * @param data - Task data with updated fields
+ * @returns Result with success status and message
+ * 
+ * @example
+ * const result = await updateTask({
+ *   id: 'task-123',
+ *   name: 'Updated Task Name',
+ *   price: 250
+ * });
+ */
 export async function updateTask(data: z.infer<typeof updateTaskSchema>) {
   try {
     const task = updateTaskSchema.parse(data);

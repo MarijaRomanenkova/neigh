@@ -1,8 +1,25 @@
+/**
+ * Search Page Component
+ * @module Pages
+ * @group Search
+ * 
+ * This page provides advanced task search functionality with filtering options by:
+ * - Query text
+ * - Category
+ * - Price range
+ * - Sort order
+ * 
+ * It also supports pagination and displays search results in a grid layout.
+ */
+
 import TaskCard from '@/components/shared/task/task-card';
 import { Button } from '@/components/ui/button';
 import { getAllTasks, getAllCategories } from '@/lib/actions/task.actions';
 import Link from 'next/link';
 
+/**
+ * Available price range filters for tasks
+ */
 const prices = [
   { name: '$1 to $50', value: '1-50' },
   { name: '$51 to $100', value: '51-100' },
@@ -11,8 +28,21 @@ const prices = [
   { name: '$501 to $1000', value: '501-1000' },
 ];
 
+/**
+ * Available sort order options for search results
+ */
 const sortOrders = ['newest', 'lowest', 'highest'];
 
+/**
+ * Generates metadata for the search page based on search parameters
+ * 
+ * Creates dynamic page titles that reflect the current search filters,
+ * improving SEO and user experience.
+ * 
+ * @param {Object} props - Component props
+ * @param {Promise<{q: string, category: string, price: string}>} props.searchParams - Search parameters
+ * @returns {Object} Metadata object with title
+ */
 export async function generateMetadata(props: {
   searchParams: Promise<{
     q: string;
@@ -43,6 +73,20 @@ export async function generateMetadata(props: {
   };
 }
 
+/**
+ * Search Page Component
+ * 
+ * This server component renders the task search interface with:
+ * - Filter sidebar for categories and price ranges
+ * - Dynamic search results based on filters
+ * - Sort options for results
+ * - Clear filters option
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Promise<{q?: string, category?: string, price?: string, sort?: string, page?: string}>} props.searchParams - Search parameters
+ * @returns {JSX.Element} Search page with filters and results
+ */
 const SearchPage = async (props: {
   searchParams: Promise<{
     q?: string;
@@ -63,6 +107,19 @@ const SearchPage = async (props: {
   // Validate sort parameter
   const validSort = ['newest', 'lowest', 'highest'].includes(sort) ? sort : 'newest';
 
+  /**
+   * Generates a filter URL with updated parameters
+   * 
+   * Creates a URL string for filter links that preserves existing
+   * parameters while updating the specified ones.
+   * 
+   * @param {Object} options - Filter options to update
+   * @param {string} [options.c] - Category filter
+   * @param {string} [options.p] - Price filter
+   * @param {string} [options.s] - Sort order
+   * @param {string} [options.pg] - Page number
+   * @returns {string} URL with updated parameters
+   */
   const getFilterUrl = ({
     c,
     p,
@@ -88,6 +145,7 @@ const SearchPage = async (props: {
     return `/search?${new URLSearchParams(params).toString()}`;
   };
 
+  // Fetch tasks and categories in parallel for better performance
   const [tasks, categories] = await Promise.all([
     getAllTasks({
       query: q,
@@ -101,6 +159,7 @@ const SearchPage = async (props: {
 
   return (
     <div className='grid md:grid-cols-5 md:gap-5'>
+      {/* Filter sidebar */}
       <div className='filter-links'>
         {/* Category Links */}
         <div className='text-xl mb-2 mt-3'>Department</div>
@@ -149,8 +208,10 @@ const SearchPage = async (props: {
         </ul>
       </div>
 
+      {/* Search results and controls */}
       <div className='md:col-span-4 space-y-4'>
         <div className='flex-between flex-col md:flex-row my-4'>
+          {/* Active filters display and clear button */}
           <div className='flex items-center'>
             {q !== 'all' && q !== '' && 'Query: ' + q}
             {category !== 'all' && category !== '' && 'Category: ' + category}
@@ -164,6 +225,8 @@ const SearchPage = async (props: {
               </Button>
             ) : null}
           </div>
+          
+          {/* Sort options */}
           <div>
             Sort by{' '}
             {sortOrders.map((s) => (
@@ -178,6 +241,7 @@ const SearchPage = async (props: {
           </div>
         </div>
 
+        {/* Task grid */}
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           {tasks.data.length === 0 && <div>No tasks found</div>}
           {tasks.data.map((task) => (

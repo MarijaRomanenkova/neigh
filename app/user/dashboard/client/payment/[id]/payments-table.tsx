@@ -1,4 +1,14 @@
 'use client';
+
+/**
+ * Payment Details Table Component
+ * @module Components
+ * @group Payments
+ * 
+ * This client-side component renders a payment's details in a structured format.
+ * It shows payment information, invoices, and payment method options if applicable.
+ */
+
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +27,14 @@ import {
 } from '@/lib/actions/payment.actions';
 import StripePayment from './stripe-payment';
 
+/**
+ * Props for the PaymentsTable component
+ * @interface PaymentTableProps
+ * @property {Object} payment - Payment information with method and tax details
+ * @property {string} paypalClientId - PayPal client ID for the SDK
+ * @property {boolean} isAdmin - Whether the current user has admin privileges
+ * @property {string | null} stripeClientSecret - Stripe client secret for payment processing
+ */
 type PaymentTableProps = {
   payment: Omit<Payment, "paymentResult"> & {
     paymentMethod: string;
@@ -27,6 +45,17 @@ type PaymentTableProps = {
   stripeClientSecret: string | null;
 };
 
+/**
+ * PayPal Payment Buttons Component
+ * 
+ * Renders PayPal payment buttons that handle the PayPal payment flow.
+ * Creates a PayPal order and processes approval from the PayPal interface.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Omit<Payment, 'paymentResult'>} props.payment - Payment information
+ * @param {Function} props.onSuccess - Callback function to run after successful payment
+ * @returns {JSX.Element} The rendered PayPal buttons
+ */
 const PayPalPaymentButtons = ({ payment, onSuccess }: { 
   payment: Omit<Payment, 'paymentResult'>,
   onSuccess: () => void 
@@ -61,6 +90,21 @@ const PayPalPaymentButtons = ({ payment, onSuccess }: {
   );
 };
 
+/**
+ * Payments Table Component
+ * 
+ * Renders a comprehensive view of a payment with:
+ * - Payment status and details
+ * - List of invoices included in the payment
+ * - Payment summary with totals
+ * - Payment method options (Stripe/PayPal) if payment is not completed
+ * - Admin actions if applicable
+ * 
+ * Adapts its display based on payment method and payment status.
+ * 
+ * @param {PaymentTableProps} props - Component properties
+ * @returns {JSX.Element} The rendered payment details table
+ */
 const PaymentsTable = ({
   payment,
   paypalClientId,

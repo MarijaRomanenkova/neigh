@@ -1,11 +1,32 @@
 'use client';
+
+/**
+ * Global 404 Not Found Page Component
+ * @module Pages
+ * @group Error
+ * 
+ * This component is shown when a user navigates to a non-existent route.
+ * It displays a friendly error message and provides navigation back to the home page.
+ */
+
 import { APP_NAME } from "@/lib/constants";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-
+/**
+ * NotFound Component
+ * 
+ * Renders a 404 error page with:
+ * - Application logo
+ * - Error message indicating the page doesn't exist
+ * - Navigation button to return to the home page
+ * 
+ * Uses client-side navigation to redirect users back to the home page.
+ * 
+ * @returns {JSX.Element} The rendered not found page
+ */
 const NotFound = () => {
   const router = useRouter();
 

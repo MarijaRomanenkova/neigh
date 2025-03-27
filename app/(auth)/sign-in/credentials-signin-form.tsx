@@ -1,3 +1,12 @@
+/**
+ * Credentials Sign-In Form Component
+ * @module Authentication
+ * @group Auth Components
+ * 
+ * This client component handles user authentication with email and password,
+ * utilizing React Server Actions for form submission and state management.
+ */
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -11,16 +20,55 @@ import { signInWithCredentials } from '@/lib/actions/user.actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+/**
+ * Form for signing in with credentials (email/password)
+ * 
+ * This component renders a form with email and password fields,
+ * handles form submission via React Server Actions, displays error messages,
+ * and redirects to the requested page on successful authentication.
+ * 
+ * Features:
+ * - Email and password input fields with validation
+ * - Form submission state management
+ * - Error message display
+ * - Redirection to callback URL on success
+ * - Link to sign-up page for new users
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CredentialsSignInForm />
+ * ```
+ */
 const CredentialsSignInForm = () => {
+  /**
+   * Action state from the signInWithCredentials server action
+   * 
+   * @type {[{ success: boolean, message: string }, Function]}
+   */
   const [data, action] = useActionState(signInWithCredentials, {
     success: false,
     message: '',
   });
   const router = useRouter();
+  
+  /**
+   * Search parameters from the URL, used to extract callback URL
+   * @type {URLSearchParams}
+   */
   const searchParams = useSearchParams();
+  
+  /**
+   * URL to redirect to after successful sign-in
+   * Defaults to home page if not specified
+   * @type {string}
+   */
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   
-  // If sign-in was successful, force a hard reload
+  /**
+   * Effect to handle successful authentication
+   * Forces a full page reload to initialize the session properly
+   */
   useEffect(() => {
     if (data?.success) {
       // Force a full page reload to initialize the session
@@ -28,7 +76,20 @@ const CredentialsSignInForm = () => {
     }
   }, [data?.success, callbackUrl]);
 
+  /**
+   * Sign-in button component with loading state
+   * 
+   * Displays "Signing In..." when the form is submitting
+   * and disables the button to prevent multiple submissions
+   * 
+   * @component
+   */
   const SignInButton = () => {
+    /**
+     * Form submission status from React's useFormStatus hook
+     * @type {Object}
+     * @property {boolean} pending - Whether the form is currently submitting
+     */
     const { pending } = useFormStatus();
 
     return (
@@ -68,6 +129,7 @@ const CredentialsSignInForm = () => {
           <SignInButton />
         </div>
 
+        {/* Error message display */}
         {data && !data.success && (
           <div className='text-center text-destructive'>{data.message}</div>
         )}

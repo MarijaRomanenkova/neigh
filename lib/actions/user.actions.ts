@@ -1,5 +1,11 @@
 'use server';
 
+/**
+ * User authentication and profile management functions
+ * @module UserActions
+ * @group API
+ */
+
 import {
   signInFormSchema,
   signUpFormSchema,
@@ -17,7 +23,20 @@ import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { getMyCart } from './cart.actions';
 
-// Sign in the user with credentials
+/**
+ * Authenticates a user with email and password credentials
+ * 
+ * @param prevState - Previous form state
+ * @param formData - Form data containing email and password
+ * @returns Authentication result with success status and message
+ * 
+ * @example
+ * // In a React Server Action component:
+ * const [state, formAction] = useFormState(signInWithCredentials, { 
+ *   success: false, 
+ *   message: '' 
+ * });
+ */
 export async function signInWithCredentials(
   prevState: unknown,
   formData: FormData
@@ -43,7 +62,15 @@ export async function signInWithCredentials(
   }
 }
 
-// Sign user out
+/**
+ * Signs out the current user and cleans up their cart
+ * 
+ * @returns Redirects to the sign-in page
+ * 
+ * @example
+ * // In a client component:
+ * <button onClick={() => signOutUser()}>Sign Out</button>
+ */
 export async function signOutUser() {
   // get current users cart and delete it so it does not persist to next user
   const currentCart = await getMyCart();
@@ -56,7 +83,20 @@ export async function signOutUser() {
   await signOut();
 }
 
-// Sign up user
+/**
+ * Registers a new user and signs them in
+ * 
+ * @param prevState - Previous form state
+ * @param formData - Form data containing user registration details
+ * @returns Registration result with success status and message
+ * 
+ * @example
+ * // In a React Server Action component:
+ * const [state, formAction] = useFormState(signUpUser, { 
+ *   success: false, 
+ *   message: '' 
+ * });
+ */
 export async function signUpUser(prevState: unknown, formData: FormData) {
   try {
     const user = signUpFormSchema.parse({
@@ -92,7 +132,21 @@ export async function signUpUser(prevState: unknown, formData: FormData) {
   }
 }
 
-// Get user by the ID
+/**
+ * Retrieves a user by their ID
+ * 
+ * @param userId - The user's unique identifier
+ * @returns The user object with numeric conversions for decimal values
+ * @throws Error if user is not found
+ * 
+ * @example
+ * try {
+ *   const user = await getUserById('user-123');
+ *   console.log(user.name);
+ * } catch (error) {
+ *   console.error('User not found');
+ * }
+ */
 export async function getUserById(userId: string) {
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -107,7 +161,18 @@ export async function getUserById(userId: string) {
   };
 }
 
-// Update user's payment method
+/**
+ * Updates the current user's preferred payment method
+ * 
+ * @param data - Payment method data containing the payment type
+ * @returns Update result with success status and message
+ * 
+ * @example
+ * const result = await updateUserPaymentMethod({ type: 'Stripe' });
+ * if (result.success) {
+ *   showToast('Payment method updated');
+ * }
+ */
 export async function updateUserPaymentMethod(
   data: z.infer<typeof paymentMethodSchema>
 ) {
@@ -135,7 +200,19 @@ export async function updateUserPaymentMethod(
   }
 }
 
-// Update the user profile
+/**
+ * Updates the current user's profile information
+ * 
+ * @param user - User profile data to update
+ * @returns Update result with success status and message
+ * 
+ * @example
+ * const result = await updateProfile({
+ *   name: 'John Doe',
+ *   fullName: 'John Robert Doe',
+ *   phoneNumber: '+1234567890'
+ * });
+ */
 export async function updateProfile(user: z.infer<typeof updateProfileSchema>) {
   try {
     const session = await auth();
@@ -171,7 +248,21 @@ export async function updateProfile(user: z.infer<typeof updateProfileSchema>) {
   }
 }
 
-// Get all the users
+/**
+ * Retrieves users with pagination and optional filtering
+ * 
+ * @param options - Query options for retrieving users
+ * @param options.limit - Maximum number of users to retrieve per page
+ * @param options.page - Page number to retrieve
+ * @param options.query - Optional search query to filter users by name
+ * @returns Paginated list of users and total page count
+ * 
+ * @example
+ * const { data, totalPages } = await getAllUsers({
+ *   page: 1,
+ *   query: 'john'
+ * });
+ */
 export async function getAllUsers({
   limit = PAGE_SIZE,
   page,
@@ -208,7 +299,18 @@ export async function getAllUsers({
   };
 }
 
-// Delete a user
+/**
+ * Deletes a user by their ID
+ * 
+ * @param id - The user's unique identifier
+ * @returns Delete result with success status and message
+ * 
+ * @example
+ * const result = await deleteUser('user-123');
+ * if (result.success) {
+ *   showToast('User deleted successfully');
+ * }
+ */
 export async function deleteUser(id: string) {
   try {
     await prisma.user.delete({ where: { id } });
@@ -227,7 +329,19 @@ export async function deleteUser(id: string) {
   }
 }
 
-// Update a user
+/**
+ * Updates a user's information (admin functionality)
+ * 
+ * @param user - User data to update including ID, name and role
+ * @returns Update result with success status and message
+ * 
+ * @example
+ * const result = await updateUser({
+ *   id: 'user-123',
+ *   name: 'John Doe',
+ *   role: 'admin'
+ * });
+ */
 export async function updateUser(user: z.infer<typeof updateUserSchema>) {
   try {
     await prisma.user.update({

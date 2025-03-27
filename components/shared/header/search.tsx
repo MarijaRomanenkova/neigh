@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * Search Component
+ * @module Components
+ * @group Shared/Header
+ * 
+ * This client-side component renders a search form with category filtering
+ * allowing users to search for content throughout the application.
+ */
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,15 +21,40 @@ import {
 import { SearchIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+/**
+ * Search category type definition
+ * @typedef {Object} SearchCategory
+ * @property {string} id - Unique identifier for the category
+ * @property {string} name - Display name of the category
+ */
 type SearchCategory = {
   id: string;
   name: string;
 };
 
+/**
+ * Props for the Search component
+ * @interface SearchProps
+ * @property {SearchCategory[]} initialCategories - Initial categories data for filtering
+ */
 interface SearchProps {
   initialCategories: SearchCategory[];
 }
 
+/**
+ * Search Component
+ * 
+ * Renders a search form with:
+ * - Text input for search queries
+ * - Category dropdown filter
+ * - Submit button with search icon
+ * - Form submission to the search page
+ * 
+ * The component handles category-specific or general searches.
+ * 
+ * @param {SearchProps} props - Component properties
+ * @returns {JSX.Element} The rendered search form
+ */
 const Search = ({ initialCategories }: SearchProps) => {
   const [categories, setCategories] = useState<SearchCategory[]>(initialCategories);
 

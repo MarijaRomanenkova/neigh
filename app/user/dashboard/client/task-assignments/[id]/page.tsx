@@ -1,3 +1,12 @@
+/**
+ * Task Assignment Detail Page Component
+ * @module Pages
+ * @group Dashboard/Client
+ * 
+ * This page displays detailed information about a specific task assignment.
+ * It shows all associated tasks, status information, and allows the client to edit assignment details.
+ */
+
 import Link from 'next/link';
 import {getAllTaskAssignmentsByClientId } from '@/lib/actions/task-assignment.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
@@ -11,12 +20,25 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import Pagination from '@/components/shared/pagination';
-import DeleteDialog from '@/components/shared/delete-dialog';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { TaskAssignment } from '@prisma/client';
 
-
+/**
+ * Task Assignment Detail Page Component
+ * 
+ * Renders detailed information for a specific task assignment, showing:
+ * - Assignment details and status
+ * - Associated tasks and their progress
+ * - Actions available for the task assignment
+ * 
+ * Includes authentication protection and redirects unauthenticated users.
+ * Supports filtering of assignment tasks with pagination.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
+ * @returns {Promise<JSX.Element>} The rendered task assignment detail page
+ */
 const ClientTaskAssignmentPage = async (props: {
   searchParams: Promise<{
     page: string;

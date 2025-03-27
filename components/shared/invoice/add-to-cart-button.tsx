@@ -1,4 +1,10 @@
 'use client';
+/**
+ * @module AddToCartButton
+ * @description A component that renders a button to add an invoice to the cart or view the cart if the invoice is already added.
+ * The component automatically checks if the invoice is already in the cart on mount and updates its UI accordingly.
+ */
+
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Invoice } from '@/types';
@@ -9,6 +15,18 @@ import { useTransition } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+/**
+ * @interface AddToCartButtonProps
+ * @property {Invoice} invoice - The invoice to be added to the cart
+ */
+
+/**
+ * AddToCartButton component for adding an invoice to the shopping cart.
+ * 
+ * @param {Object} props - Component props
+ * @param {Invoice} props.invoice - The invoice object to add to the cart
+ * @returns {JSX.Element} Button component that either adds to cart or navigates to cart
+ */
 const AddToCartButton = ({ 
   invoice
 }: { 
@@ -26,7 +44,7 @@ const AddToCartButton = ({
         const response = await fetch('/api/cart');
         if (response.ok) {
           const cart = await response.json();
-          const found = cart.invoices?.some((item: any) => item.id === invoice.id);
+          const found = cart.invoices?.some((item: { id: string }) => item.id === invoice.id);
           setIsInCart(found || false);
         }
       } catch (error) {
@@ -37,6 +55,10 @@ const AddToCartButton = ({
     checkCartStatus();
   }, [invoice.id]);
 
+  /**
+   * Handles the action of adding an invoice to the cart.
+   * Displays a toast notification on success with an action to navigate to the cart.
+   */
   const handleAddToCart = () => {
     startTransition(async () => {
       const res = await addInvoiceToCart(invoice.id);

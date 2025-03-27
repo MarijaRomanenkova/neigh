@@ -1,7 +1,30 @@
+/**
+ * Messages API Route
+ * @module API
+ * @group Chat
+ * 
+ * This API endpoint handles message creation in conversations.
+ * It allows users to send messages to conversations they're participants in,
+ * and updates the conversation's timestamp when new messages are added.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from '@/auth';
 import { prisma } from "@/db/prisma";
 
+/**
+ * POST handler for creating a new message
+ * 
+ * Creates a new message in a conversation and updates the conversation's
+ * last activity timestamp. Validates that the sender is a participant in
+ * the conversation before allowing the message to be created.
+ * 
+ * @param {NextRequest} req - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with the created message or error details
+ * @example
+ * // Request body format
+ * // { "content": "Hello world", "conversationId": "123" }
+ */
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();

@@ -1,9 +1,28 @@
 'use client';
 
+/**
+ * Admin Search Component
+ * @module Components/Admin
+ * 
+ * This client-side component provides a search input for admin panels.
+ * It automatically detects the current admin section (orders, users, or tasks)
+ * and submits the search to the appropriate endpoint.
+ */
+
 import { useState, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Input } from '../ui/input';
 
+/**
+ * AdminSearch Component
+ * 
+ * Renders a search input field that:
+ * - Automatically detects the current admin section (orders, users, tasks)
+ * - Maintains search state across navigation
+ * - Submits search queries to the appropriate admin endpoint
+ * 
+ * @returns {JSX.Element} The rendered search input with hidden submit button
+ */
 const AdminSearch = () => {
   const pathname = usePathname();
   const formActionUrl = pathname.includes('/admin/orders')

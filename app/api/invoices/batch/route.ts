@@ -1,8 +1,34 @@
+/**
+ * Invoice Batch API Route
+ * @module API
+ * @group Invoices
+ * 
+ * This API endpoint provides batch operations for invoices.
+ * It allows retrieving multiple invoices in a single request,
+ * particularly for payment processing purposes.
+ */
+
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
 import { convertToPlainObject } from '@/lib/utils';
 
+/**
+ * POST handler for batch invoice retrieval
+ * 
+ * Retrieves multiple invoices by their IDs in a single request.
+ * Only returns invoices that:
+ * - Belong to the authenticated user (as client)
+ * - Are not already attached to a payment
+ * 
+ * Includes related client and contractor information.
+ * 
+ * @param {Request} request - The incoming request
+ * @returns {Promise<NextResponse>} JSON response with invoices or error details
+ * @example
+ * // Request body format
+ * // { "ids": ["invoice1", "invoice2", "invoice3"] }
+ */
 export async function POST(request: Request) {
   try {
     // Authenticate user

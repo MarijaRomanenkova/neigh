@@ -1,3 +1,12 @@
+/**
+ * Task Card Component
+ * @module Components
+ * @group Shared/Tasks
+ * 
+ * This component renders a card displaying task information in a compact format,
+ * intended for use in grids or lists of tasks.
+ */
+
 import Image from 'next/image';
 import Link from 'next/link';
 import TaskPrice from './task-price';
@@ -6,6 +15,21 @@ import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { Task } from '@/types';
 import { UserIcon, ArrowRight } from 'lucide-react';
 
+/**
+ * Task Card Component
+ * 
+ * Renders a card UI for a task with:
+ * - Task name and truncated description
+ * - Price display (or "For negotiation" if no price)
+ * - Author information
+ * - "See more" button linking to task details
+ * 
+ * Uses shadcn/ui Card components for consistent styling.
+ * 
+ * @param {Object} props - Component properties
+ * @param {Task} props.task - Task data to display
+ * @returns {JSX.Element} The rendered task card
+ */
 const TaskCard = ({ task }: { task: Task }) => {
   return (
     <Card className='w-full max-w-m'>

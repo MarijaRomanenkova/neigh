@@ -1,4 +1,11 @@
 'use server';
+
+/**
+ * Invoice management functions for creating, retrieving, and updating invoices
+ * @module InvoiceActions
+ * @group API
+ */
+
 import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
 import { convertToPlainObject, formatError, round2 } from '../utils';
@@ -7,7 +14,12 @@ import { insertInvoiceSchema, updateInvoiceSchema } from '../validators';
 import { z } from 'zod';
 import { InvoiceItems } from '@/types';
 
-// Calculate invoice total
+/**
+ * Calculates the subtotal, tax amount, and total for an invoice based on its items
+ * 
+ * @param items - Array of invoice items with price and quantity
+ * @returns Object containing subtotal, tax amount, and total as formatted strings
+ */
 const calcTotal = (items: InvoiceItems[]) => {
   const subtotal = round2(
     items.reduce((acc, item) => acc + Number(item.price) * (item.qty ?? 1), 0)
@@ -23,6 +35,31 @@ const calcTotal = (items: InvoiceItems[]) => {
   };
 };
 
+/**
+ * Retrieves all invoices where the specified user is the client
+ * 
+ * @param userId - The unique identifier of the client user
+ * @returns Array of invoices with client, contractor, and item details
+ * 
+ * @example
+ * // In a client dashboard component
+ * const incomingInvoices = await getAllIncomingInvoices(session.user.id);
+ * 
+ * return (
+ *   <div>
+ *     <h2>Your Invoices</h2>
+ *     {incomingInvoices.map(invoice => (
+ *       <InvoiceCard 
+ *         key={invoice.id}
+ *         number={invoice.invoiceNumber}
+ *         contractor={invoice.contractor.name}
+ *         amount={invoice.totalPrice}
+ *         date={invoice.createdAt}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
 export async function getAllIncomingInvoices(userId: string) {
   try {
     const invoices = await prisma.invoice.findMany({
@@ -46,6 +83,31 @@ export async function getAllIncomingInvoices(userId: string) {
   }
 }
 
+/**
+ * Retrieves all invoices where the specified user is the contractor
+ * 
+ * @param contractorId - The unique identifier of the contractor user
+ * @returns Array of invoices with client, contractor, and item details
+ * 
+ * @example
+ * // In a contractor dashboard component
+ * const outgoingInvoices = await getAllOutgoingInvoices(session.user.id);
+ * 
+ * return (
+ *   <div>
+ *     <h2>Invoices You've Sent</h2>
+ *     {outgoingInvoices.map(invoice => (
+ *       <InvoiceCard 
+ *         key={invoice.id}
+ *         number={invoice.invoiceNumber}
+ *         client={invoice.client.name}
+ *         amount={invoice.totalPrice}
+ *         date={invoice.createdAt}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
 export async function getAllOutgoingInvoices(contractorId: string) {
   try {
     const invoices = await prisma.invoice.findMany({
@@ -69,6 +131,39 @@ export async function getAllOutgoingInvoices(contractorId: string) {
   }
 }
 
+/**
+ * Creates a new invoice with the specified client, contractor, and items
+ * 
+ * @param data - Invoice data validated against the insert invoice schema
+ * @returns Object containing success status, message, and created invoice data
+ * @throws Will return error object if user is not authenticated or if validation fails
+ * 
+ * @example
+ * // In an invoice creation form
+ * async function handleSubmit(formData) {
+ *   const invoiceData = {
+ *     clientId: selectedClient.id,
+ *     contractorId: session.user.id,
+ *     invoiceItem: [
+ *       {
+ *         taskId: selectedTask.id,
+ *         name: selectedTask.name,
+ *         qty: hoursWorked,
+ *         price: selectedTask.price
+ *       }
+ *     ]
+ *   };
+ *   
+ *   const { success, message, data } = await createInvoice(invoiceData);
+ *   
+ *   if (success) {
+ *     router.push(`/invoice/${data.id}`);
+ *     showNotification('Success', 'Invoice created successfully');
+ *   } else {
+ *     showNotification('Error', message);
+ *   }
+ * }
+ */
 export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
   try {
     // Get session and user ID
@@ -152,6 +247,35 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
   }
 }
 
+/**
+ * Updates an existing invoice with new information
+ * 
+ * @param data - Updated invoice data validated against the update invoice schema
+ * @returns Object containing success status, message, and updated invoice data
+ * @throws Will return error object if user is not authenticated or if validation fails
+ * 
+ * @example
+ * // In an invoice edit form
+ * async function handleUpdate(formData) {
+ *   const updatedData = {
+ *     id: invoice.id,
+ *     invoiceItem: invoice.items.map(item => ({
+ *       ...item,
+ *       qty: form.get(`qty-${item.id}`) || item.qty,
+ *       price: form.get(`price-${item.id}`) || item.price
+ *     }))
+ *   };
+ *   
+ *   const { success, message } = await updateInvoice(updatedData);
+ *   
+ *   if (success) {
+ *     router.refresh();
+ *     showNotification('Success', message);
+ *   } else {
+ *     showNotification('Error', message);
+ *   }
+ * }
+ */
 export async function updateInvoice(data: z.infer<typeof updateInvoiceSchema>) {
   try {
     // Get session and user ID
@@ -190,6 +314,38 @@ export async function updateInvoice(data: z.infer<typeof updateInvoiceSchema>) {
   }
 }
 
+/**
+ * Retrieves an invoice by its unique invoice number
+ * 
+ * @param invoiceNumber - The unique invoice number (e.g., INV-12345)
+ * @returns The invoice object with client, contractor, and item details, or null if not found
+ * 
+ * @example
+ * // In an invoice detail component
+ * const invoice = await getInvoiceByNumber('INV-12345678');
+ * 
+ * if (invoice) {
+ *   return (
+ *     <div className="invoice-details">
+ *       <h1>Invoice #{invoice.invoiceNumber}</h1>
+ *       <div className="parties">
+ *         <div className="from">
+ *           <h3>From: {invoice.contractor.name}</h3>
+ *           <p>{invoice.contractor.email}</p>
+ *         </div>
+ *         <div className="to">
+ *           <h3>To: {invoice.client.name}</h3>
+ *           <p>{invoice.client.email}</p>
+ *         </div>
+ *       </div>
+ *       <InvoiceItemsList items={invoice.items} />
+ *       <div className="total">
+ *         <h3>Total: ${invoice.totalPrice}</h3>
+ *       </div>
+ *     </div>
+ *   );
+ * }
+ */
 export async function getInvoiceByNumber(invoiceNumber: string) {
   try {
     const invoice = await prisma.invoice.findUnique({
