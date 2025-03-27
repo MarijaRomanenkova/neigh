@@ -300,7 +300,8 @@ model Message {
 }
 
 generator erd {
-  provider = "prisma-erd-generator"
-  output = "./docs/ER_Diagram.svg" 
+  provider                  = "prisma-erd-generator"
+  output                    = "./docs/ER_Diagram.svg" 
+  disabled_on_production    = "true" // Skip diagram generation in production
 }
 
