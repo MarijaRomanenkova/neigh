@@ -178,7 +178,7 @@ const UpdateUserForm = ({
                 <FormLabel>Role</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value.toString()}
+                  value={field.value?.toString() || ''}
                 >
                   <FormControl>
                     <SelectTrigger>

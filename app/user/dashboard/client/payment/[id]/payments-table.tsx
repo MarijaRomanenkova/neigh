@@ -127,13 +127,13 @@ const PaymentsTable = ({
                 <h2 className='text-xl font-semibold'>Payment Details</h2>
                 <Badge variant={payment.isPaid ? 'secondary' : 'destructive'}>
                   {payment.isPaid 
-                    ? `Paid at ${formatDateTime(payment.paidAt!).dateTime}`
+                    ? `Paid at ${formatDateTime(payment.paidAt!)}`
                     : 'Not paid'}
                 </Badge>
               </div>
 
               <div className='space-y-2'>
-                <p><span className='font-medium'>Created:</span> {formatDateTime(payment.createdAt).dateTime}</p>
+                <p><span className='font-medium'>Created:</span> {formatDateTime(payment.createdAt)}</p>
                 <p><span className='font-medium'>Payment Method:</span> {payment.paymentMethod}</p>
                 <p><span className='font-medium'>User:</span> {payment.user.name}</p>
               </div>
