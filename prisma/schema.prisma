@@ -299,9 +299,9 @@ model Message {
   sender         User         @relation(fields: [senderId], references: [id])
 }
 
-generator erd {
-  provider                  = "prisma-erd-generator"
-  output                    = "./docs/ER_Diagram.svg" 
-  disabled_on_production    = "true" // Skip diagram generation in production
-}
+// ERD generator - commented out for production deployment
+// generator erd {
+//   provider = "prisma-erd-generator"
+//   output   = "./docs/ER_Diagram.svg" 
+// }
 
