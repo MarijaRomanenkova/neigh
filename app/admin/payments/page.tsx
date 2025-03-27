@@ -99,13 +99,13 @@ const AdminPaymentsPage = async (props: {
               <TableRow key={payment.id}>
                 <TableCell>{formatId(payment.id)}</TableCell>
                 <TableCell>
-                  {formatDateTime(payment.createdAt).dateTime}
+                  {formatDateTime(payment.createdAt)}
                 </TableCell>
                
-                <TableCell>{formatCurrency(payment.amount.toString())}</TableCell>
+                <TableCell>{formatCurrency(Number(payment.amount))}</TableCell>
                 <TableCell>
                   {payment.isPaid && payment.paidAt
-                    ? formatDateTime(payment.paidAt).dateTime
+                    ? formatDateTime(payment.paidAt)
                     : 'Not Paid'}
                 </TableCell>
            
