@@ -27,13 +27,9 @@ import Stripe from 'stripe';
  * - Verifies the payment is in an unpaid state
  * 
  * @param {Request} request - The incoming request
- * @param {Object} params - URL parameters containing the payment ID
  * @returns {Promise<NextResponse>} JSON response with Stripe client secret or error details
  */
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request) {
   try {
     // Authenticate user
     const session = await auth();
@@ -47,7 +43,9 @@ export async function POST(
       );
     }
     
-    const paymentId = params.id;
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const paymentId = pathParts[pathParts.indexOf('payments') + 1];
     console.log(`Creating Stripe payment intent for payment ID: ${paymentId}`);
     
     // Initialize Stripe

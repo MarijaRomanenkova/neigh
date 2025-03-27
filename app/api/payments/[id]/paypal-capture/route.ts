@@ -8,7 +8,7 @@
  * It receives the PayPal order ID from the client and completes the payment process.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
 import { paypal } from '@/lib/paypal';
@@ -27,17 +27,13 @@ import { revalidatePath } from 'next/cache';
  * - Validates that the payment belongs to the authenticated user
  * - Verifies the PayPal order ID matches our records
  * 
- * @param {NextRequest} request - The incoming request containing the PayPal order ID
- * @param {Object} context - Context containing the URL parameters
+ * @param {Request} request - The incoming request containing the PayPal order ID
  * @returns {Promise<NextResponse>} JSON response with success status or error details
  * @example
  * // Request body format
  * // { "paypalOrderId": "5O190127TN364715T" }
  */
-export async function POST(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function POST(request: Request) {
   try {
     // Authenticate user
     const session = await auth();
@@ -51,7 +47,11 @@ export async function POST(
       );
     }
     
-    const paymentId = context.params.id;
+    // Extract payment ID from URL path
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const paymentId = pathParts[pathParts.indexOf('payments') + 1];
+    
     console.log(`Processing PayPal capture for payment ID: ${paymentId}`);
     
     // Get PayPal order ID from request body
