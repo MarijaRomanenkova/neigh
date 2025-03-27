@@ -178,12 +178,16 @@ export const paymentResultSchema = z.object({
  * Update User Profile Schema
  * 
  * Validates data for updating a user's profile information.
+ * @property {string} id - User ID
  * @property {string} name - User's updated full name
  * @property {string} email - User's updated email address (must be valid email format)
+ * @property {string} role - User's role in the system
  */
 export const updateUserSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1),
   email: z.string().email(),
+  role: z.string().optional()
 });
 
 export const invoiceSchema = z.object({

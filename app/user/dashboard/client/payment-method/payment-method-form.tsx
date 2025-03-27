@@ -52,7 +52,7 @@ const PaymentMethodForm = ({
   const form = useForm<z.infer<typeof paymentMethodSchema>>({
     resolver: zodResolver(paymentMethodSchema),
     defaultValues: {
-      type: preferredPaymentMethod || DEFAULT_PAYMENT_METHOD,
+      paymentMethod: (preferredPaymentMethod || DEFAULT_PAYMENT_METHOD) as 'PAYPAL' | 'STRIPE',
     },
   });
 
@@ -97,7 +97,7 @@ const PaymentMethodForm = ({
             <div className='flex flex-col md:flex-row gap-5'>
               <FormField
                 control={form.control}
-                name='type'
+                name='paymentMethod'
                 render={({ field }) => (
                   <FormItem className='space-y-3'>
                     <FormControl>

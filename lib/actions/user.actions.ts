@@ -188,7 +188,7 @@ export async function updateUserPaymentMethod(
 
     await prisma.user.update({
       where: { id: currentUser.id },
-      data: { paymentMethod: paymentMethod.type },
+      data: { paymentMethod: paymentMethod.paymentMethod },
     });
 
     return {
@@ -344,12 +344,23 @@ export async function deleteUser(id: string) {
  */
 export async function updateUser(user: z.infer<typeof updateUserSchema>) {
   try {
+    if (!user.id) {
+      throw new Error('User ID is required');
+    }
+
+    // Create update data object with required fields
+    const updateData: Prisma.UserUpdateInput = {
+      name: user.name,
+    };
+    
+    // Add role if provided
+    if (user.role) {
+      updateData.role = user.role;
+    }
+
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        name: user.name,
-        role: user.role,
-      },
+      data: updateData,
     });
 
     revalidatePath('/admin/users');

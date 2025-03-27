@@ -67,15 +67,15 @@ export const shippingAddressDefaultValues = {
  * @type {string[]}
  */
 export const PAYMENT_METHODS = process.env.PAYMENT_METHODS
-  ? process.env.PAYMENT_METHODS.split(', ')
-  : ['PayPal', 'Stripe', 'CashOnDelivery'];
+  ? process.env.PAYMENT_METHODS.split(', ').map(method => method.toUpperCase())
+  : ['PAYPAL', 'STRIPE'];
 
 /**
  * Default payment method for new users
  * @type {string}
  */
 export const DEFAULT_PAYMENT_METHOD =
-  process.env.DEFAULT_PAYMENT_METHOD || 'PayPal';
+  (process.env.DEFAULT_PAYMENT_METHOD || 'PayPal').toUpperCase();
 
 /**
  * Number of items to display per page in paginated lists
