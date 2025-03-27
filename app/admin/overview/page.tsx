@@ -66,7 +66,9 @@ const AdminOverviewPage = async () => {
           <CardContent>
             <div className='text-2xl font-bold'>
               {formatCurrency(
-                summary.totalSales._sum.amount?.toString() || 0
+                typeof summary.totalSales._sum.amount === 'string'
+                  ? parseFloat(summary.totalSales._sum.amount || '0')
+                  : Number(summary.totalSales._sum.amount || 0)
               )}
             </div>
           </CardContent>
@@ -141,9 +143,9 @@ const AdminOverviewPage = async () => {
                 {summary.latestSales.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>
-                      {formatDateTime(payment.createdAt).dateOnly}
+                      {formatDateTime(payment.createdAt)}
                     </TableCell>
-                    <TableCell>{formatCurrency(payment.amount.toString())}</TableCell>
+                    <TableCell>{formatCurrency(Number(payment.amount))}</TableCell>
                     <TableCell>
                       <Link href={`/payment/${payment.id}`}>
                         <span className='px-2'>Details</span>
