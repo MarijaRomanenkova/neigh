@@ -254,6 +254,24 @@ export const updateCartSchema = cartSchema.partial().omit({
 });
 
 /**
+ * Update Profile Schema
+ * 
+ * Validates data for updating a user's profile information.
+ * @property {string} name - User's display name
+ * @property {string} fullName - User's complete legal name
+ * @property {string} phoneNumber - User's contact phone number
+ * @property {string} companyId - ID of the company the user is associated with (optional)
+ * @property {string} address - User's address information (optional)
+ */
+export const updateProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  fullName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  companyId: z.string().optional(),
+  address: z.string().optional(),
+});
+
+/**
  * Task Assignment Schema
  * 
  * Validates data for assigning a task to a contractor.
