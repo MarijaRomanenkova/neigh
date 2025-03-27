@@ -27,13 +27,9 @@ import { paypal } from '@/lib/paypal';
  * - Verifies the payment is in an unpaid state
  * 
  * @param {Request} request - The incoming request
- * @param {Object} params - URL parameters containing the payment ID
  * @returns {Promise<NextResponse>} JSON response with PayPal order ID or error details
  */
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request) {
   try {
     // Authenticate user
     const session = await auth();
@@ -47,7 +43,11 @@ export async function POST(
       );
     }
     
-    const paymentId = params.id;
+    // Extract payment ID from URL path
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const paymentId = pathParts[pathParts.indexOf('payments') + 1];
+    
     console.log(`Creating PayPal order for payment ID: ${paymentId}`);
     
     // Get payment from database
