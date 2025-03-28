@@ -12,7 +12,6 @@ import { convertToPlainObject, formatError, round2 } from '../utils';
 import { revalidatePath } from 'next/cache';
 import { insertInvoiceSchema, updateInvoiceSchema } from '../validators';
 import { z } from 'zod';
-import { InvoiceItems } from '@/types';
 
 /**
  * Calculates the subtotal, tax amount, and total for an invoice based on its items
@@ -20,9 +19,14 @@ import { InvoiceItems } from '@/types';
  * @param items - Array of invoice items with price and quantity
  * @returns Object containing subtotal, tax amount, and total as formatted strings
  */
-const calcTotal = (items: InvoiceItems[]) => {
+const calcTotal = (items: Array<{price: number, quantity?: number, qty?: number}>) => {
+  // Handle both old schema (InvoiceItems with qty) and new schema (items with quantity)
   const subtotal = round2(
-    items.reduce((acc, item) => acc + Number(item.price) * (item.qty ?? 1), 0)
+    items.reduce((acc, item) => {
+      // Support both qty and quantity fields for backward compatibility
+      const quantity = 'quantity' in item && item.quantity !== undefined ? item.quantity : (item.qty ?? 1);
+      return acc + Number(item.price) * quantity;
+    }, 0)
   );
   const taxRate = 0.21; // 21% tax rate
   const taxAmount = round2(subtotal * taxRate);
@@ -178,12 +182,12 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
     }
     
     const invoice = insertInvoiceSchema.parse(data);
-    const { total } = calcTotal(invoice.invoiceItem as InvoiceItems[]);
+    const { total } = calcTotal(invoice.items);
     
     // First, get a valid assignment ID (we need this for each invoice item)
     const assignment = await prisma.taskAssignment.findFirst({
       where: {
-        taskId: invoice.invoiceItem[0].taskId,
+        taskId: invoice.items[0].taskId,
         clientId: invoice.clientId,
         contractorId: invoice.contractorId,
       },
@@ -204,11 +208,11 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
         contractorId: invoice.contractorId,
         totalPrice: total,
         items: {
-          create: invoice.invoiceItem.map(item => ({
+          create: invoice.items.map(item => ({
             taskId: item.taskId,
-            name: item.name,
-            qty: item.qty || 1,
-            price: parseFloat(item.price),
+            name: "Service", // Default name
+            qty: item.quantity || 1,
+            price: item.price,
             hours: 1, // Default value for hours
             assignmentId: assignment.id
           }))
@@ -290,12 +294,12 @@ export async function updateInvoice(data: z.infer<typeof updateInvoiceSchema>) {
     }
     
     const invoice = updateInvoiceSchema.parse(data);
-    const { total } = calcTotal(invoice.invoiceItem as InvoiceItems[]);
+    const { total } = calcTotal(invoice.items);
 
+    // Update invoice total price only, items are updated separately
     const updatedInvoice = await prisma.invoice.update({
       where: { id: invoice.id },
       data: {
-        ...invoice,
         totalPrice: total,
       },
     });

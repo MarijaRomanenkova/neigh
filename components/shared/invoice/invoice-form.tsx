@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertInvoiceSchema } from "@/lib/validators";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { Invoice } from "@/types";
+import { Invoice, InvoiceItems } from "@/types";
 import { useState, useEffect } from "react";
 import { createInvoice } from "@/lib/actions/invoice.actions";
 import { useRouter } from "next/navigation";
@@ -66,8 +66,8 @@ type InvoiceFormProps = {
 const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
   const { toast } = useToast();
   const router = useRouter();
-  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
-  const [totalPrice, setTotalPrice] = useState("0.00");
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceItems[]>([]);
+  const [totalPrice, setTotalPrice] = useState(0);
 
   // Initialize the form with prefill data if available
   const form = useForm<z.infer<typeof insertInvoiceSchema>>({
@@ -75,19 +75,18 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     defaultValues: {
       clientId: prefillData?.clientId || "",
       contractorId: prefillData?.contractorId || "",
-      invoiceItem: prefillData?.taskId ? [
+      items: prefillData?.taskId ? [
         {
           taskId: prefillData.taskId,
-          name: prefillData.taskName || "Task Service",
+          quantity: 1,
           price: typeof prefillData.taskPrice === 'number' 
-            ? prefillData.taskPrice.toFixed(2) 
-            : prefillData.taskPrice || "0.00",
-          qty: 1
+            ? prefillData.taskPrice
+            : prefillData.taskPrice ? Number(prefillData.taskPrice) : 0
         }
       ] : [],
       totalPrice: typeof prefillData?.taskPrice === 'number' 
-        ? prefillData.taskPrice.toFixed(2) 
-        : prefillData?.taskPrice || "0.00"
+        ? prefillData.taskPrice 
+        : prefillData?.taskPrice ? Number(prefillData.taskPrice) : 0
     }
   });
 
@@ -108,7 +107,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
       const price = typeof prefillData.taskPrice === 'number' 
         ? prefillData.taskPrice 
         : parseFloat(prefillData.taskPrice || "0");
-      setTotalPrice(price.toFixed(2));
+      setTotalPrice(price);
     }
   }, [prefillData]);
 
@@ -123,7 +122,14 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
       qty: 1
     };
     setInvoiceItems([...invoiceItems, newItem]);
-    form.setValue("invoiceItem", [...form.getValues("invoiceItem"), newItem]);
+    
+    // Fix: Use the correct form field and transform to match schema format
+    const formItem = {
+      taskId: newItem.taskId,
+      quantity: newItem.qty,
+      price: parseFloat(newItem.price)
+    };
+    form.setValue("items", [...(form.getValues("items") || []), formItem]);
   };
 
   /**
@@ -135,14 +141,21 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
   const handleRemoveItem = (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     setInvoiceItems(updatedItems);
-    form.setValue("invoiceItem", updatedItems);
+    
+    // Transform UI items to match form schema format
+    const formItems = updatedItems.map(item => ({
+      taskId: item.taskId,
+      quantity: item.qty || 1,  // Ensure quantity is always a number
+      price: parseFloat(item.price)
+    }));
+    form.setValue("items", formItems);
     
     // Recalculate total price
     const total = updatedItems.reduce((sum, item) => {
       return sum + (parseFloat(item.price) * (item.qty || 1));
     }, 0);
-    setTotalPrice(total.toFixed(2));
-    form.setValue("totalPrice", total.toFixed(2));
+    setTotalPrice(total);
+    form.setValue("totalPrice", total);
   };
 
   /**
@@ -151,22 +164,22 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
    * 
    * @param {number} index - The index of the item to update
    * @param {string} field - The field name to update (taskId, name, price, qty)
-   * @param {any} value - The new value for the field
+   * @param {string | number} value - The new value for the field
    */
-  const handleItemChange = (index: number, field: string, value: any) => {
+  const handleItemChange = (index: number, field: string, value: string | number) => {
     const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     setInvoiceItems(updatedItems);
     
     // Set the form value with type-safe approach
     if (field === 'taskId') {
-      form.setValue(`invoiceItem.${index}.taskId` as const, value);
+      form.setValue(`items.${index}.taskId` as const, String(value));
     } else if (field === 'name') {
-      form.setValue(`invoiceItem.${index}.name` as const, value);
+      // Name field doesn't exist in form schema, so we don't update it
     } else if (field === 'price') {
-      form.setValue(`invoiceItem.${index}.price` as const, value);
+      form.setValue(`items.${index}.price` as const, typeof value === 'string' ? parseFloat(value) : value);
     } else if (field === 'qty') {
-      form.setValue(`invoiceItem.${index}.qty` as const, value);
+      form.setValue(`items.${index}.quantity` as const, typeof value === 'string' ? parseInt(value, 10) : value);
     }
     
     // Recalculate total price for price or qty changes
@@ -174,8 +187,8 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
       const total = updatedItems.reduce((sum, item) => {
         return sum + (parseFloat(item.price) * (item.qty || 1));
       }, 0);
-      setTotalPrice(total.toFixed(2));
-      form.setValue("totalPrice", total.toFixed(2));
+      setTotalPrice(total);
+      form.setValue("totalPrice", total);
     }
   };
 
@@ -329,11 +342,11 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
           
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Total:</p>
-            <p className="text-lg font-semibold">{formatCurrency(parseFloat(totalPrice))}</p>
+            <p className="text-lg font-semibold">{formatCurrency(totalPrice)}</p>
             <Input 
               type="hidden" 
               {...form.register("totalPrice")} 
-              value={totalPrice}
+              value={totalPrice.toFixed(2)}
             />
           </div>
         </div>

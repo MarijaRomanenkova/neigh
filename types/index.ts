@@ -5,7 +5,6 @@ import {
   insertInvoiceSchema,
   paymentResultSchema,
   invoiceSchema,
-  invoiceItemsSchema,
 } from '@/lib/validators';
 import { Decimal } from '@prisma/client/runtime/library';
 

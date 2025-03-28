@@ -59,7 +59,6 @@ const ProfileForm = () => {
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       name: session?.user?.name ?? '',
-      email: session?.user?.email ?? '',
       fullName: '',
       address: '',
       phoneNumber: '',
@@ -74,7 +73,6 @@ const ProfileForm = () => {
       
       // Set the core fields
       form.setValue('name', user.name || '');
-      form.setValue('email', user.email || '');
       
       // Set the extended fields if they exist
       form.setValue('fullName', user.fullName || '');
@@ -147,24 +145,6 @@ const ProfileForm = () => {
         <div className='space-y-6'>
           <h3 className='text-lg font-medium'>Account Information</h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem className='w-full'>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled
-                      placeholder='Email'
-                      className='input-field'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name='name'

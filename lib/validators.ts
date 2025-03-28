@@ -57,12 +57,15 @@ export const insertTaskSchema = z.object({
  * Task Update Schema
  * 
  * Validates data for updating an existing task.
+ * @property {string} id - Task ID
  * @property {string} name - Task name (3-255 characters)
  * @property {string} slug - URL-friendly task identifier
  * @property {string} categoryId - ID of the category the task belongs to
  * @property {number} price - Task price (minimum 0)
  */
-export const updateTaskSchema = insertTaskSchema;
+export const updateTaskSchema = insertTaskSchema.extend({
+  id: z.string(),
+});
 
 /**
  * Sign-In Form Schema
