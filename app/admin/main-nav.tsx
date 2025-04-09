@@ -24,10 +24,6 @@ const links = [
     href: '/admin/overview',
   },
   {
-    title: 'tasks',
-    href: '/admin/tasks',
-  },
-  {
     title: 'Payments',
     href: '/admin/payments',
   },

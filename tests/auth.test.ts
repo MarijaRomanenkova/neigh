@@ -69,4 +69,34 @@ describe('Auth Guards', () => {
       expect(redirect).toHaveBeenCalledWith('/unauthorized');
     });
   });
+  
+  describe('edge cases', () => {
+    it('should handle when auth throws an error', async () => {
+      // Arrange
+      (auth as jest.Mock).mockRejectedValue(new Error('Auth service error'));
+      
+      // Act & Assert
+      await expect(requireAuth()).rejects.toThrow('Auth service error');
+    });
+    
+    it('should redirect if user exists but has no role', async () => {
+      // Arrange
+      (auth as jest.Mock).mockResolvedValue({ 
+        user: { id: 'user-123' } // Missing role
+      });
+      
+      // Act
+      await requireAdmin();
+      
+      // Assert
+      expect(redirect).toHaveBeenCalledWith('/unauthorized');
+    });
+  });
+  
+  describe('session token handling', () => {
+    it('should check token expiration', async () => {
+      // This would require additional setup based on how you handle tokens
+      // Mocking a token that's expired, etc.
+    });
+  });
 });

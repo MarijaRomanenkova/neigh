@@ -441,3 +441,62 @@ export const checkTaskOwnership = async (
     return false;
   }
 };
+
+/**
+ * Get task statistics for admin dashboard
+ * Returns the count of open tasks and weekly task creation data
+ */
+export async function getTaskStatistics() {
+  try {
+    // Get count of open tasks
+    const openTasksCount = await prisma.task.count({
+      where: {
+        status: {
+          equals: 'OPEN'
+        }
+      }
+    });
+
+    // Get weekly task creation data for the last 8 weeks
+    const now = new Date();
+    const eightWeeksAgo = new Date(now.getTime() - (8 * 7 * 24 * 60 * 60 * 1000));
+
+    const weeklyTasks = await prisma.task.groupBy({
+      by: ['createdAt'],
+      where: {
+        createdAt: {
+          gte: eightWeeksAgo
+        }
+      },
+      _count: {
+        id: true
+      }
+    });
+
+    // Process weekly data
+    const weeklyData = Array.from({ length: 8 }, (_, i) => {
+      const weekStart = new Date(now.getTime() - ((7 - i) * 7 * 24 * 60 * 60 * 1000));
+      const weekEnd = new Date(weekStart.getTime() + (7 * 24 * 60 * 60 * 1000));
+      
+      const tasksInWeek = weeklyTasks.filter(task => {
+        const taskDate = new Date(task.createdAt);
+        return taskDate >= weekStart && taskDate < weekEnd;
+      });
+
+      const totalTasks = tasksInWeek.reduce((sum, task) => sum + task._count.id, 0);
+      
+      return {
+        week: `Week ${i + 1}`,
+        totalTasks
+      };
+    });
+
+    return {
+      openTasksCount,
+      weeklyData
+    };
+  } catch (error) {
+    console.error('Error getting task statistics:', error);
+    throw error;
+  }
+}

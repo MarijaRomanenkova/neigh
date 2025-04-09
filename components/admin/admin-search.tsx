@@ -5,7 +5,7 @@
  * @module Components/Admin
  * 
  * This client-side component provides a search input for admin panels.
- * It automatically detects the current admin section (orders, users, or tasks)
+ * It automatically detects the current admin section (orders or users)
  * and submits the search to the appropriate endpoint.
  */
 
@@ -17,7 +17,7 @@ import { Input } from '../ui/input';
  * AdminSearch Component
  * 
  * Renders a search input field that:
- * - Automatically detects the current admin section (orders, users, tasks)
+ * - Automatically detects the current admin section (orders, users)
  * - Maintains search state across navigation
  * - Submits search queries to the appropriate admin endpoint
  * 
@@ -27,9 +27,7 @@ const AdminSearch = () => {
   const pathname = usePathname();
   const formActionUrl = pathname.includes('/admin/orders')
     ? '/admin/orders'
-    : pathname.includes('/admin/users')
-      ? '/admin/users'
-      : '/admin/tasks';
+    : '/admin/users';
 
   const searchParams = useSearchParams();
   const [queryValue, setQueryValue] = useState(searchParams.get('query') || '');

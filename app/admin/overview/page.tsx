@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPaymentSummary } from '@/lib/actions/payment.actions';
+import { getTaskStatistics } from '@/lib/actions/task.actions';
 import { formatCurrency, formatDateTime, formatNumber } from '@/lib/utils';
 import { BadgeDollarSign, Barcode, CreditCard, Users } from 'lucide-react';
 import { Metadata } from 'next';
@@ -51,6 +52,7 @@ const AdminOverviewPage = async () => {
 
   // Fetch dashboard summary data
   const summary = await getPaymentSummary();
+  const taskStats = await getTaskStatistics();
 
   return (
     <div className='space-y-2'>
@@ -97,12 +99,12 @@ const AdminOverviewPage = async () => {
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>tasks</CardTitle>
+            <CardTitle className='text-sm font-medium'>Open Tasks</CardTitle>
             <Barcode />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {formatNumber(summary.tasksCount)}
+              {formatNumber(taskStats.openTasksCount)}
             </div>
           </CardContent>
         </Card>
@@ -113,12 +115,13 @@ const AdminOverviewPage = async () => {
         {/* Sales chart */}
         <Card className='col-span-4'>
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle>Sales Overview</CardTitle>
           </CardHeader>
           <CardContent>
             <Charts
               data={{
                 salesData: summary.salesData,
+                taskData: taskStats.weeklyData
               }}
             />
           </CardContent>

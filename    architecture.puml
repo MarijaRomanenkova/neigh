@@ -1,0 +1,79 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Container diagram for Neighbours Platform
+
+Person(client, "Client", "A user who needs services")
+Person(contractor, "Contractor", "A user who provides services")
+
+System_Boundary(neighbours, "Neighbours Platform") {
+  Container(webApp, "Web Application", "Next.js, React, TypeScript", "Provides all functionality to users via their web browser")
+  Container(apiService, "API Service", "Next.js API Routes", "Provides functionality via JSON/HTTPS API")
+  ContainerDb(database, "Database", "PostgreSQL", "Stores user, task, invoice and payment information")
+}
+
+System_Ext(paymentService, "Payment Service", "Processes payments via Stripe and PayPal")
+System_Ext(emailService, "Email Service", "Sends emails to users")
+
+Rel(client, webApp, "Uses", "HTTPS")
+Rel(contractor, webApp, "Uses", "HTTPS")
+Rel(webApp, apiService, "Makes API calls to", "JSON/HTTPS")
+Rel(apiService, database, "Reads from and writes to", "Prisma ORM")
+Rel(apiService, paymentService, "Makes API calls to", "JSON/HTTPS")
+Rel(apiService, emailService, "Sends emails using", "JSON/HTTPS")
+
+@enduml
+
+@startuml name=architecture
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(client, "Client/Contractor", "Posts tasks, messages users, issues or pays invoices")
+Person(admin, "Admin", "Manages users and content")
+
+System_Boundary(app, "Task & Invoice Web App") {
+  Container(web, "Frontend App", "Next.js 15 + Tailwind", "User interface built with React, React Hook Form, shadcn/ui")
+  Container(api, "Backend/API", "Next.js API Routes (TypeScript)", "Handles business logic, task flows, and payments")
+  ContainerDb(db, "PostgreSQL Database", "PostgreSQL via Neon", "Stores users, tasks, messages, invoices, etc.")
+  Container(payments, "Payment Integrations", "PayPal & Stripe", "Used for invoice payments")
+
+  Rel(client, web, "Uses")
+  Rel(admin, web, "Uses")
+  Rel(web, api, "Makes requests")
+  Rel(api, db, "Reads/Writes", "Prisma ORM")
+  Rel(api, payments, "Initiates payments")
+  Rel(payments, api, "Webhook responses", "Payment confirmation")
+
+}
+
+@enduml
+
+@startuml name=architecture2
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(client, "Client/Contractor", "Posts tasks, messages users, issues or pays invoices")
+Person(admin, "Admin", "Manages users and content")
+
+System_Boundary(app, "Task & Invoice Web App") {
+  Container(web, "Frontend App", "Next.js 15 + Tailwind", "User interface built with React, React Hook Form, shadcn/ui")
+  Container(api, "Backend/API", "Next.js API Routes (TypeScript)", "Handles business logic, task flows, auth, and payments")
+  ContainerDb(db, "PostgreSQL Database", "PostgreSQL via Neon", "Stores users, tasks, messages, invoices, sessions, etc.")
+  Container(payments, "Payment Integrations", "PayPal & Stripe", "Used for invoice payments")
+  Container(auth, "Authentication", "NextAuth.js", "Handles login, session management, and user roles")
+
+  Rel(client, web, "Uses")
+  Rel(admin, web, "Uses")
+  Rel(web, api, "Makes requests")
+  Rel(web, auth, "Authenticates with")
+  Rel(api, db, "Reads/Writes", "Prisma ORM")
+  Rel(auth, db, "Stores sessions, accounts", "Prisma Adapter")
+  Rel(api, payments, "Initiates payments")
+  Rel(payments, api, "Webhook responses", "Payment confirmation")
+}
+
+@enduml

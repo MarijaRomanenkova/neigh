@@ -19,7 +19,7 @@ import { z } from 'zod';
  * @param items - Array of invoice items with price and quantity
  * @returns Object containing subtotal, tax amount, and total as formatted strings
  */
-const calcTotal = (items: Array<{price: number, quantity?: number, qty?: number}>) => {
+export const calcTotal = (items: Array<{price: number, quantity?: number, qty?: number}>) => {
   // Handle both old schema (InvoiceItems with qty) and new schema (items with quantity)
   const subtotal = round2(
     items.reduce((acc, item) => {
