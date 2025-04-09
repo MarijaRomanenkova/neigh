@@ -452,7 +452,7 @@ export async function getTaskStatistics() {
     const openTasksCount = await prisma.task.count({
       where: {
         status: {
-          equals: 'OPEN'
+          name: 'OPEN'
         }
       }
     });
