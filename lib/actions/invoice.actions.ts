@@ -14,12 +14,11 @@ import { insertInvoiceSchema, updateInvoiceSchema } from '../validators';
 import { z } from 'zod';
 
 /**
- * Calculates the subtotal, tax amount, and total for an invoice based on its items
- * 
+ * Calculate invoice totals including tax
  * @param items - Array of invoice items with price and quantity
  * @returns Object containing subtotal, tax amount, and total as formatted strings
  */
-export const calcTotal = (items: Array<{price: number, quantity?: number, qty?: number}>) => {
+export async function calcTotal(items: Array<{price: number, quantity?: number, qty?: number}>) {
   // Handle both old schema (InvoiceItems with qty) and new schema (items with quantity)
   const subtotal = round2(
     items.reduce((acc, item) => {
@@ -37,7 +36,7 @@ export const calcTotal = (items: Array<{price: number, quantity?: number, qty?: 
     taxAmount: taxAmount.toFixed(2),
     total: total.toFixed(2),
   };
-};
+}
 
 /**
  * Retrieves all invoices where the specified user is the client
@@ -182,7 +181,7 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
     }
     
     const invoice = insertInvoiceSchema.parse(data);
-    const { total } = calcTotal(invoice.items);
+    const { total } = await calcTotal(invoice.items);
     
     // First, get a valid assignment ID (we need this for each invoice item)
     const assignment = await prisma.taskAssignment.findFirst({
@@ -294,7 +293,7 @@ export async function updateInvoice(data: z.infer<typeof updateInvoiceSchema>) {
     }
     
     const invoice = updateInvoiceSchema.parse(data);
-    const { total } = calcTotal(invoice.items);
+    const { total } = await calcTotal(invoice.items);
 
     // Update invoice total price only, items are updated separately
     const updatedInvoice = await prisma.invoice.update({

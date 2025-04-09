@@ -12,10 +12,11 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Edit, ArrowLeft } from 'lucide-react';
 
-interface TaskDetailsPageProps {
-  params: {
+interface Props {
+  params: Promise<{
     id: string;
-  };
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 /**
@@ -27,8 +28,11 @@ interface TaskDetailsPageProps {
  * - Author details
  * - Edit button (if user is the task creator)
  */
-export default async function TaskDetailsPage({ params }: TaskDetailsPageProps) {
-  const task = await getTaskById(params.id);
+export default async function TaskDetailsPage({ params, searchParams }: Props) {
+  // Await both params and searchParams
+  const [{ id }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  
+  const task = await getTaskById(id);
 
   if (!task) {
     notFound();
