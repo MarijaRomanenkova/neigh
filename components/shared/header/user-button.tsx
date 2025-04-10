@@ -89,7 +89,9 @@ const UserButton = () => {
      */
     const handleSignOut = async () => {
       try {
-        await signOut({ callbackUrl: '/' });
+        // Use the correct base URL in production
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '/';
+        await signOut({ callbackUrl: baseUrl });
       } catch (error) {
         console.error('Error signing out:', error);
       }
