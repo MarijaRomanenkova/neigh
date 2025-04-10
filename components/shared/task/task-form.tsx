@@ -290,8 +290,8 @@ const TaskForm = ({
               <FormItem className='w-full'>
                 <FormLabel>Images</FormLabel>
                 <Card>
-                  <CardContent className='space-y-2 mt-2 min-h-48'>
-                    <div className='flex-start space-x-2'>
+                  <CardContent className='space-y-4 mt-2'>
+                    <div className='flex flex-wrap gap-4'>
                       {images.map((image: string) => (
                         <Image
                           key={image}
@@ -302,20 +302,24 @@ const TaskForm = ({
                           height={100}
                         />
                       ))}
-                      <FormControl>
-                        <UploadButton
-                          endpoint='imageUploader'
-                          onClientUploadComplete={(res: { url: string }[]) => {
-                            form.setValue('images', [...images, res[0].url]);
-                          }}
-                          onUploadError={(error: Error) => {
-                            toast({
-                              variant: 'destructive',
-                              description: `ERROR! ${error.message}`,
-                            });
-                          }}
-                        />
-                      </FormControl>
+                    </div>
+                    <div className='flex items-center justify-center w-full min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg p-4'>
+                      <UploadButton
+                        endpoint='imageUploader'
+                        onClientUploadComplete={(res: { url: string }[]) => {
+                          form.setValue('images', [...images, res[0].url]);
+                          toast({
+                            description: 'Image uploaded successfully!',
+                          });
+                        }}
+                        onUploadError={(error: Error) => {
+                          toast({
+                            variant: 'destructive',
+                            description: `ERROR! ${error.message}`,
+                          });
+                        }}
+                        className='ut-button:bg-primary ut-button:ut-readying:bg-primary/80'
+                      />
                     </div>
                   </CardContent>
                 </Card>
