@@ -89,7 +89,7 @@ const UserButton = () => {
      */
     const handleSignOut = async () => {
       try {
-        // Use the existing server URL environment variable
+        // Use the server URL environment variable
         const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || '/';
         await signOut({ callbackUrl: baseUrl });
       } catch (error) {
