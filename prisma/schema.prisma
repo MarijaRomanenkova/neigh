@@ -1,168 +1,228 @@
-// This file defines the database schema for the Neighbours application
-// It contains models for users, tasks, invoices, payments, and messaging
-
-// Configure Prisma Client generator with PostgreSQL adapter support
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
-// Database connection configuration
-// Uses PostgreSQL database with connection string from environment variables
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Categories for tasks (e.g., Cleaning, Gardening, Plumbing)
+/// Categories for tasks (e.g., Cleaning, Gardening, Plumbing)
+/// @model Category
+/// @property {string} id - Unique identifier for the category
+/// @property {string} name - Category name (must be unique)
+/// @property {string?} description - Optional category description
+/// @property {Date} createdAt - When the category was created
+/// @property {Date} updatedAt - When the category was last updated
+/// @property {Task[]} tasks - Tasks belonging to this category
 model Category {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    @unique
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique
   description String?
-  createdAt   DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime  @updatedAt
-  tasks       Task[]    // One-to-many relationship with tasks
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @updatedAt
+  tasks       Task[]
 }
 
-// Status options for tasks (e.g., Open, In Progress, Completed)
+/// Status options for tasks (e.g., Open, In Progress, Completed)
+/// @model TaskStatus
+/// @property {string} id - Unique identifier for the status
+/// @property {string} name - Status name (must be unique)
+/// @property {string?} description - Optional status description
+/// @property {string?} color - Color code for UI display
+/// @property {number} order - Display order in UI
+/// @property {Date} createdAt - When the status was created
+/// @property {Date} updatedAt - When the status was last updated
+/// @property {Task[]} tasks - Tasks with this status
+/// @property {TaskAssignment[]} assignments - Assignments with this status
 model TaskStatus {
   id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String           @unique
   description String?
-  color       String?          // Color code for UI display
-  order       Int              // Display order in UI
+  color       String?
+  order       Int
   createdAt   DateTime         @default(now()) @db.Timestamp(6)
   updatedAt   DateTime         @updatedAt
-  tasks       Task[]           // Tasks with this status
-  assignments TaskAssignment[] // Assignments with this status
+  tasks       Task[]
+  assignments TaskAssignment[]
 }
 
-// Task model representing service offerings
+/// Task model representing service offerings
+/// @model Task
+/// @property {string} id - Unique identifier for the task
+/// @property {string} name - Task name
+/// @property {string} slug - URL-friendly identifier (must be unique)
+/// @property {string} categoryId - ID of the category this task belongs to
+/// @property {string[]} images - Array of image URLs
+/// @property {string} description - Detailed task description
+/// @property {Decimal} price - Base price for the task
+/// @property {Date} createdAt - When the task was created
+/// @property {string} statusId - ID of the current task status
+/// @property {string?} createdById - ID of the user who created the task
+/// @property {User?} createdBy - Reference to the user who created the task
+/// @property {Category} category - The category this task belongs to
+/// @property {TaskStatus} status - Current status of the task
+/// @property {TaskAssignment[]} assignments - Instances of this task assigned to contractors
+/// @property {InvoiceItem[]} invoiceItems - Line items in invoices for this task
+/// @property {Conversation[]} conversations - Conversations related to this task
 model Task {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    // Task name
-  slug        String    @unique(map: "task_slug_idx") // URL-friendly identifier
-  categoryId  String    @db.Uuid
-  images      String[]  // Array of image URLs
-  description String    // Detailed task description
-  price       Decimal   @db.Decimal(12, 2) // Base price for the task
-  createdAt   DateTime  @default(now()) @db.Timestamp(6)
-  statusId    String    @db.Uuid
-  
-  // Creator of the task - often a contractor
-  createdById String?   @db.Uuid
-  createdBy   User?     @relation("UserTasks", fields: [createdById], references: [id])
-
-  // Relationships
-  category    Category  @relation(fields: [categoryId], references: [id])
-  status      TaskStatus @relation(fields: [statusId], references: [id])
-  assignments TaskAssignment[] // Instances of this task assigned to contractors
-  invoiceItems InvoiceItem[]  // Line items in invoices for this task
-  conversations Conversation[] // Conversations related to this task
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  slug          String           @unique(map: "task_slug_idx")
+  categoryId    String           @db.Uuid
+  images        String[]
+  description   String
+  price         Decimal          @db.Decimal(12, 2)
+  createdAt     DateTime         @default(now()) @db.Timestamp(6)
+  statusId      String           @db.Uuid
+  createdById   String?          @db.Uuid
+  conversations Conversation[]
+  invoiceItems  InvoiceItem[]
+  category      Category         @relation(fields: [categoryId], references: [id])
+  createdBy     User?            @relation("UserTasks", fields: [createdById], references: [id])
+  status        TaskStatus       @relation(fields: [statusId], references: [id])
+  assignments   TaskAssignment[]
 
   @@index([createdById])
 }
 
-// Assignment of tasks to contractors by clients
+/// Assignment of tasks to contractors by clients
+/// @model TaskAssignment
+/// @property {string} id - Unique identifier for the assignment
+/// @property {string} taskId - ID of the task being assigned
+/// @property {string} clientId - ID of the user requesting the task
+/// @property {string} contractorId - ID of the user performing the task
+/// @property {string} statusId - ID of the current assignment status
+/// @property {TaskStatus} status - Current status of the assignment
+/// @property {Date} createdAt - When the assignment was created
+/// @property {Date?} completedAt - When the task was completed
+/// @property {Task} task - The task being assigned
+/// @property {User} client - The user requesting the task
+/// @property {User} contractor - The user performing the task
+/// @property {Review[]} reviews - Reviews tied to this assignment
+/// @property {InvoiceItem[]} invoiceItems - Invoice items for this assignment
 model TaskAssignment {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  taskId       String      @db.Uuid
-  clientId     String      @db.Uuid // User requesting the task
-  contractorId String      @db.Uuid // User performing the task
-  statusId     String      @db.Uuid // Current status of assignment
-  status       TaskStatus  @relation(fields: [statusId], references: [id])
-  createdAt    DateTime    @default(now()) @db.Timestamp(6)
-  completedAt  DateTime?   @db.Timestamp(6) // When task was completed
-  
-  // Relationships
-  task         Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  client       User        @relation("ClientAssignments", fields: [clientId], references: [id])
-  contractor   User        @relation("ContractorAssignments", fields: [contractorId], references: [id])
-  reviews      Review[]    // Reviews tied to this assignment
-  invoiceItems InvoiceItem[] // Invoice items for this assignment
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId       String        @db.Uuid
+  clientId     String        @db.Uuid
+  contractorId String        @db.Uuid
+  statusId     String        @db.Uuid
+  createdAt    DateTime      @default(now()) @db.Timestamp(6)
+  completedAt  DateTime?     @db.Timestamp(6)
+  invoiceItems InvoiceItem[]
+  reviews      Review[]
+  client       User          @relation("ClientAssignments", fields: [clientId], references: [id])
+  contractor   User          @relation("ContractorAssignments", fields: [contractorId], references: [id])
+  status       TaskStatus    @relation(fields: [statusId], references: [id])
+  task         Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
-// Types of reviews (e.g., Client Review, Contractor Review)
+/// Types of reviews (e.g., Client Review, Contractor Review)
+/// @model ReviewType
+/// @property {string} id - Unique identifier for the review type
+/// @property {string} name - Review type name (must be unique)
+/// @property {string?} description - Optional review type description
+/// @property {Date} createdAt - When the review type was created
+/// @property {Date} updatedAt - When the review type was last updated
+/// @property {Review[]} reviews - Reviews of this type
 model ReviewType {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String    @unique
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique
   description String?
-  createdAt   DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime  @updatedAt
-  reviews     Review[]  // Reviews of this type
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @updatedAt
+  reviews     Review[]
 }
 
-// Reviews left by users for tasks/contractors
+/// Reviews left by users for tasks/contractors
+/// @model Review
+/// @property {string} id - Unique identifier for the review
+/// @property {string} assignmentId - ID of the task assignment being reviewed
+/// @property {string} reviewerId - ID of the user leaving the review
+/// @property {string} revieweeId - ID of the user being reviewed
+/// @property {number} rating - Numerical rating (typically 1-5)
+/// @property {string} title - Review title
+/// @property {string} description - Detailed review content
+/// @property {Date} createdAt - When the review was created
+/// @property {TaskAssignment} assignment - The task assignment being reviewed
+/// @property {User} reviewer - The user leaving the review
+/// @property {User} reviewee - The user being reviewed
+/// @property {string} typeId - ID of the review type
+/// @property {ReviewType} reviewType - Type of review
 model Review {
   id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  assignmentId String        @db.Uuid // The task assignment being reviewed
-  reviewerId   String        @db.Uuid // User leaving the review
-  revieweeId   String        @db.Uuid // User being reviewed
-  rating       Int           // Numerical rating (typically 1-5)
-  title        String        // Review title
-  description  String        // Detailed review content
-  createdAt    DateTime      @default(now()) @db.Timestamp(6)
-  
-  // Relationships
+  assignmentId String         @db.Uuid
+  reviewerId   String         @db.Uuid
+  revieweeId   String         @db.Uuid
+  rating       Int
+  title        String
+  description  String
+  createdAt    DateTime       @default(now()) @db.Timestamp(6)
+  typeId       String         @db.Uuid
   assignment   TaskAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  reviewer     User          @relation("ReviewsGiven", fields: [reviewerId], references: [id])
-  reviewee     User          @relation("ReviewsReceived", fields: [revieweeId], references: [id])
-  typeId       String        @db.Uuid
-  reviewType   ReviewType    @relation(fields: [typeId], references: [id])
+  reviewee     User           @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  reviewer     User           @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewType   ReviewType     @relation(fields: [typeId], references: [id])
 }
 
-// User model - central to the application
+/// User model - central to the application
+/// @model User
+/// @property {string} id - Unique identifier for the user
+/// @property {string} name - User's display name (defaults to "NO_NAME")
+/// @property {string?} fullName - Complete name including first/last
+/// @property {string} email - User's email address (must be unique)
+/// @property {Date?} emailVerified - When the email was verified
+/// @property {string?} image - Profile image URL
+/// @property {string?} password - Hashed password for credential login
+/// @property {string} role - User role (user, admin, contractor, client)
+/// @property {Json?} address - Structured address data
+/// @property {string?} phoneNumber - User's phone number
+/// @property {string?} companyId - Contractor legal ID number
+/// @property {string?} paymentMethod - Default payment method
+/// @property {Date} createdAt - When the user was created
+/// @property {Date} updatedAt - When the user was last updated
+/// @property {number} numReviews - Total reviews received
+/// @property {Decimal} clientRating - Average rating as client
+/// @property {Decimal} contractorRating - Average rating as contractor
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name          String    @default("NO_NAME")
-  fullName      String?   // Complete name including first/last
-  email         String    @unique(map: "user_email_idx")
-  emailVerified DateTime? @db.Timestamp(6)
-  image         String?   // Profile image URL
-  password      String?   // Hashed password for credential login
-  role          String    @default("user") // user, admin, contractor, client
-  address       Json?     @db.Json // Structured address data
-  phoneNumber   String?
-  companyId     String?   // Contractor legal ID number
-  paymentMethod String?   // Default payment method
-  createdAt     DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime  @updatedAt
-  
-  // Rating metrics
-  numReviews       Int      @default(0) // Total reviews received
-  clientRating     Decimal  @default(0) @db.Decimal(3, 2) // Average rating as client
-  contractorRating Decimal  @default(0) @db.Decimal(3, 2) // Average rating as contractor
-  
-  // Authentication and session
-  account       Account[]
-  session       Session[]
-  
-  // Shopping and payments
-  Cart          Cart[]
-  payments      Payment[]
-  
-  // Reviews
-  reviewsGiven     Review[] @relation("ReviewsGiven")
-  reviewsReceived  Review[] @relation("ReviewsReceived")
-  
-  // Task relations
-  clientAssignments     TaskAssignment[] @relation("ClientAssignments")
-  contractorAssignments TaskAssignment[] @relation("ContractorAssignments")
-  clientInvoices        Invoice[] @relation("ClientInvoices")
-  contractorInvoices    Invoice[] @relation("ContractorInvoices")
-  tasks                 Task[] @relation("UserTasks")
-  
-  // Messaging
-  conversations ConversationParticipant[]
-  messages      Message[]
+  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String                    @default("NO_NAME")
+  email                 String                    @unique(map: "user_email_idx")
+  emailVerified         DateTime?                 @db.Timestamp(6)
+  image                 String?
+  password              String?
+  role                  String                    @default("user")
+  address               Json?                     @db.Json
+  paymentMethod         String?
+  createdAt             DateTime                  @default(now()) @db.Timestamp(6)
+  updatedAt             DateTime                  @updatedAt
+  numReviews            Int                       @default(0)
+  clientRating          Decimal                   @default(0) @db.Decimal(3, 2)
+  contractorRating      Decimal                   @default(0) @db.Decimal(3, 2)
+  companyId             String?
+  fullName              String?
+  phoneNumber           String?
+  account               Account[]
+  Cart                  Cart[]
+  conversations         ConversationParticipant[]
+  clientInvoices        Invoice[]                 @relation("ClientInvoices")
+  contractorInvoices    Invoice[]                 @relation("ContractorInvoices")
+  messages              Message[]
+  payments              Payment[]
+  reviewsReceived       Review[]                  @relation("ReviewsReceived")
+  reviewsGiven          Review[]                  @relation("ReviewsGiven")
+  session               Session[]
+  tasks                 Task[]                    @relation("UserTasks")
+  clientAssignments     TaskAssignment[]          @relation("ClientAssignments")
+  contractorAssignments TaskAssignment[]          @relation("ContractorAssignments")
 }
 
-// NextAuth account integration
 model Account {
-  userId            String  @db.Uuid
-  type              String  // OAuth, email, etc.
-  provider          String  // Google, Facebook, etc.
-  providerAccountId String  // ID from the provider
+  userId            String   @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -172,24 +232,20 @@ model Account {
   session_state     String?
   createdAt         DateTime @default(now()) @db.Timestamp(6)
   updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
 
-// NextAuth session management
 model Session {
   sessionToken String   @id
   userId       String   @db.Uuid
   expires      DateTime @db.Timestamp(6)
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime @updatedAt
 }
 
-// NextAuth token verification
 model VerificationToken {
   identifier String
   token      String
@@ -198,110 +254,91 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-// Shopping cart for storing invoices before payment
 model Cart {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String?   @db.Uuid // Optional - can have guest carts
-  sessionCartId String    // Cookie-based identifier for guests
-  invoices      Invoice[] @relation("CartInvoices")
+  userId        String?   @db.Uuid
+  sessionCartId String
   totalPrice    Decimal   @db.Decimal(12, 2)
   createdAt     DateTime  @default(now()) @db.Timestamp(6)
   user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices      Invoice[] @relation("CartInvoices")
 }
 
-// Payment record for completed transactions
 model Payment {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId          String    @db.Uuid
-  user            User      @relation(fields: [userId], references: [id])
-  amount          Decimal   @db.Decimal(12, 2)
-  paymentMethod   String    // PayPal, Credit Card, etc.
-  paymentResult   Json      @db.Json // Payment provider response data
-  isPaid          Boolean   @default(false)
-  paidAt          DateTime? @db.Timestamp(6)
-  createdAt       DateTime  @default(now()) @db.Timestamp(6)
-  invoices        Invoice[] // Invoices covered by this payment
-  emailSent       Boolean   @default(false) // Receipt email status
-  emailSentAt     DateTime? @db.Timestamp(6) 
-}
-
-// Invoice for services rendered
-model Invoice {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  invoiceNumber   String    @unique // Human-readable identifier (INV-12345)
-  contractorId    String    @db.Uuid // Provider of services
-  clientId        String    @db.Uuid // Recipient of services
-  totalPrice      Decimal   @db.Decimal(12, 2)
-  paymentId       String?   @db.Uuid // Payment that covered this invoice
-  payment         Payment?  @relation(fields: [paymentId], references: [id])
-  createdAt       DateTime  @default(now()) @db.Timestamp(6)
-  client          User      @relation("ClientInvoices", fields: [clientId], references: [id])
-  contractor      User      @relation("ContractorInvoices", fields: [contractorId], references: [id])
-  items           InvoiceItem[] // Line items in this invoice
-  cartId          String?   @db.Uuid // Cart this invoice belongs to
-  cart            Cart?     @relation("CartInvoices", fields: [cartId], references: [id])
-}
-
-// Individual line items within an invoice
-model InvoiceItem {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  invoiceId     String    @db.Uuid
-  taskId        String    @db.Uuid // The task being billed
-  assignmentId  String    @db.Uuid // The specific task assignment
-  qty           Int       // Quantity (often hours worked)
-  price         Decimal   @db.Decimal(12, 2) // Price per unit
-  name          String    // Item description
-  hours         Int       // Hours worked on task
-  
-  // Relationships
-  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  task          Task      @relation(fields: [taskId], references: [id])
-  assignment    TaskAssignment @relation(fields: [assignmentId], references: [id])
+  userId        String    @db.Uuid
+  amount        Decimal   @db.Decimal(12, 2)
+  paymentMethod String
+  paymentResult Json      @db.Json
+  isPaid        Boolean   @default(false)
+  paidAt        DateTime? @db.Timestamp(6)
+  createdAt     DateTime  @default(now()) @db.Timestamp(6)
+  emailSent     Boolean   @default(false)
+  emailSentAt   DateTime? @db.Timestamp(6)
+  invoices      Invoice[]
+  user          User      @relation(fields: [userId], references: [id])
+}
+
+model Invoice {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceNumber String        @unique
+  contractorId  String        @db.Uuid
+  clientId      String        @db.Uuid
+  totalPrice    Decimal       @db.Decimal(12, 2)
+  paymentId     String?       @db.Uuid
+  createdAt     DateTime      @default(now()) @db.Timestamp(6)
+  cartId        String?       @db.Uuid
+  cart          Cart?         @relation("CartInvoices", fields: [cartId], references: [id])
+  client        User          @relation("ClientInvoices", fields: [clientId], references: [id])
+  contractor    User          @relation("ContractorInvoices", fields: [contractorId], references: [id])
+  payment       Payment?      @relation(fields: [paymentId], references: [id])
+  items         InvoiceItem[]
+}
+
+model InvoiceItem {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId    String         @db.Uuid
+  taskId       String         @db.Uuid
+  qty          Int
+  price        Decimal        @db.Decimal(12, 2)
+  name         String
+  hours        Int
+  assignmentId String         @db.Uuid
+  assignment   TaskAssignment @relation(fields: [assignmentId], references: [id])
+  invoice      Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  task         Task           @relation(fields: [taskId], references: [id])
 
   @@unique([invoiceId, taskId])
 }
 
-// Chat conversation between users
 model Conversation {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt   DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamp(6)
-  taskId      String?   @db.Uuid // Optional task this conversation is about
-  task        Task?     @relation(fields: [taskId], references: [id])
-  
-  participants ConversationParticipant[] // Users in this conversation
-  messages     Message[] // Messages exchanged
+  id           String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt    DateTime                  @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime                  @updatedAt @db.Timestamp(6)
+  taskId       String?                   @db.Uuid
+  task         Task?                     @relation(fields: [taskId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
 }
 
-// Join table for users in conversations
 model ConversationParticipant {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String       @db.Uuid
   conversationId String       @db.Uuid
   joinedAt       DateTime     @default(now()) @db.Timestamp(6)
-  
-  user           User         @relation(fields: [userId], references: [id])
   conversation   Conversation @relation(fields: [conversationId], references: [id])
-  
+  user           User         @relation(fields: [userId], references: [id])
+
   @@unique([userId, conversationId])
 }
 
-// Individual messages within a conversation
 model Message {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   conversationId String       @db.Uuid
-  senderId       String       @db.Uuid // User who sent the message
-  content        String       // Message content
+  senderId       String       @db.Uuid
+  content        String
   createdAt      DateTime     @default(now()) @db.Timestamp(6)
-  readAt         DateTime?    @db.Timestamp(6) // When message was read
-  
+  readAt         DateTime?    @db.Timestamp(6)
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   sender         User         @relation(fields: [senderId], references: [id])
 }
-
-// ERD generator - commented out for production deployment
-// generator erd {
-//   provider = "prisma-erd-generator"
-//   output   = "./docs/ER_Diagram.svg" 
-// }
-

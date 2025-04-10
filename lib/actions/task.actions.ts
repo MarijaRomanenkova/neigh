@@ -12,7 +12,8 @@ import { PAGE_SIZE } from '../constants';
 import { revalidatePath } from 'next/cache';
 import { insertTaskSchema, updateTaskSchema } from '../validators';
 import { z } from 'zod';
-import { Prisma, Task } from '@prisma/client';
+import { Prisma, Task as PrismaTask } from '@prisma/client';
+import { Task } from '@/types';
 
 /**
  * Parameters for retrieving and filtering tasks
@@ -93,12 +94,12 @@ export async function getTaskBySlug(slug: string) {
  * Retrieves a single task by its unique ID
  * 
  * @param taskId - The task's unique identifier
- * @returns The task with author information or null if not found
+ * @returns The task with creator information or null if not found
  * 
  * @example
  * const task = await getTaskById('task-123');
  * if (task) {
- *   console.log(`Found task: ${task.name} by ${task.author.name}`);
+ *   console.log(`Found task: ${task.name} by ${task.createdBy.name}`);
  * }
  */
 export async function getTaskById(taskId: string) {
@@ -122,19 +123,7 @@ export async function getTaskById(taskId: string) {
       }
     });
 
-    const plainObject = convertToPlainObject(data);
-    
-    if (plainObject && plainObject.createdBy) {
-      return {
-        ...plainObject,
-        author: {
-          name: plainObject.createdBy.name,
-          email: plainObject.createdBy.email
-        }
-      };
-    }
-    
-    return plainObject;
+    return convertToPlainObject(data);
   } catch (error) {
     console.error('Error fetching task by ID:', error);
     return null;
@@ -291,12 +280,26 @@ export async function deleteTask(id: string) {
  * });
  */
 export async function createTask(data: z.infer<typeof insertTaskSchema> & { userId: string }) {
-  console.log('createTask called with userId:', data.userId);
+  console.log('createTask called with data:', {
+    ...data,
+    userId: data.userId
+  });
   
   try {
     const task = insertTaskSchema.parse(data);
     const openStatus = await prisma.taskStatus.findFirst({
       where: { name: 'OPEN' }
+    });
+    
+    console.log('Creating task with data:', {
+      name: task.name,
+      slug: task.slug,
+      categoryId: task.categoryId,
+      images: task.images,
+      description: task.description,
+      price: task.price,
+      statusId: openStatus?.id,
+      createdById: data.userId
     });
     
     const createdTask = await prisma.task.create({ 
@@ -312,7 +315,7 @@ export async function createTask(data: z.infer<typeof insertTaskSchema> & { user
       } 
     });
     
-    console.log('Task created with createdById:', createdTask.createdById);
+    console.log('Task created:', createdTask);
     
     revalidatePath('/');
     revalidatePath('/user/dashboard/client/tasks');
@@ -405,12 +408,25 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
     where,
     include: {
       assignments: true,
-      category: true
+      category: true,
+      createdBy: {
+        select: {
+          name: true,
+          email: true
+        }
+      }
     }
   });
   
   return {
-    data: tasks,
+    data: tasks.map(task => ({
+      ...task,
+      price: Number(task.price),
+      author: task.createdBy ? {
+        name: task.createdBy.name,
+        email: task.createdBy.email
+      } : undefined
+    })) as Task[],
     totalPages: Math.ceil(tasks.length / 10)
   };
 }

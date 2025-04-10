@@ -25,7 +25,7 @@ interface Props {
  * Displays detailed information about a specific task including:
  * - Task name and description
  * - Price information
- * - Author details
+ * - Creator details
  * - Edit button (if user is the task creator)
  */
 export default async function TaskDetailsPage({ params, searchParams }: Props) {
