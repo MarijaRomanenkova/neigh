@@ -11,6 +11,8 @@ import TaskPrice from '@/components/shared/task/task-price';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Edit, ArrowLeft } from 'lucide-react';
+import { auth } from '@/auth';
+import TaskContactButton from '@/components/shared/task/task-contact-button';
 
 interface Props {
   params: Promise<{
@@ -27,16 +29,18 @@ interface Props {
  * - Price information
  * - Creator details
  * - Edit button (if user is the task creator)
+ * - Contact button (if user is not the task creator)
  */
 export default async function TaskDetailsPage({ params, searchParams }: Props) {
-  // Await both params and searchParams
   const [{ id }, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  
   const task = await getTaskById(id);
+  const session = await auth();
 
   if (!task) {
     notFound();
   }
+
+  const isCreator = session?.user?.id === task.createdBy?.id;
 
   return (
     <div className="space-y-6">
@@ -49,12 +53,19 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
             </Button>
           </Link>
         </div>
-        <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
-          <Button size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Task
-          </Button>
-        </Link>
+        {isCreator ? (
+          <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
+            <Button size="sm">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Task
+            </Button>
+          </Link>
+        ) : (
+          <TaskContactButton 
+            taskId={task.id} 
+            taskOwnerId={task.createdBy?.id || ''} 
+          />
+        )}
       </div>
 
       <Card>

@@ -116,6 +116,7 @@ export async function getTaskById(taskId: string) {
       include: {
         createdBy: {
           select: {
+            id: true,
             name: true,
             email: true
           }
