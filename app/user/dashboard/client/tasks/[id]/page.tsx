@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Edit, ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import TaskContactButton from '@/components/shared/task/task-contact-button';
+import TaskImageGallery from '@/components/shared/task/task-image-gallery';
 
 interface Props {
   params: Promise<{
@@ -68,32 +69,45 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{task.name}</CardTitle>
-          {task.price && (
-            <TaskPrice value={Number(task.price)} className="text-xl" />
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-2">Description</h3>
-            <p className="text-muted-foreground">{task.description || 'No description provided'}</p>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-2">Created By</h3>
-            <p className="text-muted-foreground">{task.createdBy?.name || 'Anonymous'}</p>
-          </div>
-
-          {task.categoryId && (
+      <div className="flex flex-col md:flex-row gap-6">
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>{task.name}</CardTitle>
+            {task.price && (
+              <TaskPrice value={Number(task.price)} className="text-xl" />
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <h3 className="font-medium mb-2">Category ID</h3>
-              <p className="text-muted-foreground">{task.categoryId}</p>
+              <h3 className="font-medium mb-2">Description</h3>
+              <p className="text-muted-foreground">{task.description || 'No description provided'}</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <div>
+              <h3 className="font-medium mb-2">Created By</h3>
+              <p className="text-muted-foreground">{task.createdBy?.name || 'Anonymous'}</p>
+            </div>
+
+            {task.category && (
+              <div>
+                <h3 className="font-medium mb-2">Category</h3>
+                <p className="text-muted-foreground">{task.category.name}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {task.images && task.images.length > 0 && (
+          <Card className="md:w-[400px]">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-lg">Images</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <TaskImageGallery images={task.images} />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 } 

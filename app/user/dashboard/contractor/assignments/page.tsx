@@ -25,42 +25,34 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
+import TaskCompleteButton from "@/components/shared/task-assignment/task-complete-button";
+import { prisma } from "@/db/prisma";
+import { Metadata } from 'next';
 
-/**
- * Contractor Task Assignments Page Component
- * 
- * Renders a grid of cards showing all task assignments assigned to the contractor, with:
- * - Task name and description
- * - Client information
- * - Task status with color coding
- * - Invoice and payment status
- * - Pricing information
- * - Option to issue invoice for completed tasks
- * 
- * Includes authentication protection and redirects unauthenticated users.
- * Supports filtering and pagination for large numbers of assignments.
- * 
- * @param {Object} props - Component properties
- * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
- * @returns {Promise<JSX.Element>} The rendered task assignments page with card grid
- */
-const ContractorTaskAssignmentsPage = async (props: {
-  searchParams: Promise<{
-    page: string;
-    query: string;
-    category: string;
-  }>;
-}) => {
-  const searchParams = await props.searchParams;
+interface PageProps {
+  params: Promise<{ [key: string]: string | string[] }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-  const page = Number(searchParams.page) || 1;
-  const searchText = searchParams.query || '';
-  const category = searchParams.category || '';
+const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps) => {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const page = Number(resolvedSearchParams?.page) || 1;
+  const searchText = resolvedSearchParams?.query?.toString() || '';
+  const category = resolvedSearchParams?.category?.toString() || '';
 
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
   const tasksAssignments = await getAllTaskAssignmentsByContractorId(session.user.id);
+
+  // Get the COMPLETED status ID
+  const completedStatus = await prisma.taskStatus.findFirst({
+    where: { name: "COMPLETED" }
+  });
+
+  if (!completedStatus) {
+    throw new Error("COMPLETED status not found");
+  }
 
   return (
     <div className='space-y-6'>
@@ -80,13 +72,13 @@ const ContractorTaskAssignmentsPage = async (props: {
         </div>
       </div>
 
-      <div className='grid gap-6 md:grid-cols-2'>
+      <div className='grid gap-6'>
         {tasksAssignments.data.length > 0 ? (
           tasksAssignments.data.map((assignment) => {
-            // Check if there's an invoice for this task assignment
             const hasInvoice = assignment.invoiceItems && assignment.invoiceItems.length > 0;
             const invoice = hasInvoice ? assignment.invoiceItems[0].invoice : null;
             const isPaid = invoice?.payment?.isPaid || false;
+            const isCompleted = assignment.status.name === "COMPLETED";
             
             return (
               <Card key={assignment.id} className='overflow-hidden'>
@@ -136,10 +128,16 @@ const ContractorTaskAssignmentsPage = async (props: {
                     </p>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex gap-2">
+                  {!isCompleted && (
+                    <TaskCompleteButton
+                      taskAssignmentId={assignment.id}
+                      className="flex-1"
+                    />
+                  )}
                   {hasInvoice ? (
                     <Button 
-                      className='w-full' 
+                      className='flex-1' 
                       variant='outline' 
                       disabled
                     >
@@ -147,7 +145,7 @@ const ContractorTaskAssignmentsPage = async (props: {
                       {isPaid ? 'Invoice Paid' : 'Invoice Issued'}
                     </Button>
                   ) : (
-                    <Button asChild className='w-full'>
+                    <Button asChild className='flex-1'>
                       <Link 
                         href={{
                           pathname: '/user/dashboard/contractor/invoices/create',

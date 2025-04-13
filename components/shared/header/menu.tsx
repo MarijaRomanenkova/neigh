@@ -1,12 +1,7 @@
 'use client';
 
 /**
- * Header Menu Component
- * @module Components
- * @group Shared/Header
- * 
- * This client-side component renders the main navigation menu with responsive
- * desktop and mobile layouts, user authentication controls, and notification badges.
+ * @module Components/Header
  */
 
 import { Button } from '@/components/ui/button';
@@ -27,28 +22,18 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 /**
- * Custom hook for fetching and tracking unread message count
- * 
- * Provides real-time tracking of unread messages with:
- * - Initial loading on component mount
- * - Periodic polling for updates
- * - Error handling and retry logic
- * 
- * @returns {number} Count of unread messages
+ * Custom hook for tracking unread messages count with auto-refresh
+ * @returns {number} The current count of unread messages
  */
 const useUnreadMessages = () => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const { status } = useSession();
   
   useEffect(() => {
-    // Only fetch messages if the user is authenticated
     if (status !== 'authenticated') return;
     
-    /**
-     * Fetches the current unread message count from the API
-     */
     const getUnreadCount = async () => {
       try {
         setLoading(true);
@@ -57,27 +42,25 @@ const useUnreadMessages = () => {
         const response = await fetch('/api/messages/unread');
         
         if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
+          throw new Error(`Failed to fetch: ${response.status}`);
         }
         
         const data = await response.json();
-        setCount(data.count);
+        if (typeof data.count === 'number') {
+          setCount(data.count);
+        } else {
+          console.warn('Invalid count received:', data);
+        }
       } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
         console.error('Failed to fetch unread message count:', err);
-        setError('Failed to fetch unread messages');
-        // Keep the old count if there's an error
       } finally {
         setLoading(false);
       }
     };
     
-    // Fetch immediately
     getUnreadCount();
-    
-    // Set up polling interval
-    const interval = setInterval(getUnreadCount, 30000); // Poll every 30 seconds
-    
-    // Clean up interval on unmount
+    const interval = setInterval(getUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [status]);
   
@@ -85,17 +68,7 @@ const useUnreadMessages = () => {
 };
 
 /**
- * Menu Component
- * 
- * Renders a responsive navigation menu with:
- * - Dark/light mode toggle
- * - Messages link with unread count badge
- * - User authentication button
- * - Shopping cart link
- * - Mobile slide-out menu for smaller screens
- * 
- * Automatically adapts layout based on screen size.
- * 
+ * Responsive navigation menu component with user controls and notifications
  * @returns {JSX.Element} The rendered menu component
  */
 const Menu = () => {

@@ -282,6 +282,7 @@ export async function getTaskAssignmentById(id: string) {
       include: {
         task: {
           select: {
+            id: true,
             name: true,
             price: true,
             description: true,
@@ -295,6 +296,7 @@ export async function getTaskAssignmentById(id: string) {
         },
         client: {
           select: {
+            id: true,
             name: true,
             email: true
           }
@@ -309,6 +311,22 @@ export async function getTaskAssignmentById(id: string) {
           select: {
             name: true,
             color: true
+          }
+        },
+        invoiceItems: {
+          include: {
+            invoice: {
+              select: {
+                id: true,
+                invoiceNumber: true,
+                paymentId: true,
+                payment: {
+                  select: {
+                    isPaid: true
+                  }
+                }
+              }
+            }
           }
         }
       }

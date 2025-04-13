@@ -24,37 +24,19 @@ import DeleteDialog from '@/components/shared/delete-dialog';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { TaskAssignment } from '@prisma/client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Check, Clock } from "lucide-react";
+import { Metadata } from 'next';
 
-/**
- * Client Task Assignments Page Component
- * 
- * Renders a table of all task assignments created by the client, showing:
- * - Assignment ID
- * - Task status
- * - Edit and delete actions
- * 
- * Supports filtering by search text and category, with pagination for
- * large numbers of assignments.
- * Includes authentication protection and redirects unauthenticated users.
- * 
- * @param {Object} props - Component properties
- * @param {Promise<{page: string, query: string, category: string}>} props.searchParams - URL search parameters
- * @returns {Promise<JSX.Element>} The rendered task assignments page with table
- */
-const ClientTaskAssignmentsPage = async (props: {
-  searchParams: Promise<{
-    page: string;
-    query: string;
-    category: string;
-  }>;
-}) => {
+interface PageProps {
+  params: Promise<{ [key: string]: string | string[] }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-
-  const searchParams = await props.searchParams;
-
-  const page = Number(searchParams.page) || 1;
-  const searchText = searchParams.query || '';
-  const category = searchParams.category || '';
+const ClientTaskAssignmentsPage = async ({ params, searchParams }: PageProps) => {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const page = Number(resolvedSearchParams?.page) || 1;
 
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
@@ -62,52 +44,63 @@ const ClientTaskAssignmentsPage = async (props: {
   const tasksAssignments = await getAllTaskAssignmentsByClientId(session.user.id);
 
   return (
-    <div className='space-y-2'>
-      <div className='flex-between'>
-        <div className='flex items-center gap-3'>
-          <h1 className='h2-bold'>Tasks Assignments</h1>
-          {searchText && (
-            <div>
-              Filtered by <i>&quot;{searchText}&quot;</i>{' '}
-              <Link href='/user/dashboard/client/task-assignments'>
-                <Button variant='outline' size='sm'>
-                  Remove Filter
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="h2-bold">Task Assignments</h1>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>NAME</TableHead>
-            <TableHead className='text-right'>PRICE</TableHead>
-            <TableHead>CATEGORY</TableHead>
-            <TableHead className='w-[100px]'>ACTIONS</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tasksAssignments.data.map((taskAssignment: TaskAssignment) => (
-            <TableRow key={taskAssignment.id}>
-              <TableCell>{formatId(taskAssignment.id)}</TableCell>
-              <TableCell>{taskAssignment.statusId}</TableCell>
-             
-              <TableCell className='flex gap-1'>
-                <Button asChild variant='outline' size='sm'>
-                  <Link href={`/user/dashboard/client/task-assignments/${taskAssignment.id}`}>Edit</Link>
-                </Button>
-                <DeleteDialog id={taskAssignment.id} action={deleteTaskAssignment} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {tasksAssignments.totalPages > 1 && (
-        <Pagination page={page} totalPages={tasksAssignments.totalPages} />
-      )}
+      <div className="grid gap-6">
+        {tasksAssignments.data.length > 0 ? (
+          tasksAssignments.data.map((assignment) => {
+            const isCompleted = assignment.status.name === "COMPLETED";
+            
+            return (
+              <Card key={assignment.id} className="overflow-hidden">
+                <CardHeader className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="line-clamp-1">
+                      {assignment.task.name}
+                    </CardTitle>
+                    <Badge 
+                      style={{
+                        backgroundColor: assignment.status.color || "gray",
+                      }}
+                    >
+                      {assignment.status.name}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium">Contractor</p>
+                    <p className="text-sm text-muted-foreground">
+                      {assignment.contractor.name}
+                    </p>
+                  </div>
+                  {assignment.task.price && (
+                    <div>
+                      <p className="text-sm font-medium">Price</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${Number(assignment.task.price).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  {isCompleted && (
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-600">
+                        Marked as completed by contractor
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <p className="text-muted-foreground">No task assignments found.</p>
+        )}
+      </div>
     </div>
   );
 };

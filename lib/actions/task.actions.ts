@@ -120,6 +120,12 @@ export async function getTaskById(taskId: string) {
             name: true,
             email: true
           }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     });
