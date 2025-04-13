@@ -40,7 +40,7 @@ export default function TaskCompleteButton({
     // Fetch the completed status ID when the component mounts
     async function fetchCompletedStatusId() {
       try {
-        const response = await fetch('/api/task-status/completed');
+        const response = await fetch('/api/task-statuses?name=COMPLETED');
         if (!response.ok) {
           throw new Error('Failed to fetch completed status');
         }
