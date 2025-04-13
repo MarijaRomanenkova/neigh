@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { updateTaskAssignment } from '@/lib/actions/task-assignment.actions';
+import { getTaskStatusByName } from '@/lib/actions/task-status.actions';
 
 interface TaskCompleteButtonProps {
   taskAssignmentId: string;
@@ -40,12 +42,8 @@ export default function TaskCompleteButton({
     // Fetch the completed status ID when the component mounts
     async function fetchCompletedStatusId() {
       try {
-        const response = await fetch('/api/task-statuses?name=COMPLETED');
-        if (!response.ok) {
-          throw new Error('Failed to fetch completed status');
-        }
-        const data = await response.json();
-        setCompletedStatusId(data.id);
+        const status = await getTaskStatusByName('COMPLETED');
+        setCompletedStatusId(status.id);
       } catch (error) {
         console.error('Error fetching completed status:', error);
         toast({
@@ -64,19 +62,10 @@ export default function TaskCompleteButton({
     try {
       setIsUpdating(true);
       
-      const response = await fetch(`/api/task-assignments/${taskAssignmentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          statusId: completedStatusId,
-        }),
-      });
+      const result = await updateTaskAssignment(taskAssignmentId, completedStatusId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to complete task');
+      if (!result.success) {
+        throw new Error(result.message);
       }
 
       toast({

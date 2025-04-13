@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { insertTaskAssignmentSchema } from '@/lib/validators';
 import { z } from 'zod';
+import { auth } from '@/auth';
 
 /**
  * Type definition for task assignments with detailed contractor view information
@@ -460,4 +461,45 @@ export async function createTaskAssignment(
  */
 export async function getAllCategories() {
   // Implementation
+}
+
+/**
+ * Updates a task assignment's status
+ * 
+ * @param id - The task assignment ID
+ * @param statusId - The new status ID
+ * @returns Result with success status and message
+ */
+export async function updateTaskAssignment(id: string, statusId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const updatedAssignment = await prisma.taskAssignment.update({
+      where: {
+        id,
+        contractorId: session.user.id, // Ensure only the assigned contractor can update
+      },
+      data: {
+        statusId,
+        completedAt: new Date(),
+      },
+    });
+
+    revalidatePath('/user/dashboard/contractor/assignments');
+    
+    return {
+      success: true,
+      message: 'Task assignment updated successfully',
+      data: updatedAssignment
+    };
+  } catch (error) {
+    console.error('[TASK_ASSIGNMENT_UPDATE]', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to update task assignment' 
+    };
+  }
 } 

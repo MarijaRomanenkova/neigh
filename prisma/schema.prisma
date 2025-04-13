@@ -66,6 +66,8 @@ model TaskStatus {
 /// @property {TaskAssignment[]} assignments - Instances of this task assigned to contractors
 /// @property {InvoiceItem[]} invoiceItems - Line items in invoices for this task
 /// @property {Conversation[]} conversations - Conversations related to this task
+/// @property {boolean} isArchived - Indicates if the task is archived
+/// @property {Date?} archivedAt - When the task was archived
 model Task {
   id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
@@ -77,6 +79,8 @@ model Task {
   createdAt     DateTime         @default(now()) @db.Timestamp(6)
   statusId      String           @db.Uuid
   createdById   String?          @db.Uuid
+  isArchived    Boolean          @default(false)
+  archivedAt    DateTime?        @db.Timestamp(6)
   conversations Conversation[]
   invoiceItems  InvoiceItem[]
   category      Category         @relation(fields: [categoryId], references: [id])
