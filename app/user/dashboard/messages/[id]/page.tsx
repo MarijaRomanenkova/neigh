@@ -89,13 +89,7 @@ export default async function ConversationPage({
             }
           }
         },
-        task: {
-          select: {
-            id: true,
-            name: true,
-            createdById: true
-          }
-        }
+        task: true
       }
     });
 
