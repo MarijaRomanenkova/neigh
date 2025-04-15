@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TaskPrice from '@/components/shared/task/task-price';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Edit, ArrowLeft } from 'lucide-react';
+import { Edit, ArrowLeft, Pencil } from 'lucide-react';
 import { auth } from '@/auth';
 import TaskContactButton from '@/components/shared/task/task-contact-button';
 import TaskImageGallery from '@/components/shared/task/task-image-gallery';
@@ -58,9 +58,12 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
         {isCreator ? (
           <div className="flex items-center space-x-2">
             <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
-              <Button size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Task
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
               </Button>
             </Link>
             {!task.isArchived && (

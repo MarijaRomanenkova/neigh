@@ -82,6 +82,7 @@ const TaskCard = ({ task }: { task: Task }) => {
           variant="default"
           size="sm" 
           asChild
+          className="w-full flex justify-center mt-2 text-sm"
         >
           <Link 
             href={isOwner 
@@ -91,7 +92,7 @@ const TaskCard = ({ task }: { task: Task }) => {
               ? `Edit ${task.name}` 
               : `See details for ${task.name}`}
           >
-            {isOwner ? 'Edit task' : 'See more'} <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
+            {isOwner ? 'Edit' : 'See more'} <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
           </Link>
         </Button>
         {isAuthenticated && isOwner && !task.isArchived && (

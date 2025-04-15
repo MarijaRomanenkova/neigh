@@ -162,23 +162,23 @@ const SearchPage = async (props: {
       {/* Filter sidebar */}
       <div className='filter-links'>
         {/* Category Links */}
-        <div className='text-xl mb-2 mt-3'>Department</div>
+        <div className='text-xl mb-2 mt-3'>Category</div>
         <ul className='space-y-1'>
           <li>
             <Link
               className={`${(category === 'all' || category === '') && 'font-bold'}`}
               href={getFilterUrl({ c: 'all' })}
             >
-              Any
+              All
             </Link>
           </li>
-          {categories.map((category) => (
-            <li key={category.name}>
+          {categories.map((c) => (
+            <li key={c.name}>
               <Link
-                className='font-bold'
-                href={getFilterUrl({ c: category.name })}
+                className={`${c.name === category && 'font-bold'}`}
+                href={getFilterUrl({ c: c.name })}
               >
-                {category.name}
+                {c.name}
               </Link>
             </li>
           ))}

@@ -21,6 +21,7 @@ import {
 import { Archive } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { archiveTask } from '@/lib/actions/task.actions';
+import { cn } from '@/lib/utils';
 
 interface TaskArchiveButtonProps {
   taskId: string;
@@ -76,42 +77,41 @@ export default function TaskArchiveButton({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline"
-          className={className}
-        >
-          <Archive className="h-4 w-4 mr-2" />
-          Archive Task
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Archive Task</DialogTitle>
-          <DialogDescription>
-            This will archive the task and make it inactive. Archived tasks can still be viewed but cannot be modified or assigned.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p>Are you sure you want to archive this task?</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            This action can be undone by contacting support.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleArchive} 
-            disabled={isArchiving}
-            variant="destructive"
-          >
-            {isArchiving ? 'Archiving...' : 'Archive Task'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setIsOpen(true)}
+        className={cn("text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600", className)}
+      >
+        <Archive className="h-4 w-4 mr-2" />
+        Archive
+      </Button>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive this task? This will hide it from the public listings.
+              You can still view it in your archived tasks.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              disabled={isArchiving}
+              onClick={handleArchive}
+            >
+              {isArchiving ? 'Archiving...' : 'Archive'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 } 
