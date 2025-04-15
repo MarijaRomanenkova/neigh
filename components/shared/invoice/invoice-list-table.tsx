@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Invoice } from "@/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { Edit, Trash, CheckCircle, Clock, CreditCard, FileText, CheckSquare, Square, ArrowRight, Loader, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { Edit, Trash, CheckCircle, Clock, CreditCard, FileText, CheckSquare, Square, ArrowRight, Loader, MessageSquare, ChevronLeft, ChevronRight, Eye, Link2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -152,16 +152,15 @@ function ContactButton({
   return (
     <Button
       size="sm"
-      variant="success"
+      variant="secondary"
       onClick={handleContact}
       disabled={isLoading}
     >
       {isLoading ? (
-        <Loader className="h-4 w-4 mr-1 animate-spin" />
+        <Loader className="h-4 w-4 animate-spin" />
       ) : (
-        <MessageSquare className="h-4 w-4 mr-1" />
+        <MessageSquare className="h-4 w-4" />
       )}
-      Contact
     </Button>
   );
 }
@@ -274,6 +273,8 @@ const InvoiceListTable = ({
                 )}
                 
                 <Button
+                  variant="success"
+                  size="sm"
                   disabled={isPending || selectedInvoices.length === 0}
                   onClick={handleProceedToPayment}
                 >
@@ -297,15 +298,15 @@ const InvoiceListTable = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  {userType === 'client' && <TableHead>Select</TableHead>}
+                  {userType === 'client' && <TableHead className="text-center">Select</TableHead>}
                   <TableHead>Invoice #</TableHead>
                   <TableHead>{userType === 'client' ? 'Contractor' : 'Client'}</TableHead>
-                  <TableHead>Task</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                  <TableHead className="text-right">Details</TableHead>
-                  <TableHead className="text-right">Contact</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">View</TableHead>
+                  <TableHead className="text-center">Task</TableHead>
+                  <TableHead className="text-center">Contact</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,11 +323,11 @@ const InvoiceListTable = ({
                   return (
                     <TableRow key={invoice.id}>
                       {userType === 'client' && (
-                        <TableCell>
+                        <TableCell className="text-center align-middle">
                           {!invoice.isPaid && (
                             <button
                               onClick={() => toggleInvoiceSelection(invoice)}
-                              className="focus:outline-none"
+                              className="focus:outline-none inline-flex mt-1"
                               disabled={invoice.isPaid}
                             >
                               {isSelected ? (
@@ -345,55 +346,53 @@ const InvoiceListTable = ({
                           : invoice.client.name}
                       </TableCell>
                       <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-default">
-                              {truncateText(taskName, 12)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{taskName}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
                         {formatDateAsDDMMYYYY(new Date(invoice.createdAt))}
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(amount)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end">
-                          <Badge 
-                            variant={invoice.isPaid ? "paid" : "unpaid"}
-                          >
-                            {invoice.isPaid ? (
-                              <>
-                                <CheckCircle className="mr-1 h-3 w-3" />
-                                <span>Paid</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="mr-1 h-3 w-3" />
-                                <span>Unpaid</span>
-                              </>
-                            )}
-                          </Badge>
-                        </div>
+                      <TableCell className="text-center">
+                        <Badge 
+                          variant={invoice.isPaid ? "paid" : "destructive"}
+                        >
+                          {invoice.isPaid ? (
+                            <>
+                              <CheckCircle className="mr-1 h-3 w-3" />
+                              <span>Paid</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="mr-1 h-3 w-3" />
+                              <span>Unpaid</span>
+                            </>
+                          )}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Button 
                           size="sm" 
                           variant="secondary"
                           asChild
                         >
                           <Link href={`/user/dashboard/${userType}/invoices/${invoice.invoiceNumber}`}>
-                            <FileText className="h-4 w-4 mr-1" />
-                            View
+                            <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
+                        {invoice.items && invoice.items.length > 0 && invoice.items[0]?.taskId && (
+                          <Button 
+                            size="sm" 
+                            variant="secondary"
+                            asChild
+                          >
+                            <Link href={`/user/dashboard/${userType}/tasks/${invoice.items[0].taskId}`}>
+                              <Link2 className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
                         {invoice.items && invoice.items.length > 0 && invoice.items[0]?.taskId && (
                           <ContactButton
                             taskId={invoice.items[0].taskId}
