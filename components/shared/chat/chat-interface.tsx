@@ -88,13 +88,22 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     
     const markMessagesAsRead = async () => {
       try {
-        await fetch('/api/messages/read', {
+        const response = await fetch('/api/messages/read', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ conversationId }),
         });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to mark messages as read: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.markedAsRead > 0) {
+          console.log(`Marked ${result.markedAsRead} messages as read`);
+        }
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }
@@ -115,19 +124,28 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     // Join the conversation room
     socket.emit('join-conversation', conversationId);
     
-    // Listen for new messages
-    socket.on('new-message', (message: Message) => {
-      // Only add if it's not from the current user and not already in the list
-      if (message.senderId !== session?.user?.id && !messages.some(m => m.id === message.id)) {
-        setMessages(prev => [...prev, message]);
+    // Handler for new messages
+    const handleNewMessage = (message: Message) => {
+      // Only add if it's not from the current user
+      if (message.senderId !== session?.user?.id) {
+        setMessages(prev => {
+          // Check if message already exists in the previous state
+          if (prev.some(m => m.id === message.id)) {
+            return prev;
+          }
+          return [...prev, message];
+        });
       }
-    });
+    };
+    
+    // Listen for new messages
+    socket.on('new-message', handleNewMessage);
     
     return () => {
-      socket.off('new-message');
+      socket.off('new-message', handleNewMessage);
       socket.emit('leave-conversation', conversationId);
     };
-  }, [socket, isConnected, conversationId, session?.user?.id, messages]);
+  }, [socket, isConnected, conversationId, session?.user?.id]);
 
   /**
    * Scrolls the message container to the bottom
@@ -166,16 +184,11 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
         },
         body: JSON.stringify({
           content: newMessage,
-          conversationId,
-          // other fields
+          conversationId
         }),
       });
       
       if (!response.ok) {
-        const errorText = await response.text();
-        
-        const preview = errorText.substring(0, 100);
-        
         throw new Error(`API error: ${response.status}`);
       }
       
@@ -192,11 +205,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
       // Clear the input
       setNewMessage('');
     } catch (error: unknown) {
-      if (error instanceof SyntaxError) {
-        console.log('JSON parse error - API returned non-JSON response');
-      } else {
-        console.log('Error sending message:', error instanceof Error ? error.message : 'Unknown error');
-      }
+      console.error('Error sending message:', error instanceof Error ? error.message : 'Unknown error');
       
       toast({
         variant: 'destructive',
@@ -219,6 +228,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
         ) : (
           messages.map((message) => {
             const isCurrentUser = message.senderId === session?.user?.id;
+            const messageDate = new Date(message.createdAt);
             
             return (
               <div 
@@ -227,7 +237,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
               >
                 <div className={`flex ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[80%]`}>
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={message.sender.image || ''} />
+                    <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
                     <AvatarFallback>
                       {message.sender.name?.charAt(0) || '?'}
                     </AvatarFallback>
@@ -238,12 +248,12 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                       isCurrentUser 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
-                      } p-3 rounded-lg`}
+                      } p-3 rounded-lg whitespace-pre-wrap break-words`}
                     >
                       {message.content}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(message.createdAt), { 
+                      {formatDistanceToNow(messageDate, { 
                         addSuffix: true 
                       })}
                     </div>
