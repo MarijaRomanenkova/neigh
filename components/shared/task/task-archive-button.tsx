@@ -29,7 +29,8 @@ interface TaskArchiveButtonProps {
   onArchived?: () => void;
 }
 
-export default function TaskArchiveButton({
+export default function 
+TaskArchiveButton({
   taskId,
   className = '',
   onArchived

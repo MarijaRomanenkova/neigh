@@ -15,7 +15,7 @@ import TaskPrice from './task-price';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Task } from '@/types';
-import { UserIcon, ArrowRight, Pencil } from 'lucide-react';
+import { UserIcon, ArrowRight, Pencil, MoveRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import TaskArchiveButton from './task-archive-button';
 
@@ -45,7 +45,7 @@ const TaskCard = ({ task }: { task: Task }) => {
     <Card className='w-full max-w-m'>
       <CardHeader className='p-0 relative'>
         {/* Price positioned in top right corner */}
-        <div className='absolute top-2 right-2 p-2'>
+        <div className='absolute top-2 right-2 p-2 text-right'>
           {task.price ? (
             <TaskPrice value={Number(task.price)} className="text-xl font-medium" />
           ) : (
@@ -65,48 +65,52 @@ const TaskCard = ({ task }: { task: Task }) => {
               <p className="text-sm text-muted-foreground">No description</p>
             )}
           </div>
-          
-          {/* Author information - only shown to authenticated users */}
-          {isAuthenticated && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span className="truncate">
-                {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
-              </span>
-            </div>
-          )}
         </div>
       </CardContent>
-      <CardFooter className="pt-0 flex justify-end gap-2">
-        {isAuthenticated && isOwner && !task.isArchived && (
-          <TaskArchiveButton taskId={task.id} />
+      <CardFooter className="px-4 pt-0 flex justify-between items-center gap-2">
+        {/* Author information - only shown to authenticated users */}
+        {isAuthenticated ? (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="truncate">
+              {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
+            </span>
+          </div>
+        ) : (
+          <div className="flex-1"></div> /* Spacer when not authenticated */
         )}
-        <Button 
-          variant={isOwner ? "success-outline" : "success"}
-          size="sm" 
-          asChild
-          className="whitespace-nowrap flex items-center"
-        >
-          <Link 
-            href={isOwner 
-              ? `/user/dashboard/client/tasks/${task.id}/edit` 
-              : `/user/dashboard/client/tasks/${task.id}`}
-            aria-label={isOwner 
-              ? `Edit ${task.name}` 
-              : `See details for ${task.name}`}
+        
+        <div className="flex gap-2">
+          {isAuthenticated && isOwner && !task.isArchived && (
+            <TaskArchiveButton taskId={task.id} />
+          )}
+          <Button 
+            variant={isOwner ? "success-outline" : "success"}
+            size="sm" 
+            asChild
+            className="whitespace-nowrap flex items-center"
           >
-            {isOwner ? (
-              <>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </>
-            ) : (
-              <>
-                See more <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
-              </>
-            )}
-          </Link>
-        </Button>
+            <Link 
+              href={isOwner 
+                ? `/user/dashboard/client/tasks/${task.id}/edit` 
+                : `/user/dashboard/client/tasks/${task.id}`}
+              aria-label={isOwner 
+                ? `Edit ${task.name}` 
+                : `See details for ${task.name}`}
+            >
+              {isOwner ? (
+                <>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </>
+              ) : (
+                <>
+                  View <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                </>
+              )}
+            </Link>
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

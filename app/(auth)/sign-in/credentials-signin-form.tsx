@@ -93,7 +93,7 @@ const CredentialsSignInForm = () => {
     const { pending } = useFormStatus();
 
     return (
-      <Button disabled={pending} className='w-full' variant='default'>
+      <Button disabled={pending} className='w-full' variant='success'>
         {pending ? 'Signing In...' : 'Sign In'}
       </Button>
     );

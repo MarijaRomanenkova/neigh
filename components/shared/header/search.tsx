@@ -60,9 +60,9 @@ const Search = ({ initialCategories }: SearchProps) => {
 
   return (
     <form action='/search' method='GET'>
-      <div className='flex w-full max-w-sm items-center space-x-2'>
+      <div className='flex w-full items-center space-x-2'>
         <Select name='category' defaultValue="all">
-          <SelectTrigger className='w-[180px] h-10'>
+          <SelectTrigger className='w-[220px] h-10'>
             <SelectValue placeholder='All' />
           </SelectTrigger>
           <SelectContent>
@@ -78,9 +78,9 @@ const Search = ({ initialCategories }: SearchProps) => {
           name='q'
           type='text'
           placeholder='Search...'
-          className='md:w-[100px] lg:w-[300px] h-10'
+          className='md:min-w-[120px] lg:w-[400px] h-10'
         />
-        <Button size="sm" variant="success">
+        <Button variant="success" className="h-10">
           <SearchIcon className="h-5 w-5" />
         </Button>
       </div>

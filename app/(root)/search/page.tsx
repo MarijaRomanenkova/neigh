@@ -162,7 +162,7 @@ const SearchPage = async (props: {
       {/* Filter sidebar */}
       <div className='filter-links'>
         {/* Category Links */}
-        <div className='text-xl mb-2 mt-3'>Category</div>
+        <div className='text-lg text-muted-foreground mb-2 mt-3'>Category</div>
         <ul className='space-y-1'>
           <li>
             <Link
@@ -185,7 +185,7 @@ const SearchPage = async (props: {
         </ul>
 
         {/* Price Links */}
-        <div className='text-xl mb-2 mt-8'>Price</div>
+        <div className='text-lg text-muted-foreground mb-2 mt-8'>Pay</div>
         <ul className='space-y-1'>
           <li>
             <Link
@@ -242,7 +242,7 @@ const SearchPage = async (props: {
         </div>
 
         {/* Task grid */}
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
           {tasks.data.length === 0 && <div>No tasks found</div>}
           {tasks.data.map((task) => (
             <TaskCard key={task.id} task={task} />

@@ -47,30 +47,35 @@ const Header = async ({ categories }: { categories: Category[] }) => {
   
   return (
     <header className='w-full bg-white dark:bg-black'>
-      <div className='wrapper flex-between'>
+      <div className='wrapper flex justify-between items-center'>
+        {/* Left section - Logo and mobile categories */}
         <div className='flex-start items-center'>
            <div className="sm:hidden">
              <CategoriesDrawer initialCategories={safeCategories} />
            </div>
-          <Link href='/' className='flex-start items-center ml-4'>
-            <Image
-              priority={true}
-              src='/images/logo.svg'
-              width={32}
-              height={32}
-              alt={`${APP_NAME} logo`}
-            />
-            <span className='hidden lg:block font-bold text-4xl ml-3'>
+          <Link href='/' className='flex-start items-center'>
+            <div className="relative w-8 h-8">
+              <Image
+                priority={true}
+                src='/images/logo.svg'
+                width={32}
+                height={32}
+                alt={`${APP_NAME} logo`}
+                className="dark:invert"
+              />
+            </div>
+            <span className='hidden lg:block font-bold text-4xl ml-3 dark:text-white'>
               {APP_NAME}
             </span>
           </Link>
-          
-          {/* Search component - moved closer to logo */}
-          <div className='hidden md:block ml-6'>
-            <Search initialCategories={allCategories} />
-          </div>
+        </div>
+        
+        {/* Center section - Search */}
+        <div className='hidden md:flex justify-center flex-1 mx-4'>
+          <Search initialCategories={allCategories} />
         </div>
 
+        {/* Right section - Dashboard link and menu */}
         <div className='flex items-center gap-6'>
           {/* User Dashboard link - only visible to authenticated users */}
           {isAuthenticated && (
