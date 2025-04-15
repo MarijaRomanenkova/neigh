@@ -254,49 +254,6 @@ export interface ExtendedUser {
   contractorRating?: number | null;
 }
 
-/**
- * Task owner information normalized across the application
- * This handles the inconsistency between userId/createdById fields
- */
-export interface TaskWithOwner {
-  id: string;
-  name: string;
-  description?: string | null;
-  price: number;
-  images: string[];
-  categoryId: string;
-  statusId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  isArchived: boolean;
-  archivedAt?: Date | null;
-  
-  // Normalized owner ID field - will work with either userId or createdById from API
-  ownerId: string;
-  
-  // Other relations
-  category?: {
-    id: string;
-    name: string;
-  };
-  author?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
+// Note: TaskWithOwner interface and normalizeTaskOwner function were removed (April 2025) 
+// after standardizing on createdById across the database schema and application code.
 
-/**
- * Normalizes task data from any source to use consistent ownerId field
- * @param task - Task object from API or database
- * @returns Task with normalized ownerId field
- */
-export function normalizeTaskOwner(task: any): TaskWithOwner {
-  const ownerId = task.userId || task.createdById || null;
-  
-  return {
-    ...task,
-    price: typeof task.price === 'object' ? Number(task.price) : task.price,
-    ownerId,
-  };
-}

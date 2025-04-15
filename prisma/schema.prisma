@@ -52,7 +52,6 @@ model TaskStatus {
 /// @model Task
 /// @property {string} id - Unique identifier for the task
 /// @property {string} name - Task name
-/// @property {string} slug - URL-friendly identifier (must be unique)
 /// @property {string} categoryId - ID of the category this task belongs to
 /// @property {string[]} images - Array of image URLs
 /// @property {string} description - Detailed task description
@@ -72,15 +71,15 @@ model Task {
   id            String          @id @default(uuid()) @db.Uuid
   name          String
   description   String?
-  userId        String         @db.Uuid
+  createdById   String         @db.Uuid
   categoryId    String         @db.Uuid
   price         Decimal        @db.Decimal(12, 2)
   images        String[]
   createdAt     DateTime       @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime       @updatedAt @db.Timestamp(6)
+  updatedAt     DateTime?      @updatedAt @db.Timestamp(6)
   isArchived    Boolean        @default(false)
   archivedAt    DateTime?      @db.Timestamp(6)
-  user          User           @relation("UserTasks", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy     User           @relation("UserTasks", fields: [createdById], references: [id], onDelete: Cascade)
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   assignments   TaskAssignment[]
   conversations Conversation[]
@@ -88,7 +87,7 @@ model Task {
   status        TaskStatus?    @relation(fields: [statusId], references: [id], onDelete: SetNull)
   statusId      String?        @db.Uuid
 
-  @@index([userId])
+  @@index([createdById])
   @@index([categoryId])
   @@index([statusId])
 }

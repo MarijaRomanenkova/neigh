@@ -1,7 +1,7 @@
 /**
  * @module db/seed
  * @description Database seeding script that populates the database with initial test data.
- * This script creates categories, task statuses, users, tasks, and task assignments for testing purposes.
+ * This script creates categories, task statuses, and users for testing purposes.
  * It first cleans any existing data to ensure a fresh start.
  * 
  * To run this script: npx ts-node db/seed.ts
@@ -19,8 +19,6 @@ const prisma = new PrismaClient()
  * 2. Creates categories
  * 3. Creates task statuses
  * 4. Creates users with hashed passwords
- * 5. Creates tasks
- * 6. Creates task assignments
  * 
  * @async
  * @returns {Promise<void>}
@@ -110,91 +108,6 @@ async function main() {
         email: 'bob@example.com',
         password,
         role: 'user'
-      }
-    })
-  ])
-
-  // Create Tasks
-  const tasks = await Promise.all([
-    prisma.task.create({
-      data: {
-        name: 'Fix Leaking Roof',
-        slug: 'fix-leaking-roof',
-        description: 'Need to fix a leaking roof in the kitchen',
-        price: 250.00,
-        categoryId: categories[0].id,
-        statusId: statuses[0].id,
-        images: ['roof1.jpg', 'roof2.jpg'],
-        createdById: users[0].id
-      }
-    }),
-    prisma.task.create({
-      data: {
-        name: 'Garden Maintenance',
-        slug: 'garden-maintenance',
-        description: 'Monthly garden maintenance needed',
-        price: 100.00,
-        categoryId: categories[1].id,
-        statusId: statuses[0].id,
-        images: ['garden.jpg'],
-        createdById: users[0].id
-      }
-    }),
-    prisma.task.create({
-      data: {
-        name: 'Computer Setup',
-        slug: 'computer-setup',
-        description: 'Need help setting up new computer and transferring data',
-        price: 80.00,
-        categoryId: categories[2].id,
-        statusId: statuses[1].id,
-        images: [],
-        createdById: users[0].id
-      }
-    }),
-    prisma.task.create({
-      data: {
-        name: 'House Cleaning',
-        slug: 'house-cleaning',
-        description: 'Deep cleaning for 3-bedroom house',
-        price: 150.00,
-        categoryId: categories[3].id,
-        statusId: statuses[2].id,
-        images: ['house.jpg'],
-        createdById: users[0].id
-      }
-    }),
-    prisma.task.create({
-      data: {
-        name: 'Moving Help',
-        slug: 'moving-help',
-        description: 'Need help moving furniture to new apartment',
-        price: 200.00,
-        categoryId: categories[4].id,
-        statusId: statuses[0].id,
-        images: ['moving.jpg'],
-        createdById: users[0].id
-      }
-    })
-  ])
-
-  // Create Task Assignments
-  const assignments = await Promise.all([
-    prisma.taskAssignment.create({
-      data: {
-        taskId: tasks[0].id,
-        clientId: users[0].id,
-        contractorId: users[2].id,
-        statusId: statuses[1].id
-      }
-    }),
-    prisma.taskAssignment.create({
-      data: {
-        taskId: tasks[3].id,
-        clientId: users[0].id,
-        contractorId: users[2].id,
-        statusId: statuses[2].id,
-        completedAt: new Date()
       }
     })
   ])
