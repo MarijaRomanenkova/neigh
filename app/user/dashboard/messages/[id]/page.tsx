@@ -17,6 +17,7 @@ import { ArrowLeft, MessageSquare, Clipboard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
+import { normalizeTaskOwner } from '@/types';
 
 /**
  * Conversation Detail Page Component
@@ -96,7 +97,7 @@ export default async function ConversationPage({
     if (!conversation) {
       notFound();
     }
-
+    
     // Get messages
     const messages = await prisma.message.findMany({
       where: { conversationId: id },
@@ -122,7 +123,10 @@ export default async function ConversationPage({
     let contractorId = '';
     let taskAssignmentId = '';
     
-    if (conversation.task) {
+    // Normalize task data if it exists
+    const normalizedTask = conversation.task ? normalizeTaskOwner(conversation.task) : null;
+    
+    if (normalizedTask) {
       // Get the first other participant as the contractor
       if (otherParticipants.length > 0) {
         contractorId = otherParticipants[0].id;
@@ -132,7 +136,7 @@ export default async function ConversationPage({
         // Check if this specific contractor is already assigned to this task
         const taskAssignment = await prisma.taskAssignment.findFirst({
           where: { 
-            taskId: conversation.task.id,
+            taskId: normalizedTask.id,
             contractorId
           }
         });
@@ -145,7 +149,7 @@ export default async function ConversationPage({
     }
 
     // Determine if current user is the client (task owner)
-    const isClient = session.user.id === conversation.task?.createdById;
+    const isClient = normalizedTask ? session.user.id === normalizedTask.ownerId : false;
 
     return (
       <div className="w-full">
@@ -168,12 +172,12 @@ export default async function ConversationPage({
             </h1>
             
             {/* Task Assignment Button or View Assignment Link */}
-            {conversation.task && contractorId && (
+            {normalizedTask && contractorId && (
               <>
                 {!isTaskAssignedToContractor && isClient ? (
                   <TaskAssignButton
-                    taskId={conversation.task.id}
-                    taskOwnerId={conversation.task.createdById || ''}
+                    taskId={normalizedTask.id}
+                    taskOwnerId={normalizedTask.ownerId || ''}
                     contractorId={contractorId}
                   />
                 ) : isTaskAssignedToContractor && taskAssignmentId && (
@@ -195,9 +199,9 @@ export default async function ConversationPage({
             )}
           </div>
           
-          {conversation.task && (
+          {normalizedTask && (
             <p className="text-muted-foreground">
-              Regarding task: {conversation.task.name}
+              Regarding task: {normalizedTask.name}
               {isTaskAssignedToContractor && (
                 <span className="ml-2 text-green-600 font-medium flex items-center gap-1 mt-1">
                   <CheckCircle className="h-4 w-4" />
