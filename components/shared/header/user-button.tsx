@@ -65,9 +65,8 @@ const UserButton = () => {
   // Show fallback UI if loading takes too long
   if (status === 'loading' && !loadingTimeout) {
     return (
-      <Button variant="ghost" size="sm" className="opacity-70">
-        <UserIcon className="h-5 w-5 mr-2" />
-        <span>Loading...</span>
+      <Button variant="ghost" size="sm" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+        <UserIcon className="h-5 w-5" />
       </Button>
     );
   }
@@ -98,9 +97,9 @@ const UserButton = () => {
             <Button
               variant='ghost'
               size="sm"
-              className='relative w-10 h-10 rounded-full flex items-center justify-center bg-gray-200'
+              className='focus-visible:ring-0 focus-visible:ring-offset-0'
             >
-              {firstInitial}
+              <UserIcon className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className='w-56' align='end'>
@@ -154,9 +153,9 @@ const UserButton = () => {
   
   // Otherwise show sign in button
   return (
-    <Button size="sm" asChild>
+    <Button variant="ghost" size="sm" asChild>
       <Link href='/sign-in'>
-        <UserIcon className="h-5 w-5 mr-2" /> Sign In
+        <UserIcon className="h-5 w-5" />
       </Link>
     </Button>
   );

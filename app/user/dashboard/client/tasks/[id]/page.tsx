@@ -56,11 +56,12 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
           </Link>
         </div>
         {isCreator ? (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-end space-x-2">
             <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
               <Button
                 size="sm"
-                className="bg-primary hover:bg-primary/90"
+                variant="success-outline"
+                className="flex items-center whitespace-nowrap"
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
@@ -71,10 +72,14 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
             )}
           </div>
         ) : (
-          <TaskContactButton 
-            taskId={task.id} 
-            taskOwnerId={task.author?.id || ''} 
-          />
+          <div className="flex justify-end">
+            <TaskContactButton 
+              taskId={task.id} 
+              taskOwnerId={task.author?.id || ''} 
+              size="sm"
+              className="whitespace-nowrap"
+            />
+          </div>
         )}
       </div>
 

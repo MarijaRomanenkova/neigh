@@ -70,15 +70,15 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
           <div>
             <p className="text-sm font-semibold mb-2">From (Contractor)</p>
             <div className="text-sm">
-              <p>Contractor ID: {invoice.contractorId}</p>
-              {/* Add more contractor details as needed */}
+              <p>{invoice.contractor.name}</p>
+              <p>{invoice.contractor.email}</p>
             </div>
           </div>
           <div>
             <p className="text-sm font-semibold mb-2">To (Client)</p>
             <div className="text-sm">
-              <p>Client ID: {invoice.clientId}</p>
-              {/* Add more client details as needed */}
+              <p>{invoice.client.name}</p>
+              <p>{invoice.client.email}</p>
             </div>
           </div>
         </div>

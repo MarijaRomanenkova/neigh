@@ -15,6 +15,11 @@ import { auth } from '@/auth';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
+interface EditTaskPageProps {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
 /**
  * Edit Page Component
  * 
@@ -23,11 +28,10 @@ import { ArrowLeft } from 'lucide-react';
  * 
  * @returns {JSX.Element} The edit task page component
  */
-export default async function EditTaskPage({ params }: { params: { id: string } }) {
+export default async function EditTaskPage({ params }: EditTaskPageProps) {
   const session = await auth();
   if (!session?.user?.id) redirect('/sign-in');
 
-  // Await the params to get the id
   const { id } = await params;
 
   const [task, categories] = await Promise.all([
@@ -47,7 +51,7 @@ export default async function EditTaskPage({ params }: { params: { id: string } 
   return (
     <div className="container max-w-4xl py-6">
       <Link
-        href={`/user/dashboard/client/tasks/${params.id}`}
+        href={`/user/dashboard/client/tasks/${id}`}
         className="flex items-center text-sm text-muted-foreground mb-4 hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to task details

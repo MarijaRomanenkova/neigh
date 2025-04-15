@@ -9,6 +9,7 @@
 
 import { Button } from './ui/button';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 /**
  * View All Tasks Button Component
@@ -22,8 +23,10 @@ import Link from 'next/link';
 const ViewAllTasksButton = () => {
   return (
     <div className='flex justify-center items-center my-8'>
-      <Button asChild className='px-8 py-4 text-lg font-semibold'>
-        <Link href='/search'>View All tasks</Link>
+      <Button asChild className='px-8 py-4 text-lg font-semibold' variant="success-outline">
+        <Link href='/search' className="flex items-center">
+          More Tasks <ArrowRight className="ml-2 h-5 w-5" />
+        </Link>
       </Button>
     </div>
   );

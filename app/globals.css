@@ -7,8 +7,14 @@
     /* Keep your existing variables */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-    /* ... other variables ... */
+    
+    --success: 142 69% 35%;
+    --success-foreground: 210 40% 98%;
 
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+    
+    /* ... other variables ... */
   }
 
   .dark {
@@ -18,6 +24,13 @@
     /* Keep your existing dark mode variables */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
+    
+    --success: 142 69% 45%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 210 40% 98%;
+    
     /* ... other variables ... */
   }
 } 

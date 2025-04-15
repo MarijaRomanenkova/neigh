@@ -58,8 +58,9 @@ const TaskActionButton = ({
     return (
       <Button
         onClick={handleEdit}
-        variant="outline"
-        className={className}
+        variant="success-outline"
+        size="sm"
+        className={`whitespace-nowrap flex items-center ${className}`}
       >
         <Pencil className="h-4 w-4 mr-2" />
         Edit
@@ -71,7 +72,8 @@ const TaskActionButton = ({
     <TaskContactButton
       taskId={taskId}
       taskOwnerId={taskOwnerId}
-      className={className}
+      size="sm"
+      className={`whitespace-nowrap ${className}`}
     />
   );
 };

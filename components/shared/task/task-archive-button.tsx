@@ -80,9 +80,9 @@ export default function TaskArchiveButton({
     <div>
       <Button
         size="sm"
-        variant="outline"
+        variant="danger-outline"
         onClick={() => setIsOpen(true)}
-        className={cn("text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600", className)}
+        className={cn("whitespace-nowrap", className)}
       >
         <Archive className="h-4 w-4 mr-2" />
         Archive

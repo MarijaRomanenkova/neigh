@@ -136,7 +136,8 @@ export default function TaskAssignButton({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
-          className={`bg-green-600 hover:bg-green-700 text-white ${className}`}
+          variant="success"
+          className={className}
         >
           <UserCheck className="h-4 w-4 mr-2" />
           Assign Task
@@ -172,7 +173,7 @@ export default function TaskAssignButton({
           <Button 
             onClick={handleAssignTask} 
             disabled={isAssigning}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            variant="success"
           >
             {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
           </Button>

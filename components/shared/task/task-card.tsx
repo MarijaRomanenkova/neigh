@@ -15,7 +15,7 @@ import TaskPrice from './task-price';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Task } from '@/types';
-import { UserIcon, ArrowRight } from 'lucide-react';
+import { UserIcon, ArrowRight, Pencil } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import TaskArchiveButton from './task-archive-button';
 
@@ -71,18 +71,21 @@ const TaskCard = ({ task }: { task: Task }) => {
             <div className="flex items-center text-sm text-muted-foreground">
               <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="truncate">
-                {task.author?.name || 'Anonymous'}
+                {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
               </span>
             </div>
           )}
         </div>
       </CardContent>
       <CardFooter className="pt-0 flex justify-end gap-2">
+        {isAuthenticated && isOwner && !task.isArchived && (
+          <TaskArchiveButton taskId={task.id} />
+        )}
         <Button 
-          variant="default"
+          variant={isOwner ? "success-outline" : "success"}
           size="sm" 
           asChild
-          className="w-full flex justify-center mt-2 text-sm"
+          className="whitespace-nowrap flex items-center"
         >
           <Link 
             href={isOwner 
@@ -92,12 +95,18 @@ const TaskCard = ({ task }: { task: Task }) => {
               ? `Edit ${task.name}` 
               : `See details for ${task.name}`}
           >
-            {isOwner ? 'Edit' : 'See more'} <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
+            {isOwner ? (
+              <>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </>
+            ) : (
+              <>
+                See more <ArrowRight className="ml-1 h-3 w-3" aria-hidden="true" />
+              </>
+            )}
           </Link>
         </Button>
-        {isAuthenticated && isOwner && !task.isArchived && (
-          <TaskArchiveButton taskId={task.id} />
-        )}
       </CardFooter>
     </Card>
   );

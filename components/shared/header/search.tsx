@@ -80,7 +80,7 @@ const Search = ({ initialCategories }: SearchProps) => {
           placeholder='Search...'
           className='md:w-[100px] lg:w-[300px] h-10'
         />
-        <Button size="sm">
+        <Button size="sm" variant="success">
           <SearchIcon className="h-5 w-5" />
         </Button>
       </div>
