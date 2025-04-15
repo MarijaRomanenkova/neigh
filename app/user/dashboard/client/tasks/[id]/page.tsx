@@ -42,7 +42,7 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  const isCreator = session?.user?.id === task.createdBy?.id;
+  const isCreator = session?.user?.id === task.author?.id;
 
   return (
     <div className="space-y-6">
@@ -70,7 +70,7 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
         ) : (
           <TaskContactButton 
             taskId={task.id} 
-            taskOwnerId={task.createdBy?.id || ''} 
+            taskOwnerId={task.author?.id || ''} 
           />
         )}
       </div>
@@ -91,7 +91,7 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
 
             <div>
               <h3 className="font-medium mb-2">Created By</h3>
-              <p className="text-muted-foreground">{task.createdBy?.name || 'Anonymous'}</p>
+              <p className="text-muted-foreground">{task.author?.name || 'Anonymous'}</p>
             </div>
 
             {task.category && (

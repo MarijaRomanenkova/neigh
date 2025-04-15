@@ -141,7 +141,7 @@ export async function getTaskById(taskId: string) {
       return null;
     }
     
-    const data = await prisma.task.findFirst({
+    const task = await prisma.task.findFirst({
       where: { id: taskId },
       include: {
         createdBy: {
@@ -160,7 +160,34 @@ export async function getTaskById(taskId: string) {
       }
     });
 
-    return convertToPlainObject(data);
+    if (!task) return null;
+
+    // Cast to TaskWithRelations to ensure consistent typing
+    const taskWithRelations = task as unknown as TaskWithRelations;
+    
+    // Map the task to the expected format with author property instead of createdBy
+    return {
+      id: taskWithRelations.id,
+      name: taskWithRelations.name,
+      description: taskWithRelations.description,
+      price: Number(taskWithRelations.price),
+      images: taskWithRelations.images,
+      categoryId: taskWithRelations.categoryId,
+      statusId: taskWithRelations.statusId,
+      createdAt: taskWithRelations.createdAt,
+      updatedAt: taskWithRelations.updatedAt,
+      isArchived: taskWithRelations.isArchived,
+      archivedAt: taskWithRelations.archivedAt,
+      author: taskWithRelations.createdBy ? {
+        id: taskWithRelations.createdBy.id,
+        name: taskWithRelations.createdBy.name,
+        email: taskWithRelations.createdBy.email
+      } : undefined,
+      category: taskWithRelations.category ? {
+        id: taskWithRelations.category.id,
+        name: taskWithRelations.category.name
+      } : undefined
+    } satisfies Task;
   } catch (error) {
     return null;
   }
