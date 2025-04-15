@@ -40,13 +40,10 @@ export async function GET() {
       transports: ["websocket"]
     });
     
-    io.on("connection", (socket) => {
-      console.log("Socket connected:", socket.id);
-      
+    io.on("connection", (socket) => {   
       socket.on("join-conversation", (conversationId: string) => {
         socket.join(conversationId);
-        console.log(`Socket ${socket.id} joined conversation: ${conversationId}`);
-      });
+       });
       
       /**
        * Message data structure for socket communication

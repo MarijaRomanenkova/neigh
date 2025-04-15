@@ -27,6 +27,9 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import PlaceOrderForm from './place-order-form';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 /**
  * Metadata for the Place Payment page
  * Sets the page title for SEO purposes
@@ -63,14 +66,12 @@ const PlacePaymentPage = async () => {
   if (!cart || cart.invoices.length === 0) redirect('/cart');
   if (!user.paymentMethod) redirect('/payment-method');
 
-
   return (
     <>
       <CheckoutSteps current={3} />
       <h1 className='py-4 text-2xl'>Place Order</h1>
       <div className='grid md:grid-cols-3 md:gap-5'>
         <div className='md:col-span-2 overflow-x-auto space-y-4'>
-
           <Card>
             <CardContent className='p-4 gap-4'>
               <h2 className='text-xl pb-4'>Payment Method</h2>
@@ -101,11 +102,9 @@ const PlacePaymentPage = async () => {
                           href={`/task/{invoice.invoiceNumber}`}
                           className='flex items-center'
                         >
-                       
                           <span className='px-2'>{invoice.contractorId}</span>
                         </Link>
                       </TableCell>
-                  
                       <TableCell className='text-right'>
                         ${invoice.totalPrice.toString()}
                       </TableCell>

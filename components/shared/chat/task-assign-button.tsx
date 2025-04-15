@@ -23,6 +23,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
+import { archiveTask } from '@/lib/actions/task.actions';
+import { createTaskAssignment } from '@/lib/actions/task-assignment.actions';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { useRouter } from 'next/navigation';
 
 /**
  * Props for the TaskAssignButton component
@@ -63,8 +68,10 @@ export default function TaskAssignButton({
 }: TaskAssignButtonProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [shouldArchive, setShouldArchive] = useState(false);
 
   // Only show if the current user is the task owner
   if (!session?.user?.id || session.user.id !== taskOwnerId) {
@@ -81,41 +88,33 @@ export default function TaskAssignButton({
     try {
       setIsAssigning(true);
       
-      // Get the IN_PROGRESS status ID
-      const statusResponse = await fetch('/api/task-statuses?name=IN_PROGRESS');
-      if (!statusResponse.ok) {
-        throw new Error('Failed to get task status');
-      }
-      
-      const { id: statusId } = await statusResponse.json();
-      
-      // Create task assignment
-      const response = await fetch('/api/task-assignments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          taskId,
-          clientId: taskOwnerId,
-          contractorId,
-          statusId,
-        }),
+      // Create task assignment using server action
+      const result = await createTaskAssignment({
+        taskId,
+        clientId: taskOwnerId,
+        contractorId,
+        statusId: 'IN_PROGRESS' // The server action will fetch the correct status ID
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to assign task');
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to assign task');
       }
 
-      const result = await response.json();
+      // Archive the task if checkbox is checked
+      if (shouldArchive) {
+        const archiveResult = await archiveTask(taskId);
+        if (!archiveResult.success) {
+          throw new Error(archiveResult.message || 'Failed to archive task');
+        }
+      }
       
       toast({
         title: 'Success',
-        description: 'Task assigned successfully!',
+        description: `Task ${shouldArchive ? 'assigned and archived' : 'assigned'} successfully!`,
       });
       
       setIsOpen(false);
+      router.refresh();
       
       // Notify parent component of assignment
       if (onAssigned) {
@@ -150,11 +149,21 @@ export default function TaskAssignButton({
             This will assign the task to the contractor and change its status to &quot;In Progress&quot;.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-4 space-y-4">
           <p>Are you sure you want to assign this task to this contractor?</p>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground">
             Once assigned, they will be responsible for completing this task and you will be able to create invoices.
           </p>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="archive"
+              checked={shouldArchive}
+              onCheckedChange={(checked) => setShouldArchive(checked as boolean)}
+            />
+            <Label htmlFor="archive">
+              Archive this task after assignment
+            </Label>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>

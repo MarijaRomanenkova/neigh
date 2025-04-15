@@ -40,13 +40,11 @@ const PAYMENT_METHODS = ['CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER'];
  * 
  * Validates data required to create a new task in the system.
  * @property {string} name - Task name (3-255 characters)
- * @property {string} slug - URL-friendly task identifier
  * @property {string} categoryId - ID of the category the task belongs to
  * @property {number} price - Task price (minimum 0)
  */
 export const insertTaskSchema = z.object({
   name: z.string().min(3).max(255),
-  slug: z.string(),
   categoryId: z.string(),
   images: z.array(z.string()),
   description: z.string().min(12, 'Description must be at least 12 characters'),
@@ -59,12 +57,15 @@ export const insertTaskSchema = z.object({
  * Validates data for updating an existing task.
  * @property {string} id - Task ID
  * @property {string} name - Task name (3-255 characters)
- * @property {string} slug - URL-friendly task identifier
  * @property {string} categoryId - ID of the category the task belongs to
  * @property {number} price - Task price (minimum 0)
+ * @property {boolean} isArchived - Whether the task is archived
+ * @property {Date|null} archivedAt - When the task was archived
  */
 export const updateTaskSchema = insertTaskSchema.extend({
   id: z.string(),
+  isArchived: z.boolean().optional(),
+  archivedAt: z.date().nullable().optional(),
 });
 
 /**

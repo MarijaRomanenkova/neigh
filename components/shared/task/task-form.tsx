@@ -25,12 +25,11 @@ import {
   FormLabel,
   FormMessage,
 } from '../../ui/form';
-import slugify from 'slugify';
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
 import { createTask, updateTask } from '@/lib/actions/task.actions';
-import { UploadButton } from '@/lib/uploadthing';
+import { UploadButton, UploadDropzone } from '@/lib/uploadthing';
 import { Card, CardContent } from '../../ui/card';
 import Image from 'next/image';
 import {
@@ -40,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { prisma } from '@/db/prisma';
-import { auth } from "@/auth";
+import { Label } from '@/components/ui/label';
+import { UploadCloud } from 'lucide-react';
+import { useState } from 'react';
 
 /**
  * Props for the TaskForm component
@@ -101,7 +101,10 @@ const TaskForm = ({
     defaultValues:
       task && type === 'Update' 
         ? {
-            ...task,
+            name: task.name,
+            categoryId: task.categoryId,
+            description: task.description || '',
+            images: task.images,
             price: Number(task.price)
           } 
         : taskDefaultValues,
@@ -162,7 +165,6 @@ const TaskForm = ({
   // Watch images field for preview functionality
   const images = form.watch('images');
 
-
   return (
     <Form {...form}>
       <form
@@ -170,63 +172,18 @@ const TaskForm = ({
         onSubmit={form.handleSubmit(onSubmit)}
         className='space-y-8'
       >
-        <div className='flex flex-col md:flex-row gap-5'>
-          {/* Name */}
-          <FormField
-            control={form.control}
-            name='name'
-            render={({
-              field,
-            }: {
-              field: ControllerRenderProps<
-                z.infer<typeof insertTaskSchema>,
-                'name'
-              >;
-            }) => (
-              <FormItem className='w-full'>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder='Enter task name' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <div className='grid gap-2'>
+          <Label htmlFor='name'>Name</Label>
+          <Input
+            id='name'
+            placeholder='Enter task name'
+            {...form.register('name')}
           />
-          {/* Slug */}
-          <FormField
-            control={form.control}
-            name='slug'
-            render={({
-              field,
-            }: {
-              field: ControllerRenderProps<
-                z.infer<typeof insertTaskSchema>,
-                'slug'
-              >;
-            }) => (
-              <FormItem className='w-full'>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <div className='relative'>
-                    <Input placeholder='Enter slug' {...field} />
-                    <Button
-                      type='button'
-                      className='bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 mt-2'
-                      onClick={() => {
-                        form.setValue(
-                          'slug',
-                          slugify(form.getValues('name'), { lower: true })
-                        );
-                      }}
-                    >
-                      Generate
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {form.formState.errors.name && (
+            <p className='text-sm text-red-500'>
+              {form.formState.errors.name.message}
+            </p>
+          )}
         </div>
         <div className='flex flex-col md:flex-row gap-5'>
           {/* Category */}
@@ -291,26 +248,46 @@ const TaskForm = ({
                 <FormLabel>Images</FormLabel>
                 <Card>
                   <CardContent className='space-y-4 mt-2'>
-                    <div className='flex flex-wrap gap-4'>
-                      {images.map((image: string) => (
-                        <Image
-                          key={image}
-                          src={image}
-                          alt='task image'
-                          className='w-20 h-20 object-cover object-center rounded-sm'
-                          width={100}
-                          height={100}
-                        />
-                      ))}
-                    </div>
-                    <div className='flex items-center justify-center w-full min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg p-4'>
-                      <UploadButton
-                        endpoint='imageUploader'
+                    {/* Image Preview Grid */}
+                    {images.length > 0 && (
+                      <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                        {images.map((image: string) => (
+                          <div key={image} className="relative group">
+                            <Image
+                              src={image}
+                              alt='task image'
+                              className='w-full h-32 object-cover object-center rounded-md'
+                              width={150}
+                              height={150}
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                const updatedImages = images.filter(img => img !== image);
+                                form.setValue('images', updatedImages);
+                              }}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Upload Area - Use UploadDropzone with custom styling */}
+                    <div className="min-h-[200px] max-h-[200px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg transition-colors hover:border-primary overflow-hidden">
+                      <UploadDropzone
+                        endpoint="imageUploader"
                         onClientUploadComplete={(res: { url: string }[]) => {
-                          form.setValue('images', [...images, res[0].url]);
-                          toast({
-                            description: 'Image uploaded successfully!',
-                          });
+                          if (res.length > 0) {
+                            form.setValue('images', [...images, ...res.map(file => file.url)]);
+                            toast({
+                              description: `${res.length} image(s) uploaded successfully!`,
+                            });
+                          }
                         }}
                         onUploadError={(error: Error) => {
                           toast({
@@ -318,7 +295,18 @@ const TaskForm = ({
                             description: `ERROR! ${error.message}`,
                           });
                         }}
-                        className='ut-button:bg-primary ut-button:ut-readying:bg-primary/80'
+                        className="p-0 w-full h-full"
+                        content={{
+                          label: "Drag & drop your images here",
+                          allowedContent: "Max file size: 4MB"
+                        }}
+                        appearance={{
+                          container: "w-full h-full flex flex-col items-center justify-center",
+                          label: "text-base font-medium mb-1",
+                          allowedContent: "text-xs text-muted-foreground mb-2",
+                          button: "bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm py-1 px-3",
+                          uploadIcon: "w-6 h-6 text-primary"
+                        }}
                       />
                     </div>
                   </CardContent>

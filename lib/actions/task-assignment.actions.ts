@@ -425,16 +425,26 @@ export async function createTaskAssignment(
   data: z.infer<typeof insertTaskAssignmentSchema>
 ) {
   try {
+    // Get the IN_PROGRESS status ID
+    const inProgressStatus = await prisma.taskStatus.findFirst({
+      where: { name: 'IN_PROGRESS' }
+    });
+
+    if (!inProgressStatus) {
+      throw new Error('IN_PROGRESS status not found');
+    }
+
     const assignment = await prisma.taskAssignment.create({
       data: {
         taskId: data.taskId,
         contractorId: data.contractorId,
         clientId: data.clientId,
-        statusId: data.statusId
+        statusId: inProgressStatus.id
       }
     });
 
     revalidatePath('/user/dashboard/client/tasks');
+    revalidatePath('/user/dashboard/messages');
     
     return {
       success: true,

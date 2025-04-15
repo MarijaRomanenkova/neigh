@@ -19,7 +19,7 @@ import {
 import { CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { updateTaskAssignment } from '@/lib/actions/task-assignment.actions';
-import { getTaskStatusByName } from '@/lib/actions/task-status.actions';
+import { getCompletedTaskStatus } from '@/app/actions';
 
 interface TaskCompleteButtonProps {
   taskAssignmentId: string;
@@ -42,7 +42,7 @@ export default function TaskCompleteButton({
     // Fetch the completed status ID when the component mounts
     async function fetchCompletedStatusId() {
       try {
-        const status = await getTaskStatusByName('COMPLETED');
+        const status = await getCompletedTaskStatus();
         setCompletedStatusId(status.id);
       } catch (error) {
         console.error('Error fetching completed status:', error);

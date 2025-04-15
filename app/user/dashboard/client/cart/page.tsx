@@ -10,6 +10,9 @@
 import CartTable from './cart-table';
 import { getMyCart } from '@/lib/actions/cart.actions';
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic';
+
 /**
  * Metadata for the Cart page
  * Sets the page title for SEO purposes

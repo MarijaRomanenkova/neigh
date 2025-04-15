@@ -14,6 +14,7 @@ import { Check, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFormStatus } from 'react-dom';
 import { createPayment } from '@/lib/actions/payment.actions';
+import { useState } from 'react';
 
 /**
  * Place Order Form Component
@@ -25,48 +26,41 @@ import { createPayment } from '@/lib/actions/payment.actions';
  */
 const PlaceOrderForm = () => {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /**
-   * Handles form submission
-   * Prevents default form behavior, creates a payment, and handles redirection
-   * 
-   * @param {React.FormEvent} event - The form submission event
-   */
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const res = await createPayment();
-
-    if (res.redirectTo) {
-      router.push(res.redirectTo);
+  // Client-side handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const res = await createPayment();
+      if (res.redirectTo) {
+        router.push(res.redirectTo);
+      } else if (res.success) {
+        // Handle success without redirect if needed
+        console.log('Payment created successfully');
+      } else {
+        // Handle error
+        console.error('Payment creation failed:', res.message);
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /**
-   * Place Order Button Component
-   * 
-   * Renders a submit button with loading state
-   * Uses React's useFormStatus hook to track form submission state
-   * 
-   * @returns {JSX.Element} The rendered button with appropriate loading state
-   */
-  const PlaceOrderButton = () => {
-    const { pending } = useFormStatus();
-    return (
-      <Button disabled={pending} className='w-full'>
-        {pending ? (
+  return (
+    <form onSubmit={handleSubmit} className='w-full'>
+      <Button type="submit" disabled={isSubmitting} className='w-full'>
+        {isSubmitting ? (
           <Loader className='w-4 h-4 animate-spin' />
         ) : (
           <Check className='w-4 h-4' />
         )}{' '}
         Place Order
       </Button>
-    );
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className='w-full'>
-      <PlaceOrderButton />
     </form>
   );
 };

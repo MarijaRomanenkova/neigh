@@ -175,7 +175,6 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
         const errorText = await response.text();
         
         const preview = errorText.substring(0, 100);
-        console.log(`API Error (${response.status}): ${preview}...`);
         
         throw new Error(`API error: ${response.status}`);
       }

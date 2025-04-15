@@ -17,32 +17,38 @@ import { Decimal } from '@prisma/client/runtime/library';
  * User information with authentication details and profile
  */
 export interface Task {
-  /** Unique identifier */
+  /** Task ID */
   id: string;
   /** Task name */
   name: string;
   /** Task description */
-  description: string;
-  /** Creation date */
-  createdAt: Date;
-  /** Task slug */
-  slug: string;
-  /** Category identifier */
-  categoryId: string;
-  /** Task images */
-  images: string[];
+  description?: string | null;
   /** Task price */
   price: number;
-  /** Status identifier */
-  statusId: string;
-  /** Identifier of the user who created the task */
-  createdById: string | null;
-  /** Task author information */
+  /** Task images */
+  images: string[];
+  /** Task category ID */
+  categoryId: string;
+  /** Task status ID */
+  statusId?: string | null;
+  /** Task created at timestamp */
+  createdAt: Date;
+  /** Task updated at timestamp */
+  updatedAt?: Date;
+  /** Whether task is archived */
+  isArchived: boolean;
+  /** When task was archived */
+  archivedAt?: Date | null;
+  /** Task author */
   author?: {
-    /** Author name */
-    name: string;
-    /** Author email */
+    id?: string;
+    name?: string;
     email?: string;
+  };
+  /** Task category */
+  category?: {
+    id: string;
+    name: string;
   };
 }
 

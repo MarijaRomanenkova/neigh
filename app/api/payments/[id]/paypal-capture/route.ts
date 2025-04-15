@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     const userId = session?.user?.id;
     
     if (!userId) {
-      console.log("Authentication failed: No user ID in session");
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -52,13 +51,10 @@ export async function POST(request: Request) {
     const pathParts = url.pathname.split('/');
     const paymentId = pathParts[pathParts.indexOf('payments') + 1];
     
-    console.log(`Processing PayPal capture for payment ID: ${paymentId}`);
-    
     // Get PayPal order ID from request body
     const { paypalOrderId } = await request.json();
     
     if (!paypalOrderId) {
-      console.log("Missing PayPal order ID in request");
       return NextResponse.json(
         { error: 'PayPal order ID is required' },
         { status: 400 }
@@ -71,7 +67,6 @@ export async function POST(request: Request) {
     });
     
     if (!payment) {
-      console.log(`Payment not found with ID: ${paymentId}`);
       return NextResponse.json(
         { error: 'Payment not found' },
         { status: 404 }
@@ -80,9 +75,6 @@ export async function POST(request: Request) {
     
     // Verify the payment belongs to the authenticated user
     if (payment.userId !== userId) {
-      console.log(
-        `Unauthorized: User ${userId} attempted to access payment ${paymentId} belonging to user ${payment.userId}`
-      );
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -96,9 +88,6 @@ export async function POST(request: Request) {
       'id' in payment.paymentResult &&
       payment.paymentResult.id !== paypalOrderId
     ) {
-      console.log(
-        `PayPal order ID mismatch: Expected ${payment.paymentResult.id}, got ${paypalOrderId}`
-      );
       return NextResponse.json(
         { error: 'PayPal order ID mismatch' },
         { status: 400 }
@@ -107,8 +96,6 @@ export async function POST(request: Request) {
     
     // Capture the payment via PayPal API
     const captureResponse = await paypal.capturePayment(paypalOrderId);
-    console.log("PayPal capture response:", JSON.stringify(captureResponse));
-    
     // Update payment status in our database
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
@@ -118,8 +105,6 @@ export async function POST(request: Request) {
         paymentResult: captureResponse,
       },
     });
-    
-    console.log(`Payment ${paymentId} updated with status: ${updatedPayment.isPaid ? 'PAID' : 'PENDING'}`);
     
     // Revalidate the payment page to update UI
     revalidatePath(`/payments/${paymentId}`);

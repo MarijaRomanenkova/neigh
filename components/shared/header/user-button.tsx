@@ -50,19 +50,13 @@ const UserButton = () => {
     // If loading takes more than 3 seconds, show the sign-in button anyway
     const timer = setTimeout(() => {
       if (status === 'loading') {
-        console.log("Session loading timeout reached, showing fallback UI");
         setLoadingTimeout(true);
       }
     }, 3000);
     
     return () => clearTimeout(timer);
   }, [status]);
-  
-  // Log the session status to help debug
-  useEffect(() => {
-    console.log("Auth status:", status, session ? "User found" : "No user");
-  }, [status, session]);
-  
+   
   // Don't render anything until client-side hydration is complete
   if (!isClient) {
     return null;

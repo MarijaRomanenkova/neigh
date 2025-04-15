@@ -36,7 +36,6 @@ export async function POST(request: Request) {
     const userId = session?.user?.id;
     
     if (!userId) {
-      console.log("Authentication failed: No user ID in session");
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -46,8 +45,6 @@ export async function POST(request: Request) {
     const url = new URL(request.url);
     const pathParts = url.pathname.split('/');
     const paymentId = pathParts[pathParts.indexOf('payments') + 1];
-    console.log(`Creating Stripe payment intent for payment ID: ${paymentId}`);
-    
     // Initialize Stripe
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
       apiVersion: "2025-02-24.acacia",
@@ -59,8 +56,7 @@ export async function POST(request: Request) {
     });
     
     if (!payment) {
-      console.log(`Payment not found with ID: ${paymentId}`);
-      return NextResponse.json(
+     return NextResponse.json(
         { error: 'Payment not found' },
         { status: 404 }
       );
@@ -68,7 +64,6 @@ export async function POST(request: Request) {
     
     // Verify the payment belongs to the authenticated user
     if (payment.userId !== userId) {
-      console.log(`Unauthorized: User ${userId} attempted to access payment ${paymentId}`);
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -77,8 +72,7 @@ export async function POST(request: Request) {
     
     // Check if payment is already paid
     if (payment.isPaid) {
-      console.log(`Payment ${paymentId} is already paid`);
-      return NextResponse.json(
+     return NextResponse.json(
         { error: 'Payment is already processed' },
         { status: 400 }
       );
@@ -95,8 +89,6 @@ export async function POST(request: Request) {
       },
     });
     
-    console.log(`Stripe payment intent created: ${paymentIntent.id}`);
-    
     // Update payment with Stripe payment intent ID
     await prisma.payment.update({
       where: { id: paymentId },
@@ -112,7 +104,6 @@ export async function POST(request: Request) {
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
-    console.error('Error creating Stripe payment intent:', error);
     return NextResponse.json(
       { error: 'Failed to create Stripe payment intent', details: String(error) },
       { status: 500 }

@@ -14,6 +14,7 @@ import { Edit, ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import TaskContactButton from '@/components/shared/task/task-contact-button';
 import TaskImageGallery from '@/components/shared/task/task-image-gallery';
+import TaskArchiveButton from '@/components/shared/task/task-archive-button';
 
 interface Props {
   params: Promise<{
@@ -55,12 +56,17 @@ export default async function TaskDetailsPage({ params, searchParams }: Props) {
           </Link>
         </div>
         {isCreator ? (
-          <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
-            <Button size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Task
-            </Button>
-          </Link>
+          <div className="flex items-center space-x-2">
+            <Link href={`/user/dashboard/client/tasks/${task.id}/edit`}>
+              <Button size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Task
+              </Button>
+            </Link>
+            {!task.isArchived && (
+              <TaskArchiveButton taskId={task.id} />
+            )}
+          </div>
         ) : (
           <TaskContactButton 
             taskId={task.id} 

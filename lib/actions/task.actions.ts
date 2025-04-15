@@ -14,6 +14,24 @@ import { insertTaskSchema, updateTaskSchema } from '../validators';
 import { z } from 'zod';
 import { Prisma, Task as PrismaTask } from '@prisma/client';
 import { Task } from '@/types';
+import { auth } from '@/auth';
+
+// Define a type that includes exactly what Prisma returns with relations
+type TaskWithRelations = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: Prisma.Decimal;
+  images: string[];
+  categoryId: string;
+  statusId: string | null;
+  createdAt: Date;
+  updatedAt: Date;  // Explicitly include updatedAt
+  isArchived: boolean;
+  archivedAt: Date | null;
+  category?: { id: string; name: string };
+  createdBy?: { id: string; name: string; email: string };
+};
 
 /**
  * Parameters for retrieving and filtering tasks
@@ -48,46 +66,59 @@ type GetAllTasksParams = {
 export async function getLatestTasks() {
   try {
     const tasks = await prisma.task.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 12,
+      where: {
+        isArchived: false
+      },
       include: {
         createdBy: {
           select: {
+            id: true,
             name: true,
             email: true
           }
+        },
+        category: {
+          select: {
+            id: true,
+            name: true
+          }
         }
-      }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 12
     });
 
-    return tasks.map(task => ({
-      ...task,
-      price: Number(task.price),
-      rating: '0',
-      author: task.createdBy ? {
-        name: task.createdBy.name,
-        email: task.createdBy.email
-      } : undefined
-    }));
+    // Make TypeScript happy by ensuring all required fields exist
+    return tasks.map(task => {
+      // Create a properly typed object with all required Task fields
+      const taskWithRelations = task as unknown as TaskWithRelations;
+      
+      return {
+        id: taskWithRelations.id,
+        name: taskWithRelations.name,
+        description: taskWithRelations.description,
+        price: Number(taskWithRelations.price),
+        images: taskWithRelations.images,
+        categoryId: taskWithRelations.categoryId,
+        statusId: taskWithRelations.statusId,
+        createdAt: taskWithRelations.createdAt,
+        updatedAt: taskWithRelations.updatedAt,
+        isArchived: taskWithRelations.isArchived,
+        archivedAt: taskWithRelations.archivedAt,
+        author: taskWithRelations.createdBy ? {
+          id: taskWithRelations.createdBy.id,
+          name: taskWithRelations.createdBy.name,
+          email: taskWithRelations.createdBy.email
+        } : undefined,
+        category: taskWithRelations.category ? {
+          id: taskWithRelations.category.id,
+          name: taskWithRelations.category.name
+        } : undefined
+      } satisfies Task;
+    });
   } catch (error) {
-    console.error('Error getting latest tasks:', error);
     throw error;
   }
-}
-
-/**
- * Retrieves a task by its URL slug
- * 
- * @param slug - URL-friendly identifier for the task
- * @returns The matching task or null if not found
- * 
- * @example
- * const task = await getTaskBySlug('painting-services');
- */
-export async function getTaskBySlug(slug: string) {
-  return await prisma.task.findFirst({
-    where: { slug: slug },
-  });
 }
 
 /**
@@ -107,7 +138,6 @@ export async function getTaskById(taskId: string) {
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(taskId)) {
-      console.error('Invalid UUID format:', taskId);
       return null;
     }
     
@@ -132,7 +162,6 @@ export async function getTaskById(taskId: string) {
 
     return convertToPlainObject(data);
   } catch (error) {
-    console.error('Error fetching task by ID:', error);
     return null;
   }
 }
@@ -163,7 +192,9 @@ export async function getAllTasks({
   page = 1,
 }: GetAllTasksParams) {
   try {
-    const conditions: Prisma.TaskWhereInput = {};
+    const conditions: Prisma.TaskWhereInput = {
+      isArchived: false
+    };
     
     // Category filter
     if (category !== 'all') {
@@ -202,13 +233,10 @@ export async function getAllTasks({
         ...(sort === 'highest' ? [{ price: 'desc' as const }] : []),
       ],
       include: {
-        category: {
-          select: {
-            name: true
-          }
-        },
+        category: true, // Include full category to get id
         createdBy: {
           select: {
+            id: true,
             name: true,
             email: true
           }
@@ -216,15 +244,35 @@ export async function getAllTasks({
       }
     });
 
+    // Map tasks to the expected format
     return {
-      data: tasks.map(task => ({
-        ...task,
-        price: Number(task.price),
-        author: task.createdBy ? {
-          name: task.createdBy.name,
-          email: task.createdBy.email
-        } : undefined
-      })),
+      data: tasks.map(task => {
+        // Use the same type casting approach as other functions
+        const taskWithRelations = task as unknown as TaskWithRelations;
+        
+        return {
+          id: taskWithRelations.id,
+          name: taskWithRelations.name,
+          description: taskWithRelations.description,
+          price: Number(taskWithRelations.price),
+          images: taskWithRelations.images,
+          categoryId: taskWithRelations.categoryId,
+          statusId: taskWithRelations.statusId,
+          createdAt: taskWithRelations.createdAt,
+          updatedAt: taskWithRelations.updatedAt,
+          isArchived: taskWithRelations.isArchived,
+          archivedAt: taskWithRelations.archivedAt,
+          author: taskWithRelations.createdBy ? {
+            id: taskWithRelations.createdBy.id,
+            name: taskWithRelations.createdBy.name,
+            email: taskWithRelations.createdBy.email
+          } : undefined,
+          category: taskWithRelations.category ? {
+            id: taskWithRelations.category.id,
+            name: taskWithRelations.category.name
+          } : undefined
+        };
+      }),
       totalPages: Math.ceil(tasks.length / PAGE_SIZE)
     };
   } catch (error) {
@@ -287,32 +335,15 @@ export async function deleteTask(id: string) {
  * });
  */
 export async function createTask(data: z.infer<typeof insertTaskSchema> & { userId: string }) {
-  console.log('createTask called with data:', {
-    ...data,
-    userId: data.userId
-  });
-  
   try {
     const task = insertTaskSchema.parse(data);
     const openStatus = await prisma.taskStatus.findFirst({
       where: { name: 'OPEN' }
     });
     
-    console.log('Creating task with data:', {
-      name: task.name,
-      slug: task.slug,
-      categoryId: task.categoryId,
-      images: task.images,
-      description: task.description,
-      price: task.price,
-      statusId: openStatus?.id,
-      createdById: data.userId
-    });
-    
     const createdTask = await prisma.task.create({ 
       data: {
         name: task.name,
-        slug: task.slug,
         categoryId: task.categoryId,
         images: task.images,
         description: task.description,
@@ -322,13 +353,10 @@ export async function createTask(data: z.infer<typeof insertTaskSchema> & { user
       } 
     });
     
-    console.log('Task created:', createdTask);
-    
     revalidatePath('/');
     revalidatePath('/user/dashboard/client/tasks');
     return { success: true, message: 'Task created successfully' };
   } catch (error) {
-    console.error('Error in createTask:', error);
     return { success: false, message: formatError(error) };
   }
 }
@@ -399,6 +427,7 @@ type TasksWithPagination = {
 
 export async function getAllTasksByClientId(clientId: string): Promise<TasksWithPagination> {
   const where: Prisma.TaskWhereInput = {
+    isArchived: false,
     OR: [
       { createdById: clientId },
       {
@@ -418,6 +447,7 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
       category: true,
       createdBy: {
         select: {
+          id: true,
           name: true,
           email: true
         }
@@ -426,14 +456,33 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
   });
   
   return {
-    data: tasks.map(task => ({
-      ...task,
-      price: Number(task.price),
-      author: task.createdBy ? {
-        name: task.createdBy.name,
-        email: task.createdBy.email
-      } : undefined
-    })) as Task[],
+    data: tasks.map(task => {
+      // Create a properly typed object with all required Task fields
+      const taskWithRelations = task as unknown as TaskWithRelations;
+      
+      return {
+        id: taskWithRelations.id,
+        name: taskWithRelations.name,
+        description: taskWithRelations.description,
+        price: Number(taskWithRelations.price),
+        images: taskWithRelations.images,
+        categoryId: taskWithRelations.categoryId,
+        statusId: taskWithRelations.statusId,
+        createdAt: taskWithRelations.createdAt,
+        updatedAt: taskWithRelations.updatedAt,
+        isArchived: taskWithRelations.isArchived,
+        archivedAt: taskWithRelations.archivedAt,
+        author: taskWithRelations.createdBy ? {
+          id: taskWithRelations.createdBy.id,
+          name: taskWithRelations.createdBy.name,
+          email: taskWithRelations.createdBy.email
+        } : undefined,
+        category: taskWithRelations.category ? {
+          id: taskWithRelations.category.id,
+          name: taskWithRelations.category.name
+        } : undefined
+      } as Task;
+    }),
     totalPages: Math.ceil(tasks.length / 10)
   };
 }
@@ -452,15 +501,8 @@ export const checkTaskOwnership = async (
       select: { createdById: true }
     });
 
-    console.log('Task ownership check:', {
-      taskId,
-      currentUserId: userId,
-      taskCreatorId: task?.createdById
-    });
-
     return task?.createdById === userId;
   } catch (error) {
-    console.error('Error checking task ownership:', error);
     return false;
   }
 };
@@ -521,5 +563,59 @@ export async function getTaskStatistics() {
   } catch (error) {
     console.error('Error getting task statistics:', error);
     throw error;
+  }
+}
+
+/**
+ * Archives a task
+ * 
+ * @param taskId - The ID of the task to archive
+ * @returns Result with success status and message
+ * 
+ * @example
+ * const result = await archiveTask('task-123');
+ * if (result.success) {
+ *   console.log('Task archived successfully');
+ * }
+ */
+export async function archiveTask(taskId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    // Check if task exists and user owns it
+    const taskExists = await prisma.task.findFirst({
+      where: { 
+        id: taskId,
+        createdById: session.user.id 
+      },
+    });
+
+    if (!taskExists) {
+      throw new Error('Task not found or unauthorized');
+    }
+
+    // Update task to archived status
+    await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+      },
+    });
+
+    revalidatePath('/user/dashboard/client/tasks');
+
+    return {
+      success: true,
+      message: 'Task archived successfully',
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to archive task' 
+    };
   }
 }

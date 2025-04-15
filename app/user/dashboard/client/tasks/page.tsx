@@ -36,18 +36,15 @@ import TaskList from '@/components/shared/task/task-list';
  */
 export default async function ClientTasksPage() {
   const session = await auth();
-  console.log('Current user session:', session?.user);
-
   if (!session?.user?.id) redirect('/login');
 
   const tasks = await getAllTasksByClientId(session.user.id);
-  console.log('Tasks received:', JSON.stringify(tasks, null, 2));
+
 
   const tasksWithNumberPrice = tasks.data.map(task => ({
     ...task,
     price: Number(task.price)
   }));
-  console.log('Processed tasks:', tasksWithNumberPrice);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

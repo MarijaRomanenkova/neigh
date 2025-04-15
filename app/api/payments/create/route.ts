@@ -38,7 +38,6 @@ export async function POST(request: Request) {
     const userId = session?.user?.id;
     
     if (!userId) {
-      console.log('Authentication failed: No user ID in session');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -47,11 +46,8 @@ export async function POST(request: Request) {
     
     // Get invoice IDs and payment method from request body
     const { invoiceIds, paymentMethod } = await request.json();
-    
-    console.log('Request received:', { invoiceIds, paymentMethod, userId });
-    
+  
     if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
-      console.log('Invalid invoice IDs:', invoiceIds);
       return NextResponse.json(
         { error: 'Invalid invoice IDs' },
         { status: 400 }
@@ -59,7 +55,6 @@ export async function POST(request: Request) {
     }
 
     if (!paymentMethod || !['Stripe', 'PayPal'].includes(paymentMethod)) {
-      console.log('Invalid payment method:', paymentMethod);
       return NextResponse.json(
         { error: 'Invalid payment method' },
         { status: 400 }
@@ -75,8 +70,6 @@ export async function POST(request: Request) {
       },
     });
     
-    console.log(`Found ${invoices.length} valid invoices of ${invoiceIds.length} requested`);
-    
     if (invoices.length === 0) {
       return NextResponse.json(
         { error: 'No valid invoices found' },
@@ -88,8 +81,6 @@ export async function POST(request: Request) {
     if (invoices.length < invoiceIds.length) {
       const foundIds = invoices.map(inv => inv.id);
       const missingIds = invoiceIds.filter(id => !foundIds.includes(id));
-      
-      console.log('Some invoices were not found or already paid:', { missingIds });
       
       // Check if they exist but have a payment ID
       const paidInvoices = await prisma.invoice.findMany({
@@ -150,7 +141,6 @@ export async function POST(request: Request) {
       paymentId: payment.id 
     });
   } catch (error) {
-    console.error('Error creating payment:', error);
     
     // Provide more detailed error information
     let errorMessage = 'Internal server error';
