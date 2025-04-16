@@ -246,6 +246,7 @@ const ProfileForm = () => {
         <Button
           type='submit'
           size='lg'
+          variant='success'
           className='button col-span-2 w-full mt-4'
           disabled={form.formState.isSubmitting}
         >

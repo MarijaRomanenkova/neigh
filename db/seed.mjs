@@ -33,7 +33,7 @@ async function main() {
   await prisma.task.deleteMany({})
   await prisma.user.deleteMany({})
   await prisma.category.deleteMany({})
-  await prisma.taskStatus.deleteMany({})
+  await prisma.taskAssignmentStatus.deleteMany({})
 
   console.log('Seeding database...')
 
@@ -58,7 +58,7 @@ async function main() {
 
   // Create Task Statuses
   const statuses = await Promise.all([
-    prisma.taskStatus.create({
+    prisma.taskAssignmentStatus.create({
       data: {
         name: 'OPEN',
         description: 'Task is open for contractors',
@@ -66,7 +66,7 @@ async function main() {
         order: 1
       }
     }),
-    prisma.taskStatus.create({
+    prisma.taskAssignmentStatus.create({
       data: {
         name: 'IN_PROGRESS',
         description: 'Work is in progress',
@@ -74,7 +74,7 @@ async function main() {
         order: 2
       }
     }),
-    prisma.taskStatus.create({
+    prisma.taskAssignmentStatus.create({
       data: {
         name: 'COMPLETED',
         description: 'Task has been completed',

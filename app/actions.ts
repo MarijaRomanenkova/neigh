@@ -2,9 +2,9 @@
 
 import { prisma } from "@/db/prisma";
 
-export async function getCompletedTaskStatus() {
+export async function getCompletedTaskAssignmentStatus() {
   try {
-    const status = await prisma.taskStatus.findFirst({
+    const status = await prisma.taskAssignmentStatus.findFirst({
       where: { 
         name: 'COMPLETED'
       }

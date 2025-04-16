@@ -67,11 +67,11 @@ const AdminPaymentsPage = async (props: {
     <div className='space-y-2'>
       {/* Page header with search filter info */}
       <div className='flex items-center gap-3'>
-        <h1 className='h2-bold'>Orders</h1>
+        <h1 className='h2-bold'>Payments</h1>
         {searchText && (
           <div>
             Filtered by <i>&quot;{searchText}&quot;</i>{' '}
-            <Link href='/admin/orders'>
+            <Link href='/admin/payments'>
               <Button variant='outline' size='sm'>
                 Remove Filter
               </Button>
@@ -87,10 +87,8 @@ const AdminPaymentsPage = async (props: {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>DATE</TableHead>
-              <TableHead>BUYER</TableHead>
               <TableHead>TOTAL</TableHead>
               <TableHead>PAID</TableHead>
-              <TableHead>DELIVERED</TableHead>
               <TableHead>ACTIONS</TableHead>
             </TableRow>
           </TableHeader>

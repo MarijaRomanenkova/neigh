@@ -463,7 +463,7 @@ type SalesDataType = {
  *     <StatCard title="Total Sales" value={`$${stats.totalSales._sum.amount}`} />
  *     <StatCard title="Orders" value={stats.paymentsCount} />
  *     <StatCard title="Products" value={stats.tasksCount} />
- *     <StatCard title="Customers" value={stats.usersCount} />
+ *     <StatCard title="Users" value={stats.usersCount} />
  *     <SalesChart data={stats.salesData} />
  *     <RecentSales sales={stats.latestSales} />
  *   </div>

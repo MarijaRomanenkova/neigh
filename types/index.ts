@@ -257,3 +257,57 @@ export interface ExtendedUser {
 // Note: TaskWithOwner interface and normalizeTaskOwner function were removed (April 2025) 
 // after standardizing on createdById across the database schema and application code.
 
+export interface TaskAssignment {
+  /** Task Assignment ID */
+  id: string;
+  /** Task Assignment Status */
+  status: { name: string };
+  /** Associated Task */
+  task: {
+    id: string;
+    name: string;
+    description: string;
+    dueDate: string | null;
+  };
+  /** Client who created the task */
+  client: {
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  /** Contractor assigned to the task */
+  contractor?: {
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  /** Creation timestamp */
+  createdAt: string;
+  /** Last update timestamp */
+  updatedAt: string;
+  /** Invoice information */
+  invoices: TaskAssignmentInvoice[];
+  /** Associated conversation */
+  conversation: { id: string } | null;
+  /** Whether task has been reviewed */
+  wasReviewed?: boolean;
+  /** Review rating (1-5) */
+  reviewRating?: number;
+  /** Review feedback text */
+  reviewFeedback?: string;
+}
+
+/**
+ * Simplified invoice type used in task assignment contexts
+ */
+export interface TaskAssignmentInvoice {
+  /** Unique identifier */
+  id: string;
+  /** Invoice status */
+  status: string;
+  /** Invoice amount */
+  amount: number;
+  /** Creation date */
+  createdAt: string;
+}
+

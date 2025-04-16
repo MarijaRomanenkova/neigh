@@ -17,6 +17,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useSocket } from '@/components/providers/socket-provider';
+import MessageImageUpload from './message-image-upload';
+import Image from 'next/image';
+import { ImageIcon, X } from 'lucide-react';
 
 /**
  * User Interface
@@ -36,6 +39,7 @@ interface User {
  * @interface Message
  * @property {string} id - Unique identifier for the message
  * @property {string} content - Text content of the message
+ * @property {string|null} imageUrl - Optional URL to an image attachment
  * @property {Date} createdAt - Timestamp when the message was created
  * @property {string} senderId - ID of the user who sent the message
  * @property {User} sender - User object of the sender
@@ -43,6 +47,7 @@ interface User {
 interface Message {
   id: string;
   content: string;
+  imageUrl?: string | null;
   createdAt: Date;
   senderId: string;
   sender: User;
@@ -77,6 +82,8 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   const [messages, setMessages] = useState<Message[]>(initialMessages || []);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
   const { data: session } = useSession();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -168,11 +175,38 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   };
 
   /**
+   * Toggles the image upload interface
+   */
+  const toggleImageUpload = () => {
+    setShowImageUpload(!showImageUpload);
+    if (showImageUpload && imageUrl) {
+      setImageUrl(null);
+    }
+  };
+
+  /**
+   * Handles image upload completion
+   * 
+   * @param {string} url - URL of the uploaded image
+   */
+  const handleImageUpload = (url: string) => {
+    setImageUrl(url);
+  };
+
+  /**
+   * Cancels the current image upload
+   */
+  const cancelImageUpload = () => {
+    setImageUrl(null);
+  };
+
+  /**
    * Sends a new message
    * Handles API request, updates local state, and emits socket event
    */
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || loading || !session?.user) return;
+    // Don't send if there's no content and no image
+    if ((!newMessage.trim() && !imageUrl) || loading || !session?.user) return;
     
     setLoading(true);
     
@@ -183,7 +217,8 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: newMessage,
+          content: newMessage || ' ', // Send at least a space if there's only an image
+          imageUrl: imageUrl,
           conversationId
         }),
       });
@@ -202,8 +237,10 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
         socket.emit('send-message', { conversationId, message: data });
       }
       
-      // Clear the input
+      // Clear the input and image
       setNewMessage('');
+      setImageUrl(null);
+      setShowImageUpload(false);
     } catch (error: unknown) {
       console.error('Error sending message:', error instanceof Error ? error.message : 'Unknown error');
       
@@ -248,15 +285,29 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                       isCurrentUser 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
-                      } p-3 rounded-lg whitespace-pre-wrap break-words`}
+                    } px-3 py-2 rounded-lg`}
                     >
                       {message.content}
+                      
+                      {/* Render image if present */}
+                      {message.imageUrl && (
+                        <div className="mt-2">
+                          <div className="relative rounded-md overflow-hidden h-48 w-full max-w-sm">
+                            <Image 
+                              src={message.imageUrl} 
+                              alt="Message image" 
+                              className="object-contain cursor-pointer"
+                              fill
+                              onClick={() => window.open(message.imageUrl || '', '_blank')}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(messageDate, { 
-                        addSuffix: true 
-                      })}
-                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-1 ml-1">
+                      {formatDistanceToNow(messageDate, { addSuffix: true })}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -266,21 +317,52 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="p-4 border-t">
-        <div className="flex gap-2">
+      {/* Message Input */}
+      <div className="border-t p-4">
+        {showImageUpload && (
+          <div className="mb-4">
+            <MessageImageUpload
+              onImageUpload={handleImageUpload}
+              onCancel={cancelImageUpload}
+              currentImage={imageUrl}
+            />
+          </div>
+        )}
+      
+        <div className="flex items-start space-x-2">
+          <Button
+            type="button"
+            size="icon"
+            variant={showImageUpload ? "secondary" : "ghost"}
+            onClick={toggleImageUpload}
+            className="rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center"
+            title="Add Image"
+          >
+            {imageUrl ? (
+              <div className="relative h-9 w-9 flex items-center justify-center">
+                <div className="absolute -top-1 -right-1 bg-green-500 h-3 w-3 rounded-full border-2 border-background" />
+                <ImageIcon className="h-9 w-9" style={{ width: '2.25rem', height: '2.25rem' }} />
+              </div>
+            ) : (
+              <ImageIcon className="h-9 w-9" style={{ width: '2.25rem', height: '2.25rem' }} />
+            )}
+          </Button>
+          
           <Textarea
+            placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="resize-none"
-            rows={2}
+            className="min-h-10 resize-none"
+            disabled={loading}
           />
-          <Button 
-            onClick={handleSendMessage} 
-            disabled={loading || !newMessage.trim()}
+          
+          <Button
+            onClick={handleSendMessage}
+            disabled={(!newMessage.trim() && !imageUrl) || loading}
+            className="bg-primary text-primary-foreground"
           >
-            {loading ? 'Sending...' : 'Send'}
+            Send
           </Button>
         </div>
       </div>

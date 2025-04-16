@@ -17,6 +17,7 @@ import { ArrowLeft, MessageSquare, Clipboard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
+import AcceptTaskButton from '@/components/shared/task/accept-task-button';
 
 /**
  * Conversation Detail Page Component
@@ -121,6 +122,7 @@ export default async function ConversationPage({
     let isTaskAssignedToContractor = false;
     let contractorId = '';
     let taskAssignmentId = '';
+    let isTaskCompleted = false;
     
     // Normalize task data if it exists
     const task = conversation.task ? conversation.task : null;
@@ -137,12 +139,16 @@ export default async function ConversationPage({
           where: { 
             taskId: task.id,
             contractorId
+          },
+          include: {
+            status: true
           }
         });
         
         if (taskAssignment) {
           isTaskAssignedToContractor = true;
           taskAssignmentId = taskAssignment.id;
+          isTaskCompleted = taskAssignment.status.name === 'COMPLETED';
         }
       }
     }
@@ -172,7 +178,7 @@ export default async function ConversationPage({
             
             {/* Task Assignment Button or View Assignment Link */}
             {task && contractorId && (
-              <>
+              <div className="flex flex-col gap-2">
                 {!isTaskAssignedToContractor && isClient ? (
                   <TaskAssignButton
                     taskId={task.id}
@@ -180,21 +186,27 @@ export default async function ConversationPage({
                     contractorId={contractorId}
                   />
                 ) : isTaskAssignedToContractor && taskAssignmentId && (
-                  <Link 
-                    href={isClient 
-                      ? `/user/dashboard/client/task-assignments/${taskAssignmentId}`
-                      : `/user/dashboard/contractor/assignments/${taskAssignmentId}`
-                    }
-                  >
-                    <Button
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                  <>
+                    <Link 
+                      href={isClient 
+                        ? `/user/dashboard/client/task-assignments/${taskAssignmentId}`
+                        : `/user/dashboard/contractor/assignments/${taskAssignmentId}`
+                      }
                     >
-                      <Clipboard className="h-4 w-4 mr-2" />
-                      View Task Assignment
-                    </Button>
-                  </Link>
+                      <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Clipboard className="h-4 w-4 mr-2" />
+                        View Task Assignment
+                      </Button>
+                    </Link>
+                    
+                    {isClient && isTaskCompleted && (
+                      <AcceptTaskButton taskAssignmentId={taskAssignmentId} />
+                    )}
+                  </>
                 )}
-              </>
+              </div>
             )}
           </div>
           
@@ -209,6 +221,15 @@ export default async function ConversationPage({
               )}
             </p>
           )}
+          
+          {/* New feature notification */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 p-3 rounded-md mb-4 flex items-start gap-2 text-sm">
+            <MessageSquare className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">New Feature: Image Sharing</p>
+              <p>You can now share images in your messages! Click the image button next to the message input to upload.</p>
+            </div>
+          </div>
         </div>
         
         <ChatInterface 

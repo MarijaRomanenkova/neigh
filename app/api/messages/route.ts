@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
     
     const body = await req.json();
-    const { content, conversationId } = body;
+    const { content, conversationId, imageUrl } = body;
     
     if (!content || !conversationId) {
       return NextResponse.json(
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     const message = await prisma.message.create({
       data: {
         content,
+        imageUrl,
         conversationId,
         senderId: session.user.id
       },

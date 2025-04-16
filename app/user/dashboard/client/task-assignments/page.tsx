@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Clock } from "lucide-react";
 import { Metadata } from 'next';
+import AcceptTaskButton from '@/components/shared/task/accept-task-button';
 
 interface PageProps {
   params: Promise<{ [key: string]: string | string[] }>;
@@ -93,6 +94,18 @@ const ClientTaskAssignmentsPage = async ({ params, searchParams }: PageProps) =>
                       </span>
                     </div>
                   )}
+                  
+                  <div className="flex flex-col gap-2">
+                    <Link href={`/user/dashboard/client/task-assignments/${assignment.id}`}>
+                      <Button variant="default" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+                    
+                    {isCompleted && (
+                      <AcceptTaskButton taskAssignmentId={assignment.id} />
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );

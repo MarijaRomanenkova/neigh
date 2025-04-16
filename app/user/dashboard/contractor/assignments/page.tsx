@@ -46,7 +46,7 @@ const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps
   const tasksAssignments = await getAllTaskAssignmentsByContractorId(session.user.id);
 
   // Get the COMPLETED status ID
-  const completedStatus = await prisma.taskStatus.findFirst({
+  const completedStatus = await prisma.taskAssignmentStatus.findFirst({
     where: { name: "COMPLETED" }
   });
 

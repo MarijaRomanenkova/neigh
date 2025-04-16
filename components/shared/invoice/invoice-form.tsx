@@ -17,6 +17,7 @@ import { z } from "zod";
 import { Invoice, InvoiceItems } from "@/types";
 import { useState, useEffect } from "react";
 import { createInvoice } from "@/lib/actions/invoice.actions";
+import { getUserById } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { 
   Table,
@@ -89,6 +90,53 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
         : prefillData?.taskPrice ? Number(prefillData.taskPrice) : 0
     }
   });
+
+  // State for storing client and contractor details
+  const [clientInfo, setClientInfo] = useState({
+    name: prefillData?.clientName || "",
+    email: ""
+  });
+  const [contractorInfo, setContractorInfo] = useState({
+    name: "",
+    email: ""
+  });
+
+  // Fetch client and contractor information
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        // Fetch client details if we have client ID
+        if (prefillData?.clientId) {
+          try {
+            const clientData = await getUserById(prefillData.clientId);
+            setClientInfo({
+              name: clientData.name || prefillData.clientName || "",
+              email: clientData.email || ""
+            });
+          } catch (error) {
+            console.error("Error fetching client details:", error);
+          }
+        }
+
+        // Fetch contractor details if we have contractor ID
+        if (prefillData?.contractorId) {
+          try {
+            const contractorData = await getUserById(prefillData.contractorId);
+            setContractorInfo({
+              name: contractorData.name || "",
+              email: contractorData.email || ""
+            });
+          } catch (error) {
+            console.error("Error fetching contractor details:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchUserDetails:", error);
+      }
+    };
+
+    fetchUserDetails();
+  }, [prefillData?.clientId, prefillData?.contractorId, prefillData?.clientName]);
 
   // Initialize invoice items based on prefill data
   useEffect(() => {
@@ -229,33 +277,73 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="clientId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client ID</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Client ID" readOnly={Boolean(prefillData?.clientId)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Client Information */}
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <h3 className="font-semibold mb-4">Client Information</h3>
+            <div className="space-y-4">
+              {/* Hide client ID but keep it in the form data */}
+              <input 
+                type="hidden" 
+                {...form.register("clientId")} 
+                value={prefillData?.clientId || ""}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FormLabel>Client Name</FormLabel>
+                  <Input 
+                    value={clientInfo.name} 
+                    onChange={(e) => setClientInfo({...clientInfo, name: e.target.value})}
+                    placeholder="Client Name" 
+                    readOnly={Boolean(prefillData?.clientName)}
+                  />
+                </div>
+                <div>
+                  <FormLabel>Client Email</FormLabel>
+                  <Input 
+                    value={clientInfo.email} 
+                    onChange={(e) => setClientInfo({...clientInfo, email: e.target.value})}
+                    placeholder="Client Email" 
+                    readOnly={Boolean(clientInfo.email)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <FormField
-            control={form.control}
-            name="contractorId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contractor ID</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Contractor ID" readOnly={Boolean(prefillData?.contractorId)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Contractor Information */}
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <h3 className="font-semibold mb-4">Contractor Information</h3>
+            <div className="space-y-4">
+              {/* Hide contractor ID but keep it in the form data */}
+              <input 
+                type="hidden" 
+                {...form.register("contractorId")} 
+                value={prefillData?.contractorId || ""}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <FormLabel>Contractor Name</FormLabel>
+                  <Input 
+                    value={contractorInfo.name} 
+                    onChange={(e) => setContractorInfo({...contractorInfo, name: e.target.value})}
+                    placeholder="Contractor Name" 
+                    readOnly={Boolean(contractorInfo.name)}
+                  />
+                </div>
+                <div>
+                  <FormLabel>Contractor Email</FormLabel>
+                  <Input 
+                    value={contractorInfo.email} 
+                    onChange={(e) => setContractorInfo({...contractorInfo, email: e.target.value})}
+                    placeholder="Contractor Email" 
+                    readOnly={Boolean(contractorInfo.email)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Client Info (display only) */}

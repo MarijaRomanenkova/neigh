@@ -31,6 +31,11 @@ const links = [
     icon: <ClipboardList className="h-4 w-4 mr-2" />
   },
   {
+    title: 'My Assignments',
+    href: '/user/dashboard/client/task-assignments',
+    icon: <FileCheck className="h-4 w-4 mr-2" />
+  },
+  {
     title: 'Received Invoices',
     href: '/user/dashboard/client/invoices',
     icon: <Download className="h-4 w-4 mr-2" />
