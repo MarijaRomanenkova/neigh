@@ -180,43 +180,138 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
       };
     }
     
+    // Parse and validate input data
     const invoice = insertInvoiceSchema.parse(data);
     const { total } = await calcTotal(invoice.items);
     
-    // First, get a valid assignment ID (we need this for each invoice item)
-    const assignment = await prisma.taskAssignment.findFirst({
+    // Find a default task to use for items without a task ID
+    const defaultTask = await prisma.task.findFirst({
+      select: { id: true }
+    });
+    
+    if (!defaultTask) {
+      return {
+        success: false,
+        message: 'No tasks found in the system. Please create a task first.'
+      };
+    }
+    
+    // Find or create a default task assignment to use
+    let defaultAssignmentId = null;
+    
+    const anyAssignment = await prisma.taskAssignment.findFirst({
       where: {
-        taskId: invoice.items[0].taskId,
         clientId: invoice.clientId,
         contractorId: invoice.contractorId,
       },
+      select: { id: true }
     });
-
-    if (!assignment) {
-      return {
-        success: false,
-        message: 'No task assignment found for the provided task, client, and contractor'
-      };
+    
+    if (anyAssignment) {
+      defaultAssignmentId = anyAssignment.id;
+    } else {
+      // We need to create a new assignment
+      const taskStatus = await prisma.taskAssignmentStatus.findFirst({
+        select: { id: true }
+      });
+      
+      if (!taskStatus) {
+        return {
+          success: false,
+          message: 'Task status not found in the system. Please contact support.'
+        };
+      }
+      
+      // Create a default assignment
+      const newAssignment = await prisma.taskAssignment.create({
+        data: {
+          taskId: defaultTask.id,
+          clientId: invoice.clientId,
+          contractorId: invoice.contractorId,
+          statusId: taskStatus.id
+        }
+      });
+      
+      defaultAssignmentId = newAssignment.id;
     }
-
-    // Create the invoice and its items in a transaction
+    
+    // Create the invoice
     const newInvoice = await prisma.invoice.create({
       data: {
         invoiceNumber: `INV-${Date.now()}`,
         clientId: invoice.clientId,
         contractorId: invoice.contractorId,
-        totalPrice: total,
-        items: {
-          create: invoice.items.map(item => ({
-            taskId: item.taskId,
-            name: "Service", // Default name
-            qty: item.quantity || 1,
-            price: item.price,
-            hours: 1, // Default value for hours
-            assignmentId: assignment.id
-          }))
+        totalPrice: total
+      }
+    });
+    
+    // Create each invoice item individually
+    const invoiceItems = [];
+    
+    for (const item of invoice.items) {
+      // If task ID is missing or empty, use the default task
+      const taskId = (item.taskId && item.taskId.trim() !== '') 
+        ? item.taskId 
+        : defaultTask.id;
+      
+      // Try to find a task-specific assignment first
+      let assignmentId = defaultAssignmentId;
+      
+      if (taskId !== defaultTask.id) {
+        const taskAssignment = await prisma.taskAssignment.findFirst({
+          where: {
+            taskId: taskId,
+            clientId: invoice.clientId,
+            contractorId: invoice.contractorId
+          },
+          select: { id: true }
+        });
+        
+        if (taskAssignment) {
+          assignmentId = taskAssignment.id;
         }
-      },
+      }
+      
+      // Check if this task assignment has already been invoiced
+      const existingInvoiceItem = await prisma.invoiceItem.findFirst({
+        where: {
+          assignmentId: assignmentId
+        },
+        include: {
+          invoice: {
+            select: {
+              invoiceNumber: true
+            }
+          }
+        }
+      });
+      
+      // Instead of returning an error, just log a warning about duplicate invoices
+      let invoiceItemName = "Service";
+      if (existingInvoiceItem) {
+        console.warn(`Creating additional invoice for task assignment that was already invoiced in Invoice #${existingInvoiceItem.invoice.invoiceNumber}`);
+        invoiceItemName = "Service (Additional Invoice)";
+      }
+      
+      // Create the invoice item
+      const invoiceItem = await prisma.invoiceItem.create({
+        data: {
+          invoiceId: newInvoice.id,
+          taskId: taskId,
+          name: invoiceItemName,
+          qty: item.quantity || 1,
+          price: item.price,
+          hours: 1,
+          assignmentId: assignmentId
+        }
+      });
+      
+      invoiceItems.push(invoiceItem);
+    }
+    
+    // Fetch the complete invoice data
+    const completeInvoice = await prisma.invoice.findUnique({
+      where: { id: newInvoice.id },
       include: {
         items: true,
         client: {
@@ -233,13 +328,23 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
         }
       }
     });
-
-    revalidatePath('/invoices');
-    revalidatePath(`/invoice/${newInvoice.id}`);
+    
+    if (!completeInvoice) {
+      throw new Error('Failed to retrieve the created invoice');
+    }
+    
+    try {
+      // Move revalidation to a separate try/catch to avoid affecting the main flow
+      revalidatePath('/user/dashboard/contractor/invoices');
+    } catch (revalidateError) {
+      console.error('Error revalidating paths:', revalidateError);
+      // Continue even if revalidation fails
+    }
+    
     return {
       success: true,
       message: 'Invoice created successfully',
-      data: convertToPlainObject(newInvoice)
+      data: convertToPlainObject(completeInvoice)
     };
   } catch (error) {
     console.error('Invoice creation error:', error);

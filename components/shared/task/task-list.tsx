@@ -47,14 +47,7 @@ const TaskList = ({
 
   return (
     <div className='my-10'>
-      <div className="flex justify-between items-center mb-4">
-        {title && <h2 className='h2-bold'>{title}</h2>}
-        <Button size="default" variant="success" asChild>
-          <Link href="/user/dashboard/client/tasks/create">
-            <Plus className="mr-1 h-6 w-6" /> Create Task
-          </Link>
-        </Button>
-      </div>
+      
       
       {limitedData.length > 0 ? (
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>

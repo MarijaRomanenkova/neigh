@@ -354,6 +354,7 @@ export async function getTaskAssignmentById(id: string) {
         },
         contractor: {
           select: {
+            id: true,
             name: true,
             email: true
           }
@@ -456,8 +457,6 @@ export async function getTaskAssignmentById(id: string) {
  * }
  */
 export async function deleteTaskAssignment(id: string) {
-  "use server";
-  
   try {
     await prisma.taskAssignment.delete({
       where: { id }
@@ -541,19 +540,6 @@ export async function createTaskAssignment(
       message: 'Failed to assign task'
     };
   }
-}
-
-/**
- * Retrieves all available task categories
- * 
- * @returns List of categories with task counts
- * 
- * @example
- * const categories = await getAllCategories();
- * categories.forEach(cat => console.log(`${cat.name}: ${cat._count.tasks} tasks`));
- */
-export async function getAllCategories() {
-  // Implementation
 }
 
 /**
@@ -768,6 +754,141 @@ export async function acceptTaskAssignment(id: string) {
     return { 
       success: false, 
       message: error instanceof Error ? error.message : 'Failed to accept task' 
+    };
+  }
+}
+
+/**
+ * Gets the invoice history for a task assignment
+ * 
+ * @param assignmentId - The task assignment ID
+ * @returns Object containing the invoice history for the assignment
+ */
+export async function getTaskAssignmentInvoiceHistory(assignmentId: string): Promise<{
+  invoiced: boolean;
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    createdAt: Date;
+  }>;
+}> {
+  try {
+    const invoiceItems = await prisma.invoiceItem.findMany({
+      where: {
+        assignmentId: assignmentId
+      },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: {
+        invoice: {
+          createdAt: 'desc'
+        }
+      }
+    });
+
+    if (invoiceItems.length === 0) {
+      return { 
+        invoiced: false,
+        invoices: []
+      };
+    }
+
+    return {
+      invoiced: true,
+      invoices: invoiceItems.map(item => ({
+        id: item.invoice.id,
+        invoiceNumber: item.invoice.invoiceNumber,
+        createdAt: item.invoice.createdAt
+      }))
+    };
+  } catch (error) {
+    console.error('[GET_TASK_ASSIGNMENT_INVOICE_HISTORY]', error);
+    return { 
+      invoiced: false,
+      invoices: []
+    };
+  }
+}
+
+/**
+ * Checks if a task assignment has been invoiced (maintained for backward compatibility)
+ * 
+ * @param assignmentId - The task assignment ID
+ * @returns Boolean indicating if the assignment has been invoiced and latest invoice number if available
+ * @deprecated Use getTaskAssignmentInvoiceHistory instead to get full invoice history
+ */
+export async function isTaskAssignmentInvoiced(assignmentId: string): Promise<{
+  invoiced: boolean;
+  invoiceNumber?: string;
+  invoiceId?: string;
+}> {
+  try {
+    const invoiceHistory = await getTaskAssignmentInvoiceHistory(assignmentId);
+    
+    if (!invoiceHistory.invoiced || invoiceHistory.invoices.length === 0) {
+      return { invoiced: false };
+    }
+
+    // Return the most recent invoice (should be the first one since we sort by descending date)
+    const latestInvoice = invoiceHistory.invoices[0];
+    return {
+      invoiced: true,
+      invoiceNumber: latestInvoice.invoiceNumber,
+      invoiceId: latestInvoice.id
+    };
+  } catch (error) {
+    console.error('[IS_TASK_ASSIGNMENT_INVOICED]', error);
+    return { invoiced: false };
+  }
+}
+
+/**
+ * Gets a task assignment by invoice number
+ * 
+ * @param invoiceNumber - The invoice number
+ * @returns Object containing the task assignment ID if found
+ */
+export async function getTaskAssignmentByInvoiceNumber(invoiceNumber: string): Promise<{
+  success: boolean;
+  taskAssignmentId?: string;
+  message?: string;
+}> {
+  try {
+    // Find the invoice item linked to this invoice number
+    const invoiceItem = await prisma.invoiceItem.findFirst({
+      where: {
+        invoice: {
+          invoiceNumber: invoiceNumber
+        }
+      },
+      select: {
+        assignmentId: true
+      }
+    });
+
+    if (!invoiceItem) {
+      return { 
+        success: false,
+        message: 'No task assignment found for this invoice'
+      };
+    }
+
+    return {
+      success: true,
+      taskAssignmentId: invoiceItem.assignmentId
+    };
+  } catch (error) {
+    console.error('[GET_TASK_ASSIGNMENT_BY_INVOICE_NUMBER]', error);
+    return { 
+      success: false,
+      message: 'Error finding task assignment for invoice'
     };
   }
 } 

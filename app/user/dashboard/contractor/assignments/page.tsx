@@ -26,6 +26,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import TaskCompleteButton from "@/components/shared/task-assignment/task-complete-button";
+import AddInvoiceDialog from "@/components/shared/task-assignment/add-invoice-dialog";
 import { prisma } from "@/db/prisma";
 import { Metadata } from 'next';
 
@@ -135,15 +136,39 @@ const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps
                       className="flex-1"
                     />
                   )}
-                  {hasInvoice ? (
-                    <Button 
-                      className='flex-1' 
-                      variant='outline' 
-                      disabled
-                    >
-                      <Receipt className="mr-2 h-4 w-4" />
-                      {isPaid ? 'Invoice Paid' : 'Invoice Issued'}
+                  <Link 
+                    href={`/user/dashboard/task-assignments/${assignment.id}`}
+                    className="flex-1"
+                  >
+                    <Button variant="outline" className="w-full">
+                      View Details
                     </Button>
+                  </Link>
+                  {hasInvoice ? (
+                    isPaid ? (
+                      <Button 
+                        className='flex-1' 
+                        variant='outline' 
+                        disabled
+                      >
+                        <Receipt className="mr-2 h-4 w-4" />
+                        Invoice Paid
+                      </Button>
+                    ) : (
+                      <AddInvoiceDialog
+                        taskId={assignment.task.id}
+                        clientId={assignment.client.id}
+                        taskAssignmentId={assignment.id}
+                      >
+                        <Button 
+                          className='flex-1' 
+                          variant='outline'
+                        >
+                          <Receipt className="mr-2 h-4 w-4" />
+                          Add Invoice
+                        </Button>
+                      </AddInvoiceDialog>
+                    )
                   ) : (
                     <Button asChild className='flex-1'>
                       <Link 
@@ -151,7 +176,8 @@ const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps
                           pathname: '/user/dashboard/contractor/invoices/create',
                           query: { 
                             clientId: assignment.client.id,
-                            taskId: assignment.task.id
+                            taskId: assignment.task.id,
+                            taskAssignmentId: assignment.id
                           }
                         }}
                       >

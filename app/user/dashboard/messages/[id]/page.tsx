@@ -187,11 +187,8 @@ export default async function ConversationPage({
                   />
                 ) : isTaskAssignedToContractor && taskAssignmentId && (
                   <>
-                    <Link 
-                      href={isClient 
-                        ? `/user/dashboard/client/task-assignments/${taskAssignmentId}`
-                        : `/user/dashboard/contractor/assignments/${taskAssignmentId}`
-                      }
+                    <Link
+                      href={`/user/dashboard/task-assignments/${taskAssignmentId}`}
                     >
                       <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"

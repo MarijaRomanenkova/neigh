@@ -96,7 +96,7 @@ const ClientTaskAssignmentsPage = async ({ params, searchParams }: PageProps) =>
                   )}
                   
                   <div className="flex flex-col gap-2">
-                    <Link href={`/user/dashboard/client/task-assignments/${assignment.id}`}>
+                    <Link href={`/user/dashboard/task-assignments/${assignment.id}`}>
                       <Button variant="default" className="w-full">
                         View Details
                       </Button>

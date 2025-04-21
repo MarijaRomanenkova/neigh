@@ -312,8 +312,6 @@ model InvoiceItem {
   assignment   TaskAssignment @relation(fields: [assignmentId], references: [id])
   invoice      Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   task         Task           @relation(fields: [taskId], references: [id])
-
-  @@unique([invoiceId, taskId])
 }
 
 model Conversation {

@@ -31,6 +31,7 @@ import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Card, CardContent } from "@/components/ui/card";
+import { getTaskAssignmentByInvoiceNumber } from "@/lib/actions/task-assignment.actions";
 
 /**
  * @interface InvoiceListTableProps
@@ -299,18 +300,19 @@ const InvoiceListTable = ({
               <TableHeader>
                 <TableRow>
                   {userType === 'client' && <TableHead className="text-center">Select</TableHead>}
+                  <TableHead className="w-12">#</TableHead>
                   <TableHead>Invoice #</TableHead>
                   <TableHead>{userType === 'client' ? 'Contractor' : 'Client'}</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-center">View</TableHead>
-                  <TableHead className="text-center">Task</TableHead>
+                  <TableHead className="text-center">Assignment</TableHead>
                   <TableHead className="text-center">Contact</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentInvoices.map((invoice) => {
+                {currentInvoices.map((invoice, index) => {
                   // Convert to number here for calculations only, preserving the original invoice object
                   const amount = Number(invoice.totalPrice);
                   // Get task name from the first invoice item
@@ -339,6 +341,7 @@ const InvoiceListTable = ({
                           )}
                         </TableCell>
                       )}
+                      <TableCell className="font-medium">{(currentPage - 1) * invoicesPerPage + index + 1}</TableCell>
                       <TableCell>{invoice.invoiceNumber}</TableCell>
                       <TableCell>
                         {userType === 'client' 
@@ -384,11 +387,31 @@ const InvoiceListTable = ({
                           <Button 
                             size="sm" 
                             variant="secondary"
-                            asChild
+                            onClick={async () => {
+                              try {
+                                const result = await getTaskAssignmentByInvoiceNumber(invoice.invoiceNumber);
+                                if (result.success && result.taskAssignmentId) {
+                                  // Different route paths for client and contractor
+                                  const taskPath = userType === 'contractor' ? 'assignments' : 'task-assignments';
+                                  router.push(`/user/dashboard/task-assignments/${result.taskAssignmentId}`);
+                                } else {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Error',
+                                    description: result.message || 'Failed to find the task assignment.'
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Error navigating to task assignment:', error);
+                                toast({
+                                  variant: 'destructive',
+                                  title: 'Error',
+                                  description: 'Failed to find the task assignment.'
+                                });
+                              }
+                            }}
                           >
-                            <Link href={`/user/dashboard/${userType}/tasks/${invoice.items[0].taskId}`}>
-                              <Link2 className="h-4 w-4" />
-                            </Link>
+                            <Link2 className="h-4 w-4" />
                           </Button>
                         )}
                       </TableCell>

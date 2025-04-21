@@ -88,6 +88,7 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">#</TableHead>
                 <TableHead>Item</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
@@ -96,12 +97,13 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoice.items.map((item) => {
+              {invoice.items.map((item, index) => {
                 const itemPrice = Number(item.price);
                 const itemTotal = itemPrice * (item.qty || 1);
                 
                 return (
                   <TableRow key={item.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.description}</TableCell>
                     <TableCell className="text-right">{item.qty}</TableCell>

@@ -56,6 +56,8 @@ const CreateInvoicePage = () => {
   const searchParams = useSearchParams();
   const taskId = searchParams.get('taskId');
   const clientId = searchParams.get('clientId');
+  const taskAssignmentId = searchParams.get('taskAssignmentId');
+  const isAdditional = searchParams.get('isAdditional') === 'true';
   const { data: session } = useSession();
   
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
@@ -72,7 +74,8 @@ const CreateInvoicePage = () => {
       try {
         // Initialize data with contractor ID from session
         const data: PrefillData = {
-          contractorId: session?.user?.id
+          contractorId: session?.user?.id,
+          taskAssignmentId: taskAssignmentId || undefined
         };
         
         // If we have a task ID, fetch task details
@@ -80,7 +83,10 @@ const CreateInvoicePage = () => {
           const taskDetails = await getTaskById(taskId);
           if (taskDetails) {
             data.taskId = taskId;
-            data.taskName = taskDetails.name;
+            // If this is an additional invoice, override the task name
+            data.taskName = isAdditional 
+              ? "Additional Service" 
+              : taskDetails.name;
             data.taskPrice = taskDetails.price;
           }
         }
@@ -105,7 +111,7 @@ const CreateInvoicePage = () => {
     if (session?.user?.id) {
       fetchData();
     }
-  }, [taskId, clientId, session]);
+  }, [taskId, clientId, session, taskAssignmentId, isAdditional]);
   
   if (isLoading) {
     return <div className="p-8 text-center">Loading invoice data...</div>;
