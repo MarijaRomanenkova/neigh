@@ -19,6 +19,46 @@ import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
 import AcceptTaskButton from '@/components/shared/task/accept-task-button';
 
+// Define the properly-typed Message interface matching ChatInterface's expectations
+interface User {
+  id: string;
+  name: string | null;
+  image: string | null;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  imageUrl?: string | null;
+  createdAt: Date;
+  senderId: string;
+  sender: User;
+  isSystemMessage?: boolean;
+  metadata?: {
+    eventType?: 'status-update' | 'invoice-created';
+    taskAssignmentId?: string;
+    taskName?: string;
+  } | null;
+}
+
+// Function to transform database messages to properly typed messages
+function transformMessages(dbMessages: any[]): Message[] {
+  return dbMessages.map(msg => ({
+    id: msg.id,
+    content: msg.content,
+    imageUrl: msg.imageUrl,
+    createdAt: msg.createdAt,
+    senderId: msg.senderId,
+    sender: msg.sender,
+    isSystemMessage: msg.isSystemMessage,
+    metadata: msg.metadata ? {
+      eventType: msg.metadata.eventType as 'status-update' | 'invoice-created' | undefined,
+      taskAssignmentId: msg.metadata.taskAssignmentId as string | undefined,
+      taskName: msg.metadata.taskName as string | undefined
+    } : null
+  }));
+}
+
 /**
  * Conversation Detail Page Component
  * 
@@ -99,7 +139,7 @@ export default async function ConversationPage({
     }
     
     // Get messages
-    const messages = await prisma.message.findMany({
+    const dbMessages = await prisma.message.findMany({
       where: { conversationId: id },
       include: {
         sender: {
@@ -112,6 +152,9 @@ export default async function ConversationPage({
       },
       orderBy: { createdAt: 'asc' }
     });
+
+    // Transform messages to match the expected type
+    const messages = transformMessages(dbMessages);
 
     // Get other participants
     const otherParticipants = conversation.participants

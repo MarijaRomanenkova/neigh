@@ -367,7 +367,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {existingInvoices.length > 0 && (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Previous invoices exist</AlertTitle>
             <AlertDescription>
@@ -376,8 +376,8 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
               <div className="mt-2">
                 <strong>Existing invoices:</strong>
                 <ul className="list-disc pl-5 mt-1">
-                  {existingInvoices.map(invoice => (
-                    <li key={invoice.id}>
+                  {existingInvoices.map((invoice, index) => (
+                    <li key={`${invoice.id}-${index}`}>
                       Invoice #{invoice.invoiceNumber} - Created on {new Date(invoice.createdAt).toLocaleDateString()}
                     </li>
                   ))}
@@ -389,7 +389,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Client Information */}
-          <div className="p-4 border rounded-lg bg-gray-50">
+          <div className="p-4 border rounded-lg bg-card">
             <h3 className="font-semibold mb-4">Client Information</h3>
             <div className="space-y-4">
               {/* Hide client ID but keep it in the form data */}
@@ -423,7 +423,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
           </div>
           
           {/* Contractor Information */}
-          <div className="p-4 border rounded-lg bg-gray-50">
+          <div className="p-4 border rounded-lg bg-card">
             <h3 className="font-semibold mb-4">Contractor Information</h3>
             <div className="space-y-4">
               {/* Hide contractor ID but keep it in the form data */}

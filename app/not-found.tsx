@@ -14,6 +14,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import LogoWithTheme from '@/components/shared/logo-with-theme';
 
 /**
  * NotFound Component
@@ -33,13 +34,14 @@ const NotFound = () => {
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center">
-      <Image
-        src='/images/logo.svg'
-        alt={`${APP_NAME} logo`}
-        width={48}
-        height={48}
-        priority={true}
-      />
+      <div className="mb-4">
+        <LogoWithTheme
+          width={100}
+          height={100}
+          alt={`${APP_NAME} logo`}
+          priority={true}
+        />
+      </div>
       <div className="p-6 s-1/3 rounded-lg bg-card shadow-md">
         <h1 className="text-3xl font-boldcmb-4">Page Not Found</h1>
         <p className="text-destructive mb-4">The page you are looking for does not exist.</p>

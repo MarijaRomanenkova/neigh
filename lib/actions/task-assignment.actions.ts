@@ -32,7 +32,7 @@ function isDecimal(value: unknown): value is { toString(): string } {
 /**
  * Helper function to serialize data and convert Decimal objects to regular numbers
  */
-function serializeData(data: unknown): unknown {
+export async function serializeData(data: unknown): Promise<unknown> {
   if (data === null || data === undefined) {
     return data;
   }
@@ -44,16 +44,17 @@ function serializeData(data: unknown): unknown {
   
   // If it's an array, process each item
   if (Array.isArray(data)) {
-    return (data as unknown[]).map((item: unknown) => serializeData(item));
+    return await Promise.all((data as unknown[]).map((item: unknown) => serializeData(item)));
   }
   
   // If it's an object, process each property
   if (typeof data === 'object' && data !== null) {
     const result: Record<string, unknown> = {};
     const obj = data as Record<string, unknown>;
+    
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        result[key] = serializeData(obj[key]);
+        result[key] = await serializeData(obj[key]);
       }
     }
     return result;
@@ -132,12 +133,20 @@ type TaskAssignmentWithClientDetails = Prisma.TaskAssignmentGetPayload<{
   include: {
     task: {
       select: {
+        id: true;
         name: true;
         price: true;
+        description: true;
+        category: {
+          select: {
+            name: true;
+          };
+        };
       };
     };
     contractor: {
       select: {
+        id: true;
         name: true;
       };
     };
@@ -275,12 +284,20 @@ export async function getAllTaskAssignmentsByClientId(
     include: {
       task: {
         select: {
+          id: true,
           name: true,
-          price: true
+          price: true,
+          description: true,
+          category: {
+            select: {
+              name: true
+            }
+          }
         }
       },
       contractor: {
         select: {
+          id: true,
           name: true
         }
       },
@@ -296,8 +313,11 @@ export async function getAllTaskAssignmentsByClientId(
     }
   });
 
+  // Serialize the data to convert Decimal types to regular numbers
+  const serializedData = await serializeData(assignments) as TaskAssignmentWithClientDetails[];
+
   return {
-    data: assignments,
+    data: serializedData,
     totalPages: Math.ceil(assignments.length / 10)
   };
 }
@@ -422,7 +442,7 @@ export async function getTaskAssignmentById(id: string) {
     };
     
     // Serialize the data to convert any Decimal types to regular numbers
-    const serializedData = serializeData(enhancedAssignment);
+    const serializedData = await serializeData(enhancedAssignment);
 
     return {
       success: true,
@@ -522,8 +542,32 @@ export async function createTaskAssignment(
         contractorId: data.contractorId,
         clientId: data.clientId,
         statusId: inProgressStatus.id
+      },
+      include: {
+        contractor: {
+          select: { name: true }
+        },
+        task: {
+          select: { name: true }
+        }
       }
     });
+
+    // Create a notification in the messenger
+    try {
+      // Import the notification function dynamically to avoid circular dependencies
+      const { createTaskAssignmentNotification } = await import('./messages.actions');
+      
+      // Create notification message
+      await createTaskAssignmentNotification(
+        assignment.id,
+        `Task "${assignment.task.name}" is assigned to ${assignment.contractor.name}`,
+        'status-update'
+      );
+    } catch (error) {
+      console.error('Failed to send assignment notification message:', error);
+      // Don't throw here, just log - we still want to create the assignment even if notification fails
+    }
 
     revalidatePath('/user/dashboard/client/tasks');
     revalidatePath('/user/dashboard/messages');
@@ -556,6 +600,16 @@ export async function updateTaskAssignment(id: string, statusId: string) {
       throw new Error('Unauthorized');
     }
 
+    // Get status details to create appropriate message
+    const status = await prisma.taskAssignmentStatus.findUnique({
+      where: { id: statusId },
+      select: { name: true }
+    });
+
+    if (!status) {
+      throw new Error('Status not found');
+    }
+
     const updatedAssignment = await prisma.taskAssignment.update({
       where: {
         id,
@@ -565,7 +619,33 @@ export async function updateTaskAssignment(id: string, statusId: string) {
         statusId,
         completedAt: new Date(),
       },
+      include: {
+        contractor: {
+          select: { name: true }
+        },
+        task: {
+          select: { name: true }
+        }
+      }
     });
+
+    // If marked as completed, send notification to client
+    if (status.name === 'COMPLETED') {
+      try {
+        // Import the notification function dynamically to avoid circular dependencies
+        const { createTaskAssignmentNotification } = await import('./messages.actions');
+        
+        // Create notification message
+        await createTaskAssignmentNotification(
+          id,
+          `${updatedAssignment.contractor.name} has marked task "${updatedAssignment.task.name}" as completed. Please review and accept it.`,
+          'status-update'
+        );
+      } catch (error) {
+        console.error('Failed to send notification message:', error);
+        // Don't throw here, just log - we still want to update the status even if notification fails
+      }
+    }
 
     revalidatePath('/user/dashboard/contractor/assignments');
     
@@ -708,7 +788,17 @@ export async function acceptTaskAssignment(id: string) {
     const taskAssignment = await prisma.taskAssignment.findUnique({
       where: { id },
       include: {
-        status: true
+        status: true,
+        task: {
+          select: {
+            name: true
+          }
+        },
+        client: {
+          select: {
+            name: true
+          }
+        }
       }
     });
 
@@ -742,12 +832,28 @@ export async function acceptTaskAssignment(id: string) {
       },
     });
 
+    // Send notification to contractor about task acceptance
+    try {
+      // Import the notification function dynamically to avoid circular dependencies
+      const { createTaskAssignmentNotification } = await import('./messages.actions');
+      
+      // Create notification message
+      await createTaskAssignmentNotification(
+        id,
+        `${taskAssignment.client.name} has accepted the completed task "${taskAssignment.task.name}". The task is now marked as accepted.`,
+        'status-update'
+      );
+    } catch (error) {
+      console.error('Failed to send task acceptance notification message:', error);
+      // Don't throw here, just log - we still want to update the status even if notification fails
+    }
+
     revalidatePath('/user/dashboard/client/task-assignments');
     
     return {
       success: true,
       message: 'Task accepted successfully',
-      data: updatedAssignment
+      data: await serializeData(updatedAssignment)
     };
   } catch (error) {
     console.error('[TASK_ASSIGNMENT_ACCEPT]', error);
@@ -775,14 +881,14 @@ export async function getTaskAssignmentInvoiceHistory(assignmentId: string): Pro
   try {
     const invoiceItems = await prisma.invoiceItem.findMany({
       where: {
-        assignmentId: assignmentId
+        assignmentId: assignmentId,
       },
-      include: {
+      select: {
         invoice: {
           select: {
             id: true,
             invoiceNumber: true,
-            createdAt: true
+            createdAt: true,
           }
         }
       },
@@ -800,13 +906,23 @@ export async function getTaskAssignmentInvoiceHistory(assignmentId: string): Pro
       };
     }
 
+    // Create a map to track unique invoices by ID
+    const uniqueInvoices = new Map();
+    
+    // Process each invoice item and only keep unique invoices
+    invoiceItems.forEach(item => {
+      if (!uniqueInvoices.has(item.invoice.id)) {
+        uniqueInvoices.set(item.invoice.id, {
+          id: item.invoice.id,
+          invoiceNumber: item.invoice.invoiceNumber,
+          createdAt: item.invoice.createdAt
+        });
+      }
+    });
+
     return {
       invoiced: true,
-      invoices: invoiceItems.map(item => ({
-        id: item.invoice.id,
-        invoiceNumber: item.invoice.invoiceNumber,
-        createdAt: item.invoice.createdAt
-      }))
+      invoices: Array.from(uniqueInvoices.values())
     };
   } catch (error) {
     console.error('[GET_TASK_ASSIGNMENT_INVOICE_HISTORY]', error);

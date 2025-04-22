@@ -44,7 +44,7 @@ type InvoiceItemFormProps = {
  */
 const InvoiceItemForm = ({ index, onRemove, form }: InvoiceItemFormProps) => {
   return (
-    <div className="border p-4 rounded-lg mb-4">
+    <div className="border p-4 rounded-lg mb-4 bg-card">
       <FormField
         control={form.control}
         name={`invoiceItem.${index}.taskId`}

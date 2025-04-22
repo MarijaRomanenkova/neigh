@@ -343,6 +343,8 @@ model Message {
   createdAt      DateTime     @default(now()) @db.Timestamp(6)
   readAt         DateTime?    @db.Timestamp(6)
   imageUrl       String?
+  isSystemMessage Boolean     @default(false)
+  metadata       Json?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 

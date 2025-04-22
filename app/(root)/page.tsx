@@ -12,9 +12,8 @@ import {
   getLatestTasks,
 } from '@/lib/actions/task.actions';
 import ViewAllTasksButton from '@/components/view-all-tasks-button';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import CreateTaskButton from '@/components/shared/create-task-button';
+
 /**
  * Homepage Component
  * 
@@ -35,11 +34,7 @@ const Homepage = async () => {
   return (
     <>
       <div className="flex justify-end items-center mb-4">
-        <Button size="sm" variant="success" asChild className="whitespace-nowrap flex items-center">
-          <Link href="/user/dashboard/client/tasks/create">
-            <Plus className="mr-2 h-4 w-4" /> Create Task
-          </Link>
-        </Button>
+        <CreateTaskButton size="lg" />
       </div>
       <TaskList data={latesttasks} title='Newest Tasks' limit={12} />
       <ViewAllTasksButton />

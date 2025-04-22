@@ -20,11 +20,15 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         success: 
-          "bg-success text-success-foreground shadow-sm hover:bg-success/90",
+          "bg-success text-success-foreground shadow-sm hover:bg-success/90 dark:bg-emerald-600 dark:hover:bg-emerald-700",
         "success-outline":
-          "border border-success text-success bg-background shadow-sm hover:bg-success/10 hover:text-success",
+          "border border-success text-success bg-background shadow-sm hover:bg-success/10 hover:text-success dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300",
         "danger-outline":
-          "border border-destructive text-destructive bg-background shadow-sm hover:bg-destructive/10 hover:text-destructive",
+          "border border-destructive text-destructive bg-background shadow-sm hover:bg-destructive/10 hover:text-destructive dark:border-red-500 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300",
+        warning:
+          "bg-amber-500 text-white shadow-sm hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 dark:text-white",
+        "warning-outline":
+          "border border-amber-500 text-amber-500 bg-background shadow-sm hover:bg-amber-50 hover:text-amber-600 dark:border-amber-400 dark:text-amber-300 dark:hover:bg-amber-900/30 dark:hover:text-amber-200",
       },
       size: {
         default: "h-14 px-4 py-2 text-md",

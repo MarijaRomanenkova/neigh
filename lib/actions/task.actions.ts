@@ -675,6 +675,18 @@ export async function archiveTask(taskId: string) {
       },
     });
 
+    // Send notifications to any contractors who have conversations about this task
+    try {
+      // Import the notification function dynamically to avoid circular dependencies
+      const { sendTaskArchivedNotifications } = await import('./messages.actions');
+      
+      // Send notifications about the archived task
+      await sendTaskArchivedNotifications(taskId);
+    } catch (error) {
+      console.error('Failed to send task archived notifications:', error);
+      // Don't throw here, just log - we still want to archive the task even if notifications fail
+    }
+
     revalidatePath('/user/dashboard/client/tasks');
 
     return {

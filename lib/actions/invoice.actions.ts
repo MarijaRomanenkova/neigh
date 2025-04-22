@@ -333,6 +333,27 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
       throw new Error('Failed to retrieve the created invoice');
     }
     
+    // Send a notification to the client about the new invoice
+    try {
+      // For each invoice item, check if there's a task assignment and send a notification
+      for (const item of invoiceItems) {
+        if (item.assignmentId) {
+          // Import the notification function dynamically to avoid circular dependencies
+          const { createTaskAssignmentNotification } = await import('./messages.actions');
+          
+          // Create notification message
+          await createTaskAssignmentNotification(
+            item.assignmentId,
+            `${completeInvoice.contractor.name} has issued invoice #${completeInvoice.invoiceNumber} for $${total}. Please review and process payment.`,
+            'invoice-created'
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('Error sending invoice notification:', notificationError);
+      // Continue even if notification fails
+    }
+    
     try {
       // Move revalidation to a separate try/catch to avoid affecting the main flow
       revalidatePath('/user/dashboard/contractor/invoices');

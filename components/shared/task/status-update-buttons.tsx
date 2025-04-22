@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { updateTaskAssignmentStatus } from '@/lib/actions/task-assignment-status.actions';
 
 interface StatusUpdateButtonsProps {
   taskId: string;
@@ -12,6 +13,7 @@ interface StatusUpdateButtonsProps {
 
 export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpdateButtonsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   
@@ -20,16 +22,13 @@ export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpd
     
     try {
       setIsUpdating(true);
-      const response = await fetch(`/api/tasks/${taskId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      setError(null);
       
-      if (!response.ok) {
-        throw new Error(`Failed to update status: ${response.status}`);
+      // Use the server action instead of fetch API call
+      const result = await updateTaskAssignmentStatus(taskId, newStatus);
+      
+      if (!result) {
+        throw new Error('Failed to update task status');
       }
       
       toast({
@@ -41,10 +40,12 @@ export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpd
       router.refresh();
     } catch (error) {
       console.error('Error updating task status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update task status';
+      setError(errorMessage);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to update task status',
+        description: errorMessage,
       });
     } finally {
       setIsUpdating(false);
@@ -52,26 +53,33 @@ export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpd
   };
   
   return (
-    <div className="flex gap-2">
-      {currentStatus === 'PENDING' && (
-        <Button 
-          className="flex-1"
-          onClick={() => updateStatus('IN_PROGRESS')}
-          disabled={isUpdating}
-        >
-          Mark as In Progress
-        </Button>
+    <div className="flex flex-col gap-2">
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
       )}
-      
-      {currentStatus !== 'COMPLETED' && (
-        <Button 
-          className="flex-1"
-          onClick={() => updateStatus('COMPLETED')}
-          disabled={isUpdating}
-        >
-          Mark as Completed
-        </Button>
-      )}
+      <div className="flex gap-2 justify-end">
+        {currentStatus === 'NEW' && (
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => updateStatus('IN_PROGRESS')}
+            disabled={isUpdating}
+          >
+            {isUpdating ? "Processing..." : "Start Task"}
+          </Button>
+        )}
+        
+        {currentStatus === 'IN_PROGRESS' && (
+          <Button 
+            variant="success-outline"
+            size="sm"
+            onClick={() => updateStatus('COMPLETED')}
+            disabled={isUpdating}
+          >
+            {isUpdating ? "Processing..." : "Complete"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 } 

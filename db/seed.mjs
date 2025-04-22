@@ -60,6 +60,7 @@ async function main() {
   const statuses = await Promise.all([
     prisma.taskAssignmentStatus.create({
       data: {
+        id: '38743520-6135-4506-a968-7ecd0bbc64ff', // Open status UUID
         name: 'OPEN',
         description: 'Task is open for contractors',
         color: '#4CAF50',
@@ -68,6 +69,7 @@ async function main() {
     }),
     prisma.taskAssignmentStatus.create({
       data: {
+        id: '2c043d52-6497-422a-98e0-97d6318ca317', // In Progress status UUID
         name: 'IN_PROGRESS',
         description: 'Work is in progress',
         color: '#FFC107',
@@ -76,10 +78,20 @@ async function main() {
     }),
     prisma.taskAssignmentStatus.create({
       data: {
+        id: 'a8b9c0d1-e2f3-4567-89ab-cdef01234567', // Completed status UUID
         name: 'COMPLETED',
         description: 'Task has been completed',
         color: '#9C27B0',
         order: 3
+      }
+    }),
+    prisma.taskAssignmentStatus.create({
+      data: {
+        id: 'b1c2d3e4-f5a6-47b8-89c0-d1e2f3a4b5c6', // Accepted status UUID
+        name: 'ACCEPTED',
+        description: 'Task has been completed and accepted by the client',
+        color: '#4ade80',
+        order: 4
       }
     })
   ])
@@ -120,7 +132,6 @@ async function main() {
     prisma.task.create({
       data: {
         name: 'Fix Leaking Roof',
-        slug: 'fix-leaking-roof',
         description: 'Need to fix a leaking roof in the kitchen',
         price: 250.00,
         categoryId: categories[0].id,
@@ -132,7 +143,6 @@ async function main() {
     prisma.task.create({
       data: {
         name: 'Garden Maintenance',
-        slug: 'garden-maintenance',
         description: 'Monthly garden maintenance needed',
         price: 100.00,
         categoryId: categories[1].id,
@@ -144,7 +154,6 @@ async function main() {
     prisma.task.create({
       data: {
         name: 'Computer Setup',
-        slug: 'computer-setup',
         description: 'Need help setting up new computer and transferring data',
         price: 80.00,
         categoryId: categories[2].id,
@@ -156,7 +165,6 @@ async function main() {
     prisma.task.create({
       data: {
         name: 'House Cleaning',
-        slug: 'house-cleaning',
         description: 'Deep cleaning for 3-bedroom house',
         price: 150.00,
         categoryId: categories[3].id,
@@ -168,7 +176,6 @@ async function main() {
     prisma.task.create({
       data: {
         name: 'Moving Help',
-        slug: 'moving-help',
         description: 'Need help moving furniture to new apartment',
         price: 200.00,
         categoryId: categories[4].id,

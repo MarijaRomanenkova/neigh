@@ -43,6 +43,8 @@ interface User {
  * @property {Date} createdAt - Timestamp when the message was created
  * @property {string} senderId - ID of the user who sent the message
  * @property {User} sender - User object of the sender
+ * @property {boolean} isSystemMessage - Indicates if the message is a system message
+ * @property {object} metadata - Additional information about the message
  */
 interface Message {
   id: string;
@@ -51,6 +53,12 @@ interface Message {
   createdAt: Date;
   senderId: string;
   sender: User;
+  isSystemMessage?: boolean;
+  metadata?: {
+    eventType?: 'status-update' | 'invoice-created';
+    taskAssignmentId?: string;
+    taskName?: string;
+  } | null;
 }
 
 /**
@@ -267,6 +275,27 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             const isCurrentUser = message.senderId === session?.user?.id;
             const messageDate = new Date(message.createdAt);
             
+            // Special display for system messages
+            if (message.isSystemMessage) {
+              return (
+                <div key={message.id} className="flex justify-center my-4">
+                  <div className={`
+                    ${message.metadata?.eventType === 'status-update' ? 'bg-blue-50 border-blue-200' : ''}
+                    ${message.metadata?.eventType === 'invoice-created' ? 'bg-green-50 border-green-200' : ''}
+                    border rounded-md px-4 py-2 text-sm max-w-[90%] text-center
+                  `}>
+                    <div className="font-medium">
+                      {message.content}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(messageDate, { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Regular message display
             return (
               <div 
                 key={message.id} 

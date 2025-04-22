@@ -10,7 +10,6 @@
 import Link from 'next/link';
 import { deleteTask, getAllTasksByClientId } from '@/lib/actions/task.actions';
 import { formatCurrency, formatId } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -24,6 +23,7 @@ import DeleteDialog from '@/components/shared/delete-dialog';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import TaskList from '@/components/shared/task/task-list';
+import CreateTaskButton from '@/components/shared/create-task-button';
 
 /**
  * Client Tasks Page Component
@@ -50,9 +50,7 @@ export default async function ClientTasksPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">My Tasks</h1>
-        <Button asChild>
-          <Link href="/user/dashboard/client/tasks/create">Create New Task</Link>
-        </Button>
+        <CreateTaskButton size="lg" />
       </div>
       
       <TaskList 

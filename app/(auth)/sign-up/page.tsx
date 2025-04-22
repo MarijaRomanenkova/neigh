@@ -23,6 +23,7 @@ import { APP_NAME } from '@/lib/constants';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import SignUpForm from './sign-up-form';
+import LogoWithTheme from '@/components/shared/logo-with-theme';
 
 /**
  * Metadata for the Sign Up page
@@ -72,15 +73,14 @@ const SignUpPage = async (props: {
       <Card>
         <CardHeader className='space-y-4'>
           {/* Application logo with link to home page */}
-          <Link href='/' className='flex-center'>
-            <Image
-              src='/images/logo.svg'
+          <div className='flex-center'>
+            <LogoWithTheme 
               width={100}
               height={100}
               alt={`${APP_NAME} logo`}
               priority={true}
             />
-          </Link>
+          </div>
           <CardTitle className='text-center'>Create Account</CardTitle>
           <CardDescription className='text-center'>
             Enter your information below to sign up

@@ -9,9 +9,10 @@ import { useRouter } from 'next/navigation';
 
 interface AcceptTaskButtonProps {
   taskAssignmentId: string;
+  className?: string;
 }
 
-export default function AcceptTaskButton({ taskAssignmentId }: AcceptTaskButtonProps) {
+export default function AcceptTaskButton({ taskAssignmentId, className = '' }: AcceptTaskButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -51,10 +52,12 @@ export default function AcceptTaskButton({ taskAssignmentId }: AcceptTaskButtonP
     <Button
       onClick={handleAccept}
       disabled={isLoading}
-      className="bg-green-600 hover:bg-green-700 text-white w-full"
+      variant="success"
+      size="sm"
+      className={className}
     >
       <CheckCircle className="h-4 w-4 mr-2" />
-      {isLoading ? "Processing..." : "Accept Completed Task"}
+      {isLoading ? "Processing..." : "Accept Task"}
     </Button>
   );
 } 

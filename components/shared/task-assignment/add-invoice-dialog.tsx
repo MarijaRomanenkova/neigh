@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useId } from 'react';
 
 interface AddInvoiceDialogProps {
   taskId: string;
@@ -29,6 +30,8 @@ export default function AddInvoiceDialog({
 }: AddInvoiceDialogProps) {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
+  // Generate a unique ID for this dialog instance
+  const dialogId = useId();
 
   const handleProceed = () => {
     // Navigate to create invoice page with parameters including "Additional Service" flag
@@ -59,13 +62,13 @@ export default function AddInvoiceDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Creating an additional invoice is appropriate for:
           </p>
-          <ul className="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
-            <li>Additional services not covered in the original invoice</li>
-            <li>Extra materials or expenses incurred</li>
-            <li>Extended work beyond the original scope</li>
+          <ul className="list-disc list-inside text-sm text-muted-foreground mt-2 space-y-1">
+            <li key={`${dialogId}-item-1`}>Additional services not covered in the original invoice</li>
+            <li key={`${dialogId}-item-2`}>Extra materials or expenses incurred</li>
+            <li key={`${dialogId}-item-3`}>Extended work beyond the original scope</li>
           </ul>
         </div>
         <DialogFooter className="sm:justify-end">

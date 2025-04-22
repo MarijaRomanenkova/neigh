@@ -70,9 +70,9 @@ const TaskCard = ({ task }: { task: Task }) => {
       <CardFooter className="px-4 pt-0 flex justify-between items-center gap-2">
         {/* Author information - only shown to authenticated users */}
         {isAuthenticated ? (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">
+          <div className="flex items-center text-base text-muted-foreground">
+            <UserIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+            <span className="truncate font-medium">
               {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
             </span>
           </div>
