@@ -15,44 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
-
-/**
- * Conversation Interface
- * @interface Conversation
- * @property {string} id - Unique identifier for the conversation
- * @property {Date} updatedAt - When the conversation was last updated
- * @property {Object|null} task - Associated task information if any
- * @property {string} task.id - ID of the associated task
- * @property {string} task.name - Name of the associated task
- * @property {Object[]} participants - Users participating in the conversation
- * @property {Object[]} messages - Messages in the conversation (newest first)
- */
-interface Conversation {
-  id: string;
-  updatedAt: Date;
-  task: {
-    id: string;
-    name: string;
-  } | null;
-  participants: {
-    user: {
-      id: string;
-      name: string | null;
-      image: string | null;
-    };
-  }[];
-  messages: {
-    id: string;
-    content: string;
-    createdAt: Date;
-    readAt: Date | null;
-    senderId: string;
-    sender: {
-      id: string;
-      name: string | null;
-    };
-  }[];
-}
+import { Conversation } from '@/types/chat/message.types';
 
 /**
  * Conversation List Component

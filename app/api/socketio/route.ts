@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { Server as NetServer } from "http";
+import { NextApiRequest } from 'next';
+import { MessageData } from '@/types/chat/message.types';
 
 // Global Socket.IO instance
 let io: SocketIOServer | null = null;
@@ -44,27 +46,6 @@ export async function GET() {
       socket.on("join-conversation", (conversationId: string) => {
         socket.join(conversationId);
        });
-      
-      /**
-       * Message data structure for socket communication
-       * @interface MessageData
-       * @property {string} conversationId - ID of the conversation the message belongs to
-       * @property {object} message - Message content and metadata
-       * @property {string} message.id - Unique identifier for the message
-       * @property {string} message.content - Text content of the message
-       * @property {string} message.senderId - ID of the user who sent the message
-       * @property {Date} message.timestamp - When the message was sent
-       */
-      interface MessageData {
-        conversationId: string;
-        message: {
-          id: string;
-          content: string;
-          senderId: string;
-          timestamp: Date;
-          [key: string]: unknown; // For any additional properties
-        };
-      }
       
       socket.on("send-message", (data: MessageData) => {
         socket.to(data.conversationId).emit("new-message", data.message);

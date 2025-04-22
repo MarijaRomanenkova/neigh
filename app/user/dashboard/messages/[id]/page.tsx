@@ -18,31 +18,10 @@ import { cn } from '@/lib/utils';
 import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
 import AcceptTaskButton from '@/components/shared/task/accept-task-button';
-
-// Define the properly-typed Message interface matching ChatInterface's expectations
-interface User {
-  id: string;
-  name: string | null;
-  image: string | null;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  imageUrl?: string | null;
-  createdAt: Date;
-  senderId: string;
-  sender: User;
-  isSystemMessage?: boolean;
-  metadata?: {
-    eventType?: 'status-update' | 'invoice-created';
-    taskAssignmentId?: string;
-    taskName?: string;
-  } | null;
-}
+import { Message, DbMessage, MessageMetadata } from '@/types/chat/message.types';
 
 // Function to transform database messages to properly typed messages
-function transformMessages(dbMessages: any[]): Message[] {
+function transformMessages(dbMessages: DbMessage[]): Message[] {
   return dbMessages.map(msg => ({
     id: msg.id,
     content: msg.content,
@@ -51,10 +30,10 @@ function transformMessages(dbMessages: any[]): Message[] {
     senderId: msg.senderId,
     sender: msg.sender,
     isSystemMessage: msg.isSystemMessage,
-    metadata: msg.metadata ? {
-      eventType: msg.metadata.eventType as 'status-update' | 'invoice-created' | undefined,
-      taskAssignmentId: msg.metadata.taskAssignmentId as string | undefined,
-      taskName: msg.metadata.taskName as string | undefined
+    metadata: msg.metadata && typeof msg.metadata === 'object' ? {
+      eventType: (msg.metadata as MessageMetadata).eventType,
+      taskAssignmentId: (msg.metadata as MessageMetadata).taskAssignmentId,
+      taskName: (msg.metadata as MessageMetadata).taskName
     } : null
   }));
 }

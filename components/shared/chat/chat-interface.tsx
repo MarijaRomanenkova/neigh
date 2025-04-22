@@ -20,46 +20,8 @@ import { useSocket } from '@/components/providers/socket-provider';
 import MessageImageUpload from './message-image-upload';
 import Image from 'next/image';
 import { ImageIcon, X } from 'lucide-react';
-
-/**
- * User Interface
- * @interface User
- * @property {string} id - Unique identifier for the user
- * @property {string|null} name - Display name of the user
- * @property {string|null} image - URL to the user's profile image
- */
-interface User {
-  id: string;
-  name: string | null;
-  image: string | null;
-}
-
-/**
- * Message Interface
- * @interface Message
- * @property {string} id - Unique identifier for the message
- * @property {string} content - Text content of the message
- * @property {string|null} imageUrl - Optional URL to an image attachment
- * @property {Date} createdAt - Timestamp when the message was created
- * @property {string} senderId - ID of the user who sent the message
- * @property {User} sender - User object of the sender
- * @property {boolean} isSystemMessage - Indicates if the message is a system message
- * @property {object} metadata - Additional information about the message
- */
-interface Message {
-  id: string;
-  content: string;
-  imageUrl?: string | null;
-  createdAt: Date;
-  senderId: string;
-  sender: User;
-  isSystemMessage?: boolean;
-  metadata?: {
-    eventType?: 'status-update' | 'invoice-created';
-    taskAssignmentId?: string;
-    taskName?: string;
-  } | null;
-}
+import { cn } from '@/lib/utils';
+import { Message, User } from '@/types/chat/message.types';
 
 /**
  * Props for the ChatInterface component
@@ -279,11 +241,13 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             if (message.isSystemMessage) {
               return (
                 <div key={message.id} className="flex justify-center my-4">
-                  <div className={`
-                    ${message.metadata?.eventType === 'status-update' ? 'bg-blue-50 border-blue-200' : ''}
-                    ${message.metadata?.eventType === 'invoice-created' ? 'bg-green-50 border-green-200' : ''}
-                    border rounded-md px-4 py-2 text-sm max-w-[90%] text-center
-                  `}>
+                  <div className={cn(
+                    "border rounded-md px-4 py-2 text-sm max-w-[90%] text-center",
+                    message.metadata?.eventType === 'status-update' && 
+                      "bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-300",
+                    message.metadata?.eventType === 'invoice-created' && 
+                      "bg-success/10 border-success/20 text-success-foreground/90 dark:bg-success/20 dark:border-success/30 dark:text-success-foreground/80"
+                  )}>
                     <div className="font-medium">
                       {message.content}
                     </div>
