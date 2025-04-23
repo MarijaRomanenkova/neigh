@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { Message, User } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
 
+
 // Add an extended user type that includes contractor rating
 interface UserWithRating extends User {
   contractorRating?: number | null;

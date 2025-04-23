@@ -122,13 +122,21 @@ function ContactButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Ensure we have the required IDs
-  if (!clientId || !contractorId) {
-    return null;
-  }
+  // Removed the ID check that caused the button to not appear
+  // We'll handle missing IDs in the handleContact function
 
   const handleContact = async () => {
     try {
+      // Verify that we have the required IDs before proceeding
+      if (!clientId || !contractorId) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Missing user information. Contact your administrator.',
+        });
+        return;
+      }
+      
       setIsLoading(true);
       
       // First, check if a conversation already exists for this task
@@ -152,7 +160,7 @@ function ContactButton({
           },
           body: JSON.stringify({
             taskId,
-            participantIds: [viewType === 'contractor' ? clientId : contractorId]
+            participantIds: [clientId, contractorId]
           }),
         });
         
@@ -463,14 +471,13 @@ export default function TaskAssignmentCard({
             <Link href={`/user/dashboard/task-assignments/${id}`}>View Details</Link>
           </Button>
 
-          {clientId && contractorId && (
-            <ContactButton
-              taskId={taskId}
-              clientId={clientId}
-              contractorId={contractorId}
-              viewType={viewType}
-            />
-          )}
+          {/* Always show the contact button with available IDs */}
+          <ContactButton
+            taskId={taskId}
+            clientId={clientId}
+            contractorId={contractorId}
+            viewType={viewType}
+          />
         </div>
       </CardFooter>
     </Card>

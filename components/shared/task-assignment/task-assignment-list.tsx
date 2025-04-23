@@ -94,18 +94,16 @@ export default function TaskAssignmentList({
           };
           const categoryName = assignment.task.category?.name;
           
-          // Extract client-specific properties
-          const contractorId = isClient && assignment.contractor ? assignment.contractor.id : undefined;
-          const contractorName = isClient && assignment.contractor ? assignment.contractor.name : undefined;
-          
-          // Extract contractor-specific properties
-          const clientId = isContractor && assignment.client ? assignment.client.id : undefined;
-          const clientName = isContractor && assignment.client ? assignment.client.name : undefined;
+          // Always extract both client and contractor IDs/names regardless of view type
+          const contractorId = assignment.contractor?.id;
+          const contractorName = assignment.contractor?.name;
+          const clientId = assignment.client?.id;
+          const clientName = assignment.client?.name;
           
           // Extract invoice properties
           const hasInvoice = Boolean(assignment.invoiceItems && assignment.invoiceItems.length > 0);
           let invoiceId: string | undefined = undefined;
-          let isPaid = false; // Default to false
+          let isPaid = false;
           
           if (hasInvoice && assignment.invoiceItems && assignment.invoiceItems.length > 0) {
             const invoice = assignment.invoiceItems[0].invoice;

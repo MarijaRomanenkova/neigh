@@ -41,40 +41,40 @@ export default function ReviewTaskDialog({
   // If in edit mode, fetch the existing review data when dialog opens
   useEffect(() => {
     if (open && isEditMode) {
-      fetchExistingReview();
-    }
-  }, [open, isEditMode]);
-
-  const fetchExistingReview = async () => {
-    try {
-      setIsLoading(true);
-      // Use the server action instead of fetch
-      const result = await getClientReviewOfTask(taskAssignmentId);
-      
-      if (result.success && result.data) {
-        setRating(result.data.rating);
-        setFeedback(result.data.feedback || "");
-      } else {
-        // If no review found in edit mode, show a message
-        if (isEditMode) {
+      const fetchExistingReview = async () => {
+        try {
+          setIsLoading(true);
+          // Use the server action instead of fetch
+          const result = await getClientReviewOfTask(taskAssignmentId);
+          
+          if (result.success && result.data) {
+            setRating(result.data.rating);
+            setFeedback(result.data.feedback || "");
+          } else {
+            // If no review found in edit mode, show a message
+            if (isEditMode) {
+              toast({
+                title: "No review found",
+                description: "Unable to load the existing review. You may create a new one.",
+                variant: "destructive"
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching review:", error);
           toast({
-            title: "No review found",
-            description: "Unable to load the existing review. You may create a new one.",
+            title: "Error",
+            description: "Failed to load existing review",
             variant: "destructive"
           });
+        } finally {
+          setIsLoading(false);
         }
-      }
-    } catch (error) {
-      console.error("Error fetching review:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load existing review",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      };
+      
+      fetchExistingReview();
     }
-  };
+  }, [open, isEditMode, taskAssignmentId, toast]);
 
   const handleSubmit = async () => {
     if (rating === 0) {
