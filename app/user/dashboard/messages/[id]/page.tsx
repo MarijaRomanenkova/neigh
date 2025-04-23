@@ -17,8 +17,18 @@ import { ArrowLeft, MessageSquare, Clipboard, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskAssignButton from '@/components/shared/chat/task-assign-button';
 import { Button } from '@/components/ui/button';
-import AcceptTaskButton from '@/components/shared/task/accept-task-button';
+import AcceptTaskButton from '@/components/shared/task-assignment/accept-task-button';
 import { Message, DbMessage, MessageMetadata } from '@/types/chat/message.types';
+import UserRatingDisplay from '@/components/shared/ratings/user-rating-display';
+
+// Extended user type with ratings
+interface ExtendedUserWithRatings {
+  id: string;
+  name?: string | null;
+  image?: string | null;
+  contractorRating?: number | null;
+  clientRating?: number | null;
+}
 
 // Function to transform database messages to properly typed messages
 function transformMessages(dbMessages: DbMessage[]): Message[] {
@@ -135,11 +145,75 @@ export default async function ConversationPage({
     // Transform messages to match the expected type
     const messages = transformMessages(dbMessages);
 
-    // Get other participants
-    const otherParticipants = conversation.participants
-      .filter(p => p.userId !== session.user.id)
-      .map(p => p.user);
+    // Enhance message senders with ratings info
+    const userIds = messages.map(msg => msg.senderId);
+    const usersWithRatings = await prisma.user.findMany({
+      where: {
+        id: { in: [...new Set(userIds)] }
+      },
+      select: {
+        id: true,
+        contractorRating: true,
+        clientRating: true
+      }
+    });
+
+    // Create a map of user IDs to ratings
+    const userRatingsMap = new Map();
+    usersWithRatings.forEach(user => {
+      userRatingsMap.set(user.id, {
+        contractorRating: user.contractorRating ? parseFloat(user.contractorRating.toString()) : null,
+        clientRating: user.clientRating ? parseFloat(user.clientRating.toString()) : null
+      });
+    });
+
+    // Enhance messages with ratings
+    const messagesWithRatings = messages.map(message => {
+      const ratings = userRatingsMap.get(message.senderId);
+      return {
+        ...message,
+        sender: {
+          ...message.sender,
+          contractorRating: ratings?.contractorRating || null,
+          clientRating: ratings?.clientRating || null
+        }
+      };
+    });
+
+    // Get other participants (fetch more user data for ratings)
+    let otherParticipants: ExtendedUserWithRatings[] = [];
+    
+    if (conversation.participants.length > 0) {
+      const participantIds = conversation.participants
+        .filter(p => p.userId !== session.user.id)
+        .map(p => p.userId);
       
+      // Fetch detailed user info including ratings
+      if (participantIds.length > 0) {
+        const users = await prisma.user.findMany({
+          where: {
+            id: { in: participantIds }
+          },
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            contractorRating: true,
+            clientRating: true
+          }
+        });
+        
+        // Transform the users data to handle Decimal values
+        otherParticipants = users.map(user => ({
+          id: user.id,
+          name: user.name,
+          image: user.image,
+          contractorRating: user.contractorRating ? parseFloat(user.contractorRating.toString()) : null,
+          clientRating: user.clientRating ? parseFloat(user.clientRating.toString()) : null
+        }));
+      }
+    }
+
     // Check if task is already assigned to this specific contractor
     let isTaskAssignedToContractor = false;
     let contractorId = '';
@@ -190,13 +264,35 @@ export default async function ConversationPage({
           </Link>
           
           <div className="flex justify-between items-start mb-2">
-            <h1 className="text-2xl font-bold">
-              {otherParticipants.length > 0
-                ? (otherParticipants.length > 1
-                  ? `Conversation with ${otherParticipants[0]?.name || 'Unknown'} and ${otherParticipants.length - 1} others`
-                  : `Conversation with ${otherParticipants[0]?.name || 'Unknown'}`)
-                : 'Conversation'}
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {otherParticipants.length > 0
+                  ? (otherParticipants.length > 1
+                    ? `Conversation with ${otherParticipants[0]?.name || 'Unknown'} and ${otherParticipants.length - 1} others`
+                    : `Conversation with ${otherParticipants[0]?.name || 'Unknown'}`)
+                  : 'Conversation'}
+                  
+                {otherParticipants.length > 0 && otherParticipants[0]?.contractorRating && (
+                  <UserRatingDisplay 
+                    rating={otherParticipants[0].contractorRating} 
+                    size="md"
+                    tooltipText="Neighbour Rating"
+                  />
+                )}
+              </h1>
+              
+              {task && (
+                <p className="text-muted-foreground flex items-center gap-2">
+                  Regarding task: {task.name}
+                  {isTaskAssignedToContractor && (
+                    <span className="text-green-600 font-medium flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
+                      Task assigned to this neighbour
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
             
             {/* Task Assignment Button or View Assignment Link */}
             {task && contractorId && (
@@ -229,18 +325,6 @@ export default async function ConversationPage({
             )}
           </div>
           
-          {task && (
-            <p className="text-muted-foreground">
-              Regarding task: {task.name}
-              {isTaskAssignedToContractor && (
-                <span className="ml-2 text-green-600 font-medium flex items-center gap-1 mt-1">
-                  <CheckCircle className="h-4 w-4" />
-                  Task assigned to this contractor
-                </span>
-              )}
-            </p>
-          )}
-          
           {/* New feature notification */}
           <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 p-3 rounded-md mb-4 flex items-start gap-2 text-sm">
             <MessageSquare className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -253,7 +337,7 @@ export default async function ConversationPage({
         
         <ChatInterface 
           conversationId={id} 
-          initialMessages={messages} 
+          initialMessages={messagesWithRatings} 
         />
       </div>
     );

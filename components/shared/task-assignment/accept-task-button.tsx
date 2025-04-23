@@ -24,7 +24,7 @@ export default function AcceptTaskButton({ taskAssignmentId, className = '' }: A
       
       if (result.success) {
         toast({
-          title: "Task Accepted",
+          title: "Task Assignment is Accepted",
           description: "You have successfully accepted this task.",
           variant: "default",
         });
@@ -32,7 +32,7 @@ export default function AcceptTaskButton({ taskAssignmentId, className = '' }: A
       } else {
         toast({
           title: "Error",
-          description: result.message || "Failed to accept task.",
+          description: result.message || "Failed to accept task assignment.",
           variant: "destructive",
         });
       }

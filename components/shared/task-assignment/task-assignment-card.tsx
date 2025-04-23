@@ -23,12 +23,14 @@ import Link from "next/link";
 import { Check, Clock, Receipt, MessageSquare, Calendar } from "lucide-react";
 import TaskCompleteButton from "./task-complete-button";
 import AddInvoiceDialog from "./add-invoice-dialog";
-import AcceptTaskButton from "../task/accept-task-button";
+import AcceptTaskButton from "./accept-task-button";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { updateTaskAssignmentStatus } from "@/lib/actions/task-assignment-status.actions";
+import ReviewTaskDialog from "./review-task-dialog";
+import ReviewClientDialog from "./review-client-dialog";
 
 // Simple function to format dates in DD-MM-YYYY format
 const formatDateAsDDMMYYYY = (date: string | Date | number | object | undefined): string => {
@@ -248,6 +250,8 @@ export default function TaskAssignmentCard({
 }: TaskAssignmentCardProps) {
   // Check for completed status in a case-insensitive way
   const isCompleted = status.name.toLowerCase() === "completed";
+  // Check for accepted status directly from status name
+  const isAccepted = status.name.toLowerCase() === "accepted";
   const isContractorView = viewType === 'contractor';
   const isClientView = viewType === 'client';
   const [isLoading, setIsLoading] = useState(false);
@@ -394,11 +398,43 @@ export default function TaskAssignmentCard({
             </>
           )}
 
-          {isClientView && status.name.toLowerCase() === 'completed' && (
+          {isClientView && status.name.toLowerCase() === 'completed' && !hasContractorAccepted && (
             <AcceptTaskButton 
               taskAssignmentId={id} 
               className="" 
             />
+          )}
+
+          {/* Add Review Button for clients after task is accepted */}
+          {isClientView && isAccepted && (
+            <ReviewTaskDialog 
+              taskAssignmentId={id}
+              taskName={taskName}
+            >
+              <Button
+                variant="warning"
+                size="sm"
+              >
+                <span className="mr-1">★</span>
+                Submit Review
+              </Button>
+            </ReviewTaskDialog>
+          )}
+
+          {/* Add Review Button for contractors to review clients after task is accepted */}
+          {isContractorView && isAccepted && (
+            <ReviewClientDialog 
+              taskAssignmentId={id}
+              clientName={clientName || 'Client'}
+            >
+              <Button
+                variant="warning"
+                size="sm"
+              >
+                <span className="mr-1">★</span>
+                Review Client
+              </Button>
+            </ReviewClientDialog>
           )}
 
           {isContractorView && !isCompleted && (

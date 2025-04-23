@@ -9,10 +9,10 @@ import { getTaskAssignmentById } from '@/lib/actions/task-assignment.actions';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import GoBackButton from '@/components/shared/go-back-button';
-import ReviewTaskDialog from '@/components/shared/task/review-task-dialog';
+import ReviewTaskDialog from '@/components/shared/task-assignment/review-task-dialog';
 import { TaskAssignment, TaskAssignmentInvoice } from '@/types';
 import { StarRatingDisplay } from '@/components/ui/star-rating-display';
-import AcceptTaskButton from '@/components/shared/task/accept-task-button';
+import AcceptTaskButton from '@/components/shared/task-assignment/accept-task-button';
 
 export default async function TaskAssignmentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();

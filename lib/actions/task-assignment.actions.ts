@@ -429,6 +429,11 @@ export async function getTaskAssignmentById(id: string) {
       (review: { reviewType: { name: string } }) => review.reviewType.name === 'Client Review'
     );
     
+    // Find contractor review of client if exists
+    const contractorReview = assignment.reviews?.find(
+      (review: { reviewType: { name: string } }) => review.reviewType.name === 'Contractor Review'
+    );
+    
     // Format dates to ensure they're proper ISO strings
     const enhancedAssignment = {
       ...assignment,
@@ -438,7 +443,12 @@ export async function getTaskAssignmentById(id: string) {
       wasReviewed: !!clientReview,
       reviewRating: clientReview?.rating || null,
       reviewFeedback: clientReview?.description || null,
-      reviews: undefined // Remove the original reviews array to avoid duplication
+      wasClientReviewed: !!contractorReview,
+      clientReviewRating: contractorReview?.rating || null, 
+      clientReviewFeedback: contractorReview?.description || null,
+      contractorId: assignment.contractor?.id,
+      clientId: assignment.client.id,
+      reviews: assignment.reviews // Keep the reviews array for referencing in the UI
     };
     
     // Serialize the data to convert any Decimal types to regular numbers
@@ -683,7 +693,19 @@ export async function markTaskAsReviewed(id: string, rating: number, feedback?: 
       where: { id },
       select: { 
         clientId: true,
-        contractorId: true
+        contractorId: true,
+        task: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
 
@@ -717,7 +739,7 @@ export async function markTaskAsReviewed(id: string, rating: number, feedback?: 
       data: {
         assignmentId: id,
         reviewerId: session.user.id, // Client is the reviewer
-        revieweeId: taskAssignment.contractorId, // Contractor is being reviewed
+        revieweeId: taskAssignment.contractorId, // Neighbor is being reviewed
         rating,
         title: 'Task Review',
         description: feedback || 'No feedback provided',
@@ -727,6 +749,34 @@ export async function markTaskAsReviewed(id: string, rating: number, feedback?: 
 
     // Update contractor rating
     await updateContractorRating(taskAssignment.contractorId);
+    
+    // Send notification to contractor about the review
+    try {
+      // Import the notification function dynamically to avoid circular dependencies
+      const { createTaskAssignmentNotification } = await import('./messages.actions');
+      
+      // Truncate feedback if it's too long (limit to 150 characters)
+      const truncatedFeedback = feedback && feedback.length > 150 
+        ? `${feedback.substring(0, 147)}...` 
+        : feedback || 'No feedback provided';
+      
+      // Create stars representation
+      const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+      
+      // Create notification message
+      await createTaskAssignmentNotification(
+        id,
+        `${taskAssignment.client.name} has submitted a review for task "${taskAssignment.task.name}". Rating: ${stars} (${rating}/5). Feedback: "${truncatedFeedback}"`,
+        'review-submitted',
+        {
+          reviewRating: rating,
+          reviewFeedback: truncatedFeedback
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send review notification message:', error);
+      // Don't throw here, just log - we still want to create the review even if notification fails
+    }
 
     revalidatePath('/user/dashboard/client/task-assignments');
     
@@ -1007,4 +1057,163 @@ export async function getTaskAssignmentByInvoiceNumber(invoiceNumber: string): P
       message: 'Error finding task assignment for invoice'
     };
   }
+}
+
+/**
+ * Marks a client as reviewed by a contractor
+ * 
+ * @param id - The task assignment ID
+ * @param rating - The rating (1-5)
+ * @param feedback - Optional review feedback text
+ * @returns Result with success status and message
+ */
+export async function markClientAsReviewed(id: string, rating: number, feedback?: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    // Fetch the task assignment to verify the contractor is the one reviewing
+    const taskAssignment = await prisma.taskAssignment.findUnique({
+      where: { id },
+      select: { 
+        clientId: true,
+        contractorId: true,
+        task: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        contractor: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!taskAssignment) {
+      throw new Error('Task assignment not found');
+    }
+
+    if (taskAssignment.contractorId !== session.user.id) {
+      throw new Error('Only the contractor can review this client');
+    }
+
+    // Get the review type ID for contractor reviews
+    let reviewType = await prisma.reviewType.findFirst({
+      where: { name: 'Contractor Review' },
+      select: { id: true }
+    });
+
+    // If review type doesn't exist, create it
+    if (!reviewType) {
+      reviewType = await prisma.reviewType.create({
+        data: {
+          name: 'Contractor Review',
+          description: 'Review from a contractor to a client'
+        },
+        select: { id: true }
+      });
+    }
+
+    // Create a new review
+    const review = await prisma.review.create({
+      data: {
+        assignmentId: id,
+        reviewerId: session.user.id, // Contractor is the reviewer
+        revieweeId: taskAssignment.clientId, // Client is being reviewed
+        rating,
+        title: 'Client Review',
+        description: feedback || 'No feedback provided',
+        typeId: reviewType.id
+      }
+    });
+
+    // Update client rating
+    await updateClientRating(taskAssignment.clientId);
+    
+    // Send notification to client about the review
+    try {
+      // Import the notification function dynamically to avoid circular dependencies
+      const { createTaskAssignmentNotification } = await import('./messages.actions');
+      
+      // Truncate feedback if it's too long (limit to 150 characters)
+      const truncatedFeedback = feedback && feedback.length > 150 
+        ? `${feedback.substring(0, 147)}...` 
+        : feedback || 'No feedback provided';
+      
+      // Create stars representation
+      const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+      
+      // Create notification message
+      await createTaskAssignmentNotification(
+        id,
+        `${taskAssignment.contractor.name} has submitted a review for you on task "${taskAssignment.task.name}". Rating: ${stars} (${rating}/5). Feedback: "${truncatedFeedback}"`,
+        'review-submitted',
+        {
+          reviewRating: rating,
+          reviewFeedback: truncatedFeedback
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send review notification message:', error);
+      // Don't throw here, just log - we still want to create the review even if notification fails
+    }
+
+    revalidatePath('/user/dashboard/contractor/assignments');
+    
+    return {
+      success: true,
+      message: 'Review submitted successfully',
+      data: review
+    };
+  } catch (error) {
+    console.error('[CLIENT_REVIEW]', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to submit review' 
+    };
+  }
+}
+
+/**
+ * Updates a client's average rating based on their reviews
+ * 
+ * @param clientId - The client's user ID
+ */
+async function updateClientRating(clientId: string) {
+  // Calculate average rating
+  const reviews = await prisma.review.findMany({
+    where: { 
+      revieweeId: clientId,
+      reviewType: {
+        name: 'Contractor Review'
+      }
+    },
+    select: { rating: true }
+  });
+  
+  if (reviews.length === 0) return;
+  
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  const averageRating = totalRating / reviews.length;
+  
+  // Update the client's rating
+  await prisma.user.update({
+    where: { id: clientId },
+    data: {
+      clientRating: averageRating,
+      numReviews: reviews.length
+    }
+  });
 } 

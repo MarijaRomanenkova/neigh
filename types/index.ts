@@ -271,16 +271,29 @@ export interface TaskAssignment {
   };
   /** Client who created the task */
   client: {
+    id?: string;
     name: string;
     email: string;
     image: string | null;
   };
   /** Contractor assigned to the task */
   contractor?: {
+    id?: string;
     name: string;
     email: string;
     image: string | null;
   };
+  /** Neighbour who helped with the task */
+  neighbour?: {
+    id?: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  /** IDs for references */
+  clientId?: string;
+  contractorId?: string;
+  neighbourId?: string;
   /** Creation timestamp */
   createdAt: string;
   /** Last update timestamp */
@@ -289,12 +302,33 @@ export interface TaskAssignment {
   invoices: TaskAssignmentInvoice[];
   /** Associated conversation */
   conversation: { id: string } | null;
-  /** Whether task has been reviewed */
+  /** Reviews array from database */
+  reviews?: Array<{
+    rating: number;
+    description: string;
+    createdAt: string | Date;
+    reviewType: {
+      name: string;
+    };
+  }>;
+  /** Whether client review of contractor exists */
   wasReviewed?: boolean;
-  /** Review rating (1-5) */
+  /** Client review rating (1-5) */
   reviewRating?: number;
-  /** Review feedback text */
+  /** Client review feedback text */
   reviewFeedback?: string;
+  /** Whether contractor review of client exists */
+  wasClientReviewed?: boolean;
+  /** Contractor review rating of client (1-5) */
+  clientReviewRating?: number;
+  /** Contractor review feedback of client */
+  clientReviewFeedback?: string;
+  /** Whether neighbour was reviewed */
+  wasNeighbourReviewed?: boolean;
+  /** Neighbour review rating (1-5) */
+  neighbourReviewRating?: number;
+  /** Neighbour review feedback text */
+  neighbourReviewFeedback?: string;
 }
 
 /**

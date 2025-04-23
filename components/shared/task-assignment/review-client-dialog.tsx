@@ -13,15 +13,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/ui/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { markTaskAsReviewed } from "@/lib/actions/task-assignment.actions";
+import { markClientAsReviewed } from "@/lib/actions/task-assignment.actions";
 import { useRouter } from "next/navigation";
+import { ReactNode } from "react";
 
-interface ReviewTaskDialogProps {
+interface ReviewClientDialogProps {
   taskAssignmentId: string;
-  taskName: string;
+  clientName: string;
+  children?: ReactNode;
 }
 
-export default function ReviewTaskDialog({ taskAssignmentId, taskName }: ReviewTaskDialogProps) {
+export default function ReviewClientDialog({ taskAssignmentId, clientName, children }: ReviewClientDialogProps) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -42,12 +44,12 @@ export default function ReviewTaskDialog({ taskAssignmentId, taskName }: ReviewT
     setIsSubmitting(true);
     try {
       // Call the action to submit the review
-      const result = await markTaskAsReviewed(taskAssignmentId, rating, feedback);
+      const result = await markClientAsReviewed(taskAssignmentId, rating, feedback);
       
       if (result.success) {
         toast({
           title: "Success",
-          description: "Review submitted successfully"
+          description: "Review submitted successfully. A notification has been sent to the client."
         });
         setOpen(false);
         router.refresh();
@@ -73,13 +75,15 @@ export default function ReviewTaskDialog({ taskAssignmentId, taskName }: ReviewT
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="w-full">
-          Submit Review
-        </Button>
+        {children || (
+          <Button variant="default" className="w-full">
+            Review Client
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Review Task: {taskName}</DialogTitle>
+          <DialogTitle>Review Client: {clientName}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -100,7 +104,7 @@ export default function ReviewTaskDialog({ taskAssignmentId, taskName }: ReviewT
               id="feedback"
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Share your experience working with the contractor..."
+              placeholder="Share your experience working with this client..."
               className="min-h-[100px]"
             />
           </div>

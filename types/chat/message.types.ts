@@ -15,9 +15,11 @@ export interface Message {
   sender: User;
   isSystemMessage?: boolean;
   metadata?: {
-    eventType?: 'status-update' | 'invoice-created';
+    eventType?: 'status-update' | 'invoice-created' | 'review-submitted';
     taskAssignmentId?: string;
     taskName?: string;
+    reviewRating?: number;
+    reviewFeedback?: string;
   } | null;
 }
 
@@ -39,9 +41,11 @@ export interface DbMessage {
 }
 
 export interface MessageMetadata {
-  eventType?: 'status-update' | 'invoice-created';
+  eventType?: 'status-update' | 'invoice-created' | 'review-submitted';
   taskAssignmentId?: string;
   taskName?: string;
+  reviewRating?: number;
+  reviewFeedback?: string;
 } 
 
 export interface MessageData {

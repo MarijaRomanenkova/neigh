@@ -8,12 +8,18 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import DashboardHeader from '@/components/shared/dashboard-header';
 import GoBackButton from '@/components/shared/go-back-button';
-import StatusUpdateButtons from '@/components/shared/task/status-update-buttons';
-import AcceptTaskButton from '@/components/shared/task/accept-task-button';
-import ReviewTaskDialog from '@/components/shared/task/review-task-dialog';
+import StatusUpdateButtons from './status-update-buttons';
+import AcceptTaskButton from './accept-task-button';
+import ReviewTaskDialog from './review-task-dialog';
+import ReviewClientDialog from './review-client-dialog';
+import ReviewNeighbourDialog from './review-neighbour-dialog';
 import { StarRatingDisplay } from '@/components/ui/star-rating-display';
 import { TaskAssignment, TaskAssignmentInvoice } from '@/types';
 import { Button } from '@/components/ui/button';
+
+// Config flag for enabling neighbour reviews
+// This should be set to true since we're implementing it now
+const ENABLE_NEIGHBOUR_REVIEWS = true;
 
 interface TaskAssignmentDetailsProps {
   assignment: TaskAssignment;
@@ -182,17 +188,17 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
         {isClient ? (
           <Card>
             <CardHeader>
-              <CardTitle>Contractor</CardTitle>
-              <CardDescription>The contractor assigned to this task</CardDescription>
+              <CardTitle>Neighbour</CardTitle>
+              <CardDescription>The neighbour assigned to this task</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-4">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={assignment.contractor?.image || ''} alt={assignment.contractor?.name || 'Contractor'} />
-                  <AvatarFallback>{assignment.contractor?.name?.charAt(0) || 'C'}</AvatarFallback>
+                  <AvatarImage src={assignment.contractor?.image || ''} alt={assignment.contractor?.name || 'Neighbour'} />
+                  <AvatarFallback>{assignment.contractor?.name?.charAt(0) || 'N'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{assignment.contractor?.name || 'Unnamed Contractor'}</p>
+                  <p className="font-medium">{assignment.contractor?.name || 'Unnamed Neighbour'}</p>
                   <p className="text-sm text-muted-foreground">{assignment.contractor?.email || 'No email provided'}</p>
                 </div>
               </div>
@@ -302,12 +308,12 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
           <Card>
             <CardHeader>
               <CardTitle>Review Task</CardTitle>
-              <CardDescription>Leave a review for the contractor</CardDescription>
+              <CardDescription>Leave a review for the neighbour</CardDescription>
             </CardHeader>
             <CardContent>
-              <ReviewTaskDialog 
+              <ReviewNeighbourDialog 
                 taskAssignmentId={assignment.id}
-                taskName={assignment.task.name} 
+                neighbourName={assignment.contractor?.name || 'Neighbour'} 
               />
             </CardContent>
           </Card>
@@ -317,7 +323,7 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
           <Card>
             <CardHeader>
               <CardTitle>Your Review</CardTitle>
-              <CardDescription>Your review for this task</CardDescription>
+              <CardDescription>Your review for this neighbour</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <StarRatingDisplay value={assignment.reviewRating} />
@@ -342,6 +348,38 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
                 taskId={assignment.task.id} 
                 currentStatus={assignment.status.name} 
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {isContractor && assignment.status.name === 'ACCEPTED' && !assignment.wasClientReviewed && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Review Client</CardTitle>
+              <CardDescription>Leave a review for the client</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReviewClientDialog 
+                taskAssignmentId={assignment.id}
+                clientName={assignment.client.name} 
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {isContractor && assignment.wasClientReviewed && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Review of Client</CardTitle>
+              <CardDescription>Your review for this client</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <StarRatingDisplay value={assignment.clientReviewRating || 0} />
+              {assignment.clientReviewFeedback && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground">{assignment.clientReviewFeedback}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

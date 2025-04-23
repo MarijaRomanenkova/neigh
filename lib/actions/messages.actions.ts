@@ -15,13 +15,18 @@ import { convertToPlainObject } from '@/lib/utils';
  * 
  * @param taskAssignmentId - ID of the task assignment
  * @param message - Content of the message
- * @param eventType - Type of event (e.g., 'status-update', 'invoice-created')
+ * @param eventType - Type of event (e.g., 'status-update', 'invoice-created', 'review-submitted')
+ * @param metadata - Optional additional metadata (review rating, feedback, etc.)
  * @returns The created message or null if creation fails
  */
 export async function createTaskAssignmentNotification(
   taskAssignmentId: string,
   message: string,
-  eventType: 'status-update' | 'invoice-created'
+  eventType: 'status-update' | 'invoice-created' | 'review-submitted',
+  metadata?: {
+    reviewRating?: number;
+    reviewFeedback?: string;
+  }
 ) {
   try {
     // Get task assignment to find the client and contractor
@@ -85,18 +90,22 @@ export async function createTaskAssignmentNotification(
     // Create the system message - use try/catch to handle schema compatibility issues
     let systemMessage;
     try {
+      // Prepare metadata object
+      const messageMetadata = {
+        eventType,
+        taskAssignmentId,
+        taskName: taskAssignment.task.name,
+        ...metadata // Add any additional metadata that was passed
+      };
+      
       // Try with full system message properties
       systemMessage = await prisma.message.create({
         data: {
           content: message,
           conversationId: conversation.id,
-          senderId: taskAssignment.contractorId, // Use contractor as sender for these notifications
+          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId, // Use client as sender for review notifications
           isSystemMessage: true,
-          metadata: {
-            eventType,
-            taskAssignmentId,
-            taskName: taskAssignment.task.name
-          }
+          metadata: messageMetadata
         }
       });
     } catch (err) {
@@ -106,7 +115,7 @@ export async function createTaskAssignmentNotification(
         data: {
           content: `[SYSTEM] ${message}`,
           conversationId: conversation.id,
-          senderId: taskAssignment.contractorId
+          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId
         }
       });
     }

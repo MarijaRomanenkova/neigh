@@ -29,6 +29,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ExtendedUser } from '@/types';
+import UserRatings from './user-ratings';
 
 /**
  * Profile Form Component
@@ -142,6 +143,11 @@ const ProfileForm = () => {
         className='flex flex-col gap-8'
         onSubmit={form.handleSubmit(onSubmit)}
       >
+        {/* Display user ratings at the top of the form */}
+        {session?.user && (
+          <UserRatings user={session.user as ExtendedUser} />
+        )}
+
         <div className='space-y-6'>
           <h3 className='text-lg font-medium'>Account Information</h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>

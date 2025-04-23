@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Receipt, Check, Clock } from 'lucide-react';
 import TaskCompleteButton from './task-complete-button';
 import AddInvoiceDialog from './add-invoice-dialog';
-import AcceptTaskButton from '../task/accept-task-button';
+import AcceptTaskButton from './accept-task-button';
 import TaskAssignmentCard from './task-assignment-card';
 import Pagination from '@/components/shared/pagination';
 

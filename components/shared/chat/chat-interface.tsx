@@ -22,6 +22,7 @@ import Image from 'next/image';
 import { ImageIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message, User } from '@/types/chat/message.types';
+import UserRatingDisplay from '../ratings/user-rating-display';
 
 /**
  * Props for the ChatInterface component
@@ -246,7 +247,9 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                     message.metadata?.eventType === 'status-update' && 
                       "bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-300",
                     message.metadata?.eventType === 'invoice-created' && 
-                      "bg-success/10 border-success/20 text-success-foreground/90 dark:bg-success/20 dark:border-success/30 dark:text-success-foreground/80"
+                      "bg-success/10 border-success/20 text-success-foreground/90 dark:bg-success/20 dark:border-success/30 dark:text-success-foreground/80",
+                    message.metadata?.eventType === 'review-submitted' &&
+                      "bg-amber-100 border-amber-200 text-amber-800 dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-300"
                   )}>
                     <div className="font-medium">
                       {message.content}
@@ -261,25 +264,40 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             
             // Regular message display
             return (
-              <div 
-                key={message.id} 
+              <div
+                key={message.id}
                 className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`flex ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[80%]`}>
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
-                    <AvatarFallback>
-                      {message.sender.name?.charAt(0) || '?'}
-                    </AvatarFallback>
-                  </Avatar>
+                  {!isCurrentUser && (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
+                      <AvatarFallback>
+                        {message.sender.name?.charAt(0) || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   
                   <div>
+                    {!isCurrentUser && (
+                      <div className="flex gap-2 items-center mb-1">
+                        <p className="text-sm font-medium">{message.sender.name}</p>
+                        {(message.sender as any).contractorRating && (
+                          <UserRatingDisplay 
+                            rating={(message.sender as any).contractorRating} 
+                            size="sm"
+                            showText={false}
+                            tooltipText="Neighbour Rating" 
+                          />
+                        )}
+                      </div>
+                    )}
+                    
                     <div className={`${
                       isCurrentUser 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    } px-3 py-2 rounded-lg`}
-                    >
+                      ? 'bg-primary text-primary-foreground rounded-tl-lg rounded-tr-none' 
+                      : 'bg-muted rounded-tr-lg rounded-tl-none'
+                    } p-3 rounded-bl-lg rounded-br-lg text-sm`}>
                       {message.content}
                       
                       {/* Render image if present */}
@@ -298,9 +316,9 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                       )}
                     </div>
                     
-                    <p className="text-xs text-muted-foreground mt-1 ml-1">
+                    <div className="text-xs text-muted-foreground mt-1 flex gap-1">
                       {formatDistanceToNow(messageDate, { addSuffix: true })}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>

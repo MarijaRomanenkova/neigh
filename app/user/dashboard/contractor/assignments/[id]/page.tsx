@@ -11,7 +11,7 @@ import { getTaskAssignmentById } from '@/lib/actions/task-assignment.actions';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import GoBackButton from '@/components/shared/go-back-button';
-import StatusUpdateButtons from '@/components/shared/task/status-update-buttons';
+import StatusUpdateButtons from '@/components/shared/task-assignment/status-update-buttons';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';

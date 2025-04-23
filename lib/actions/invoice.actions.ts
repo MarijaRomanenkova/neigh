@@ -335,19 +335,44 @@ export async function createInvoice(data: z.infer<typeof insertInvoiceSchema>) {
     
     // Send a notification to the client about the new invoice
     try {
-      // For each invoice item, check if there's a task assignment and send a notification
+      // For invoices, we need to find the right task assignment to notify about
+      // This should be the primary task assignment related to this invoice
+      let primaryTaskAssignment = null;
+      
+      // Find the task assignment that this invoice is primarily for
+      // First, check if we have a primary assignment indicated by the invoice items
       for (const item of invoiceItems) {
         if (item.assignmentId) {
-          // Import the notification function dynamically to avoid circular dependencies
-          const { createTaskAssignmentNotification } = await import('./messages.actions');
+          const taskAssignment = await prisma.taskAssignment.findUnique({
+            where: { id: item.assignmentId },
+            include: {
+              task: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          });
           
-          // Create notification message
-          await createTaskAssignmentNotification(
-            item.assignmentId,
-            `${completeInvoice.contractor.name} has issued invoice #${completeInvoice.invoiceNumber} for $${total}. Please review and process payment.`,
-            'invoice-created'
-          );
+          if (taskAssignment) {
+            primaryTaskAssignment = taskAssignment;
+            break; // Use the first valid assignment we find
+          }
         }
+      }
+      
+      // If we found a valid task assignment, send a notification
+      if (primaryTaskAssignment) {
+        // Import the notification function dynamically to avoid circular dependencies
+        const { createTaskAssignmentNotification } = await import('./messages.actions');
+        
+        // Create notification message - only once per invoice
+        await createTaskAssignmentNotification(
+          primaryTaskAssignment.id,
+          `${completeInvoice.contractor.name} has issued invoice #${completeInvoice.invoiceNumber} for $${total}. Please review and process payment.`,
+          'invoice-created'
+        );
       }
     } catch (notificationError) {
       console.error('Error sending invoice notification:', notificationError);

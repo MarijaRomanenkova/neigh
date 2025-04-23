@@ -12,6 +12,7 @@
 import Header from "@/components/shared/header";
 import Footer from "@/components/footer";
 import { getAllCategories } from '@/lib/actions/task.actions';
+import { checkPrismaConnection } from '@/db/prisma';
 import { Category } from '@/types';
 
 /**
@@ -32,15 +33,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fetch all categories for the navigation menu
-  const categories = await getAllCategories();
+  // Check database connection first
+  await checkPrismaConnection();
+  
+  // Fetch all categories for the navigation menu with fallback
+  let categories: Category[] = [];
+  try {
+    categories = await getAllCategories() as Category[];
+  } catch (error) {
+    console.error("Failed to load categories:", error);
+    // Continue with empty categories if there's an error
+  }
 
   return (
     <div className="flex h-screen flex-col">
-      <Header categories={categories as unknown as Category[]} />
+      <Header categories={categories} />
       <main className="main flex-1 wrapper">{children}</main>
       <Footer />
-      
     </div>
   );
 }

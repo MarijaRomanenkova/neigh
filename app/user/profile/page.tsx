@@ -18,7 +18,7 @@ import ProfileForm from './profile-form';
  */
 export const metadata: Metadata = {
   title: 'Profile Settings | Neighbours',
-  description: 'Update your personal and business information'
+  description: 'Update your personal and business information and view your ratings'
 };
 
 /**
@@ -41,7 +41,7 @@ export default async function ProfilePage() {
       <div className="space-y-2">
         <h1 className='h2-bold'>Profile Settings</h1>
         <p className="text-muted-foreground">
-          Manage your personal information and account settings
+          Manage your personal information, account settings, and view your ratings as a neighbour and client
         </p>
       </div>
       <ProfileForm />

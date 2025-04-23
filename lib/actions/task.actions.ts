@@ -428,23 +428,38 @@ export async function updateTask(data: z.infer<typeof updateTaskSchema>) {
 
 // Get all categories
 export async function getAllCategories() {
-  const data = await prisma.category.findMany({
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      _count: {
-        select: {
-          tasks: true
-        }
-      }
-    },
-    orderBy: {
-      name: 'asc'
+  try {
+    // Check Prisma's connection status properly
+    try {
+      // A simple query to test the connection
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      // If the above query fails, try to reconnect
+      await prisma.$connect();
     }
-  });
+    
+    const data = await prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        _count: {
+          select: {
+            tasks: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
 
-  return data;
+    return data;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    // Return an empty array instead of throwing
+    return [];
+  }
 }
 
 type TasksWithPagination = {

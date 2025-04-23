@@ -16,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { Conversation } from '@/types/chat/message.types';
+import UserRatingDisplay from '../ratings/user-rating-display';
 
 /**
  * Conversation List Component
@@ -102,14 +103,23 @@ export default function ConversationList() {
               
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <h3 className={cn(
-                    "font-medium truncate",
-                    hasUnreadMessage && "font-semibold"
-                  )}>
-                    {otherParticipants.length > 1
-                      ? `${otherParticipants[0]?.name} and ${otherParticipants.length - 1} others`
-                      : otherParticipants[0]?.name || 'Unknown'}
-                  </h3>
+                  <div className="flex items-center gap-1">
+                    <h3 className={cn(
+                      "font-medium truncate",
+                      hasUnreadMessage && "font-semibold"
+                    )}>
+                      {otherParticipants.length > 1
+                        ? `${otherParticipants[0]?.name} and ${otherParticipants.length - 1} others`
+                        : otherParticipants[0]?.name || 'Unknown'}
+                    </h3>
+                    {otherParticipants[0]?.id && (
+                      <UserRatingDisplay 
+                        rating={(otherParticipants[0] as any).contractorRating} 
+                        size="sm" 
+                        tooltipText="Neighbour Rating"
+                      />
+                    )}
+                  </div>
                   {lastMessage && (
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
