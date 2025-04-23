@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/ui/star-rating";
 import { useToast } from "@/hooks/use-toast";
-import { markClientAsReviewed } from "@/lib/actions/task-assignment.actions";
+import { markClientAsReviewed, getContractorReviewOfClient } from "@/lib/actions/task-assignment.actions";
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -21,15 +21,60 @@ interface ReviewClientDialogProps {
   taskAssignmentId: string;
   clientName: string;
   children?: ReactNode;
+  isEditMode?: boolean;
 }
 
-export default function ReviewClientDialog({ taskAssignmentId, clientName, children }: ReviewClientDialogProps) {
+export default function ReviewClientDialog({ 
+  taskAssignmentId, 
+  clientName, 
+  children,
+  isEditMode = false
+}: ReviewClientDialogProps) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  // If in edit mode, fetch the existing review data when dialog opens
+  useEffect(() => {
+    if (open && isEditMode) {
+      fetchExistingReview();
+    }
+  }, [open, isEditMode]);
+
+  const fetchExistingReview = async () => {
+    try {
+      setIsLoading(true);
+      // Use the server action instead of fetch
+      const result = await getContractorReviewOfClient(taskAssignmentId);
+      
+      if (result.success && result.data) {
+        setRating(result.data.rating);
+        setFeedback(result.data.feedback || "");
+      } else {
+        // If no review found in edit mode, show a message
+        if (isEditMode) {
+          toast({
+            title: "No review found",
+            description: "Unable to load the existing review. You may create a new one.",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load existing review",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -49,7 +94,9 @@ export default function ReviewClientDialog({ taskAssignmentId, clientName, child
       if (result.success) {
         toast({
           title: "Success",
-          description: "Review submitted successfully. A notification has been sent to the client."
+          description: isEditMode 
+            ? "Review updated successfully." 
+            : "Review submitted successfully. A notification has been sent to the client."
         });
         setOpen(false);
         router.refresh();
@@ -77,51 +124,55 @@ export default function ReviewClientDialog({ taskAssignmentId, clientName, child
       <DialogTrigger asChild>
         {children || (
           <Button variant="default" className="w-full">
-            Review Client
+            {isEditMode ? "Edit Review" : "Review Client"}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Review Client: {clientName}</DialogTitle>
+          <DialogTitle>{isEditMode ? "Edit" : "Submit"} Client Review: {clientName}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <label htmlFor="rating" className="text-sm font-medium leading-none">
-              Rating
-            </label>
-            <StarRating
-              value={rating}
-              onChange={setRating}
-              size={24}
-            />
+        {isLoading ? (
+          <div className="py-8 text-center">Loading review data...</div>
+        ) : (
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="rating" className="text-sm font-medium leading-none">
+                Rating
+              </label>
+              <StarRating
+                value={rating}
+                onChange={setRating}
+                size={24}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="feedback" className="text-sm font-medium leading-none">
+                Feedback (optional)
+              </label>
+              <Textarea
+                id="feedback"
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="Share your experience working with this client..."
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <label htmlFor="feedback" className="text-sm font-medium leading-none">
-              Feedback (optional)
-            </label>
-            <Textarea
-              id="feedback"
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Share your experience working with this client..."
-              className="min-h-[100px]"
-            />
-          </div>
-        </div>
+        )}
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || rating === 0}
+            disabled={isSubmitting || isLoading || rating === 0}
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? "Submitting..." : isEditMode ? "Update Review" : "Submit Review"}
           </Button>
         </DialogFooter>
       </DialogContent>

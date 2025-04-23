@@ -19,6 +19,42 @@ interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+// Define the type for serialized task assignments
+interface SerializedTaskAssignment {
+  id: string;
+  createdAt?: string | Date;
+  task: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+    category?: {
+      name: string;
+    };
+  };
+  client?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  status: {
+    name: string;
+    color: string;
+  };
+  invoiceItems?: Array<{
+    invoice: {
+      id: string;
+      invoiceNumber: string;
+      paymentId: string | null;
+      payment?: {
+        isPaid: boolean;
+      };
+    };
+  }>;
+  wasReviewed?: boolean;
+  wasClientReviewed?: boolean;
+}
+
 const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps) => {
   const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const page = Number(resolvedSearchParams?.page) || 1;
@@ -37,7 +73,7 @@ const ContractorTaskAssignmentsPage = async ({ params, searchParams }: PageProps
       ...assignment.task,
       price: Number(assignment.task.price)
     }
-  }));
+  })) as SerializedTaskAssignment[];
 
   return (
     <div className='space-y-6'>

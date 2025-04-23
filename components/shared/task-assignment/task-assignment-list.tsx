@@ -16,10 +16,14 @@ import Pagination from '@/components/shared/pagination';
 interface SerializedTaskAssignment {
   id: string;
   createdAt?: string | Date;
+  updatedAt?: string | Date;
+  completedAt?: string | Date | null;
+  wasReviewed?: boolean;
+  wasClientReviewed?: boolean;
   task: {
     id: string;
     name: string;
-    description?: string | null;
+    description: string | null;
     price: number; // Price as a number, not Decimal
     category?: {
       name?: string | null;
@@ -36,13 +40,16 @@ interface SerializedTaskAssignment {
   client?: {
     id?: string;
     name?: string;
+    email: string;
   } | null;
   invoiceItems?: Array<{
     invoice: {
       id: string;
+      invoiceNumber: string;
+      paymentId: string | null;
       payment?: {
-        isPaid?: boolean;
-      } | null;
+        isPaid: boolean;
+      };
     };
   }> | null;
 }
@@ -111,7 +118,7 @@ export default function TaskAssignmentList({
           const isCompleted = status.name === "COMPLETED";
           const hasContractorAccepted = true; // Assume accepted unless a specific field says otherwise
           
-          // Use the TaskAssignmentCard component to display each assignment
+          // Create the task assignment card
           return (
             <TaskAssignmentCard
               key={id}
@@ -127,11 +134,13 @@ export default function TaskAssignmentList({
               contractorId={contractorId}
               contractorName={contractorName}
               hasInvoice={hasInvoice}
-              isPaid={false}
+              isPaid={isPaid}
               invoiceId={invoiceId}
-              hasContractorAccepted={hasContractorAccepted}
+              hasContractorAccepted={true}
               viewType={viewType}
               createdAt={assignment.createdAt}
+              reviewedByClient={assignment.wasReviewed}
+              reviewedByContractor={assignment.wasClientReviewed}
             />
           );
         })}

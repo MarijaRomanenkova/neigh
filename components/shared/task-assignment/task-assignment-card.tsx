@@ -96,6 +96,9 @@ interface TaskAssignmentCardProps {
   viewType: 'client' | 'contractor';
   // Assignment creation date
   createdAt?: string | Date;
+  // Review statuses
+  reviewedByClient?: boolean;
+  reviewedByContractor?: boolean;
 }
 
 /**
@@ -247,11 +250,13 @@ export default function TaskAssignmentCard({
   hasContractorAccepted,
   viewType,
   createdAt,
+  reviewedByClient,
+  reviewedByContractor,
 }: TaskAssignmentCardProps) {
   // Check for completed status in a case-insensitive way
   const isCompleted = status.name.toLowerCase() === "completed";
   // Check for accepted status directly from status name
-  const isAccepted = status.name.toLowerCase() === "accepted";
+  const isAccepted = status.name === "ACCEPTED";
   const isContractorView = viewType === 'contractor';
   const isClientView = viewType === 'client';
   const [isLoading, setIsLoading] = useState(false);
@@ -366,6 +371,7 @@ export default function TaskAssignmentCard({
         </div>
         
         <div className="flex gap-2">
+          {/* Invoice functionality - independent of status flow */}
           {isContractorView && (
             <>
               {hasInvoice ? (
@@ -398,45 +404,7 @@ export default function TaskAssignmentCard({
             </>
           )}
 
-          {isClientView && status.name.toLowerCase() === 'completed' && !hasContractorAccepted && (
-            <AcceptTaskButton 
-              taskAssignmentId={id} 
-              className="" 
-            />
-          )}
-
-          {/* Add Review Button for clients after task is accepted */}
-          {isClientView && isAccepted && (
-            <ReviewTaskDialog 
-              taskAssignmentId={id}
-              taskName={taskName}
-            >
-              <Button
-                variant="warning"
-                size="sm"
-              >
-                <span className="mr-1">★</span>
-                Submit Review
-              </Button>
-            </ReviewTaskDialog>
-          )}
-
-          {/* Add Review Button for contractors to review clients after task is accepted */}
-          {isContractorView && isAccepted && (
-            <ReviewClientDialog 
-              taskAssignmentId={id}
-              clientName={clientName || 'Client'}
-            >
-              <Button
-                variant="warning"
-                size="sm"
-              >
-                <span className="mr-1">★</span>
-                Review Client
-              </Button>
-            </ReviewClientDialog>
-          )}
-
+          {/* Step 1: Contractor can mark task as complete if not already completed */}
           {isContractorView && !isCompleted && (
             <Button
               onClick={completeTask}
@@ -447,12 +415,48 @@ export default function TaskAssignmentCard({
               {isLoading ? "Processing..." : "Complete"}
             </Button>
           )}
-
-          {isContractorView && !hasContractorAccepted && (
+          
+          {/* Step 2: Client can accept a completed task */}
+          {isClientView && status.name.toLowerCase() === 'completed' && (
             <AcceptTaskButton 
               taskAssignmentId={id} 
               className="" 
             />
+          )}
+
+          {/* Step 3: After task is accepted, both parties can submit reviews */}
+          {/* Review Button for clients */}
+          {isClientView && status.name === "ACCEPTED" && (
+            <ReviewTaskDialog 
+              taskAssignmentId={id}
+              taskName={taskName}
+              isEditMode={reviewedByClient}
+            >
+              <Button
+                variant="warning"
+                size="sm"
+              >
+                <span className="mr-1">★</span>
+                {reviewedByClient ? "Edit Review" : "Submit Review"}
+              </Button>
+            </ReviewTaskDialog>
+          )}
+
+          {/* Review Button for contractors */}
+          {isContractorView && status.name === "ACCEPTED" && (
+            <ReviewClientDialog 
+              taskAssignmentId={id}
+              clientName={clientName || 'Client'}
+              isEditMode={reviewedByContractor}
+            >
+              <Button
+                variant="warning"
+                size="sm"
+              >
+                <span className="mr-1">★</span>
+                {reviewedByContractor ? "Edit Review" : "Review Client"}
+              </Button>
+            </ReviewClientDialog>
           )}
           
           <Button asChild variant="success-outline" size="sm">

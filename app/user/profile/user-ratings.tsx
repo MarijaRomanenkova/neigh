@@ -17,6 +17,19 @@ interface UserRatingsProps {
  * @returns {JSX.Element} The rendered user ratings component
  */
 export default function UserRatings({ user }: UserRatingsProps) {
+  // Convert Decimal values to numbers to ensure proper rendering
+  const getNumericRating = (rating: number | { toString(): string } | null | undefined): number => {
+    if (!rating) return 0;
+    if (typeof rating === 'number') return rating;
+    if (typeof rating === 'object' && rating !== null && 'toString' in rating) {
+      return parseFloat(rating.toString());
+    }
+    return 0;
+  };
+
+  const contractorRating = getNumericRating(user.contractorRating);
+  const clientRating = getNumericRating(user.clientRating);
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Your Ratings</h3>
@@ -27,9 +40,9 @@ export default function UserRatings({ user }: UserRatingsProps) {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <StarRatingDisplay value={user.contractorRating || 0} />
+              <StarRatingDisplay value={contractorRating} />
               <span className="text-sm text-muted-foreground">
-                {user.contractorRating ? `${user.contractorRating.toFixed(1)}/5` : 'No ratings yet'}
+                {contractorRating > 0 ? `${contractorRating.toFixed(1)}/5` : 'No ratings yet'}
               </span>
             </div>
           </CardContent>
@@ -41,9 +54,9 @@ export default function UserRatings({ user }: UserRatingsProps) {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <StarRatingDisplay value={user.clientRating || 0} />
+              <StarRatingDisplay value={clientRating} />
               <span className="text-sm text-muted-foreground">
-                {user.clientRating ? `${user.clientRating.toFixed(1)}/5` : 'No ratings yet'}
+                {clientRating > 0 ? `${clientRating.toFixed(1)}/5` : 'No ratings yet'}
               </span>
             </div>
           </CardContent>

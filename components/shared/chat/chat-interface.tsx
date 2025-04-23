@@ -24,6 +24,17 @@ import { cn } from '@/lib/utils';
 import { Message, User } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
 
+// Add an extended user type that includes contractor rating
+interface UserWithRating extends User {
+  contractorRating?: number | null;
+  clientRating?: number | null;
+}
+
+// Update Message interface to use the extended user type
+interface MessageWithRatingData extends Omit<Message, 'sender'> {
+  sender: UserWithRating;
+}
+
 /**
  * Props for the ChatInterface component
  * @interface ChatInterfaceProps
@@ -50,7 +61,9 @@ interface ChatInterfaceProps {
  * @returns {JSX.Element} The rendered chat interface
  */
 export default function ChatInterface({ conversationId, initialMessages }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages || []);
+  const [messages, setMessages] = useState<(Message & { sender: UserWithRating })[]>(
+    initialMessages as (Message & { sender: UserWithRating })[] || []
+  );
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -111,7 +124,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
           if (prev.some(m => m.id === message.id)) {
             return prev;
           }
-          return [...prev, message];
+          return [...prev, message as (Message & { sender: UserWithRating })];
         });
       }
     };
@@ -201,7 +214,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
       const data = await response.json();
       
       // Add the new message to the list
-      setMessages(prev => [...prev, data]);
+      setMessages(prev => [...prev, data as (Message & { sender: UserWithRating })]);
       
       // If socket is connected, emit the message
       if (socket && isConnected) {
@@ -247,7 +260,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                     message.metadata?.eventType === 'status-update' && 
                       "bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-300",
                     message.metadata?.eventType === 'invoice-created' && 
-                      "bg-success/10 border-success/20 text-success-foreground/90 dark:bg-success/20 dark:border-success/30 dark:text-success-foreground/80",
+                      "bg-green-100 border-green-200 text-green-800 dark:bg-success/20 dark:border-success/30 dark:text-success-foreground/80",
                     message.metadata?.eventType === 'review-submitted' &&
                       "bg-amber-100 border-amber-200 text-amber-800 dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-300"
                   )}>
@@ -282,9 +295,9 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                     {!isCurrentUser && (
                       <div className="flex gap-2 items-center mb-1">
                         <p className="text-sm font-medium">{message.sender.name}</p>
-                        {(message.sender as any).contractorRating && (
+                        {message.sender.contractorRating && (
                           <UserRatingDisplay 
-                            rating={(message.sender as any).contractorRating} 
+                            rating={message.sender.contractorRating} 
                             size="sm"
                             showText={false}
                             tooltipText="Neighbour Rating" 

@@ -18,6 +18,14 @@ import { cn } from '@/lib/utils';
 import { Conversation } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
 
+// Add interface for user with rating
+interface UserWithRating {
+  id: string;
+  name?: string | null;
+  image?: string | null;
+  contractorRating?: number | null;
+}
+
 /**
  * Conversation List Component
  * 
@@ -112,10 +120,11 @@ export default function ConversationList() {
                         ? `${otherParticipants[0]?.name} and ${otherParticipants.length - 1} others`
                         : otherParticipants[0]?.name || 'Unknown'}
                     </h3>
-                    {otherParticipants[0]?.id && (
+                    {otherParticipants[0]?.id && (otherParticipants[0] as UserWithRating).contractorRating && (
                       <UserRatingDisplay 
-                        rating={(otherParticipants[0] as any).contractorRating} 
-                        size="sm" 
+                        rating={(otherParticipants[0] as UserWithRating).contractorRating} 
+                        size="sm"
+                        showText={false}
                         tooltipText="Neighbour Rating"
                       />
                     )}
