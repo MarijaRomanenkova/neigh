@@ -18,6 +18,7 @@ import { Task } from '@/types';
 import { UserIcon, ArrowRight, Pencil, MoveRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import TaskArchiveButton from './task-archive-button';
+import UserRatingDisplay from '../ratings/user-rating-display';
 
 /**
  * Task Card Component
@@ -75,6 +76,15 @@ const TaskCard = ({ task }: { task: Task }) => {
             <span className="truncate font-medium">
               {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
             </span>
+            {!isOwner && task.author?.clientRating && (
+              <div className="ml-1.5 flex items-center">
+                <UserRatingDisplay 
+                  rating={typeof task.author.clientRating === 'number' ? task.author.clientRating : Number(task.author.clientRating)} 
+                  size="sm" 
+                  tooltipText="Client rating" 
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1"></div> /* Spacer when not authenticated */

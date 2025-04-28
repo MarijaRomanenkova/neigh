@@ -30,7 +30,12 @@ type TaskWithRelations = {
   isArchived: boolean;
   archivedAt: Date | null;
   category?: { id: string; name: string };
-  createdBy?: { id: string; name: string; email: string };
+  createdBy?: { 
+    id: string; 
+    name: string; 
+    email: string;
+    clientRating?: number | null;
+  };
 };
 
 /**
@@ -74,7 +79,8 @@ export async function getLatestTasks() {
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            clientRating: true
           }
         },
         category: {
@@ -108,7 +114,10 @@ export async function getLatestTasks() {
         author: taskWithRelations.createdBy ? {
           id: taskWithRelations.createdBy.id,
           name: taskWithRelations.createdBy.name,
-          email: taskWithRelations.createdBy.email
+          email: taskWithRelations.createdBy.email,
+          clientRating: taskWithRelations.createdBy.clientRating !== null && taskWithRelations.createdBy.clientRating !== undefined
+            ? Number(taskWithRelations.createdBy.clientRating)
+            : null
         } : undefined,
         category: taskWithRelations.category ? {
           id: taskWithRelations.category.id,
@@ -148,7 +157,8 @@ export async function getTaskById(taskId: string) {
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            clientRating: true
           }
         },
         category: {
@@ -181,7 +191,10 @@ export async function getTaskById(taskId: string) {
       author: taskWithRelations.createdBy ? {
         id: taskWithRelations.createdBy.id,
         name: taskWithRelations.createdBy.name,
-        email: taskWithRelations.createdBy.email
+        email: taskWithRelations.createdBy.email,
+        clientRating: taskWithRelations.createdBy.clientRating !== null && taskWithRelations.createdBy.clientRating !== undefined
+          ? Number(taskWithRelations.createdBy.clientRating)
+          : null
       } : undefined,
       category: taskWithRelations.category ? {
         id: taskWithRelations.category.id,
@@ -265,7 +278,8 @@ export async function getAllTasks({
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            clientRating: true
           }
         }
       }
@@ -292,7 +306,10 @@ export async function getAllTasks({
           author: taskWithRelations.createdBy ? {
             id: taskWithRelations.createdBy.id,
             name: taskWithRelations.createdBy.name,
-            email: taskWithRelations.createdBy.email
+            email: taskWithRelations.createdBy.email,
+            clientRating: taskWithRelations.createdBy.clientRating !== null && taskWithRelations.createdBy.clientRating !== undefined
+              ? Number(taskWithRelations.createdBy.clientRating)
+              : null
           } : undefined,
           category: taskWithRelations.category ? {
             id: taskWithRelations.category.id,
@@ -491,7 +508,8 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
         select: {
           id: true,
           name: true,
-          email: true
+          email: true,
+          clientRating: true
         }
       }
     }
@@ -517,7 +535,10 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
         author: taskWithRelations.createdBy ? {
           id: taskWithRelations.createdBy.id,
           name: taskWithRelations.createdBy.name,
-          email: taskWithRelations.createdBy.email
+          email: taskWithRelations.createdBy.email,
+          clientRating: taskWithRelations.createdBy.clientRating !== null && taskWithRelations.createdBy.clientRating !== undefined
+            ? Number(taskWithRelations.createdBy.clientRating)
+            : null
         } : undefined,
         category: taskWithRelations.category ? {
           id: taskWithRelations.category.id,

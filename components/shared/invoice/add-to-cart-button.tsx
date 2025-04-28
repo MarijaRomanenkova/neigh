@@ -92,6 +92,7 @@ const AddToCartButton = ({
     return (
       <Button
         variant="secondary"
+        size="sm"
         onClick={() => router.push('/user/dashboard/client/cart')}
       >
         <ShoppingCart className="h-4 w-4 mr-2" />
@@ -104,7 +105,8 @@ const AddToCartButton = ({
     <Button
       onClick={handleAddToCart}
       disabled={isPending}
-      className="bg-green-500 hover:bg-green-600 text-white"
+      variant="success"
+      size="sm"
     >
       {isPending ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

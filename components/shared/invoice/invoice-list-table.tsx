@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Invoice } from "@/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { Edit, Trash, CheckCircle, Clock, CreditCard, FileText, CheckSquare, Square, ArrowRight, Loader, MessageSquare, ChevronLeft, ChevronRight, Eye, Link2 } from "lucide-react";
+import { Edit, Trash, CheckCircle, Clock, CreditCard, FileText, CheckSquare, Square, ArrowRight, Loader, MessageSquare, ChevronLeft, ChevronRight, Eye, Link2, Download } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -307,6 +307,7 @@ const InvoiceListTable = ({
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-center">View</TableHead>
+                  <TableHead className="text-center">Download</TableHead>
                   <TableHead className="text-center">Assignment</TableHead>
                   <TableHead className="text-center">Contact</TableHead>
                 </TableRow>
@@ -380,6 +381,15 @@ const InvoiceListTable = ({
                           <Link href={`/user/dashboard/${userType}/invoices/${invoice.invoiceNumber}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
+                        </Button>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          size="sm" 
+                          variant="secondary"
+                          onClick={() => window.open(`/api/invoices/${invoice.invoiceNumber}/download`, '_blank')}
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                       </TableCell>
                       <TableCell className="text-center">

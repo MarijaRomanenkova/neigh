@@ -13,6 +13,7 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
 import InvoiceDetails from '@/components/shared/invoice/invoice';
 import AddToCartButton from '@/components/shared/invoice/add-to-cart-button';
+import DownloadInvoiceButton from '@/components/shared/invoice/download-invoice-button';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -84,9 +85,13 @@ async function ClientInvoicePage({ params }: Props) {
           </Link>
         </Button>
         
-        {!invoice.isPaid && (
-          <AddToCartButton invoice={invoice} />
-        )}
+        <div className="flex items-center gap-3">
+          <DownloadInvoiceButton invoiceNumber={invoice.invoiceNumber} />
+          
+          {!invoice.isPaid && (
+            <AddToCartButton invoice={invoice} />
+          )}
+        </div>
       </div>
       
       <InvoiceDetails invoice={invoice} />

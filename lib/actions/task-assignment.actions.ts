@@ -215,7 +215,8 @@ export async function getAllTaskAssignmentsByContractorId(
         select: {
           id: true,
           name: true,
-          email: true
+          email: true,
+          clientRating: true
         }
       },
       status: {

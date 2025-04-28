@@ -44,6 +44,7 @@ export interface Task {
     id?: string;
     name?: string;
     email?: string;
+    clientRating?: number | null;
   };
   /** Task category */
   category?: {
