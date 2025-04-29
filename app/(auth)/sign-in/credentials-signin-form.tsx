@@ -71,10 +71,15 @@ const CredentialsSignInForm = () => {
    */
   useEffect(() => {
     if (data?.success) {
-      // Force a full page reload to initialize the session
-      window.location.href = callbackUrl;
+      if (data.requirePasswordChange && data.resetToken) {
+        // If password change is required, redirect to reset password page
+        router.push(`/reset-password?token=${data.resetToken}&required=1`);
+      } else {
+        // Standard login - force a full page reload to initialize the session
+        window.location.href = callbackUrl;
+      }
     }
-  }, [data?.success, callbackUrl]);
+  }, [data?.success, callbackUrl, data?.requirePasswordChange, data?.resetToken, router]);
 
   /**
    * Sign-in button component with loading state
@@ -124,6 +129,11 @@ const CredentialsSignInForm = () => {
             autoComplete='password'
             defaultValue={signInDefaultValues.password}
           />
+          <div className="text-sm text-right mt-1">
+            <Link href="/forgot-password" className="text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </div>
         <div>
           <SignInButton />
@@ -136,7 +146,7 @@ const CredentialsSignInForm = () => {
 
         <div className='text-sm text-center text-muted-foreground'>
           Don&apos;t have an account?{' '}
-          <Link href='/sign-up' target='_self' className='link'>
+          <Link href='/sign-up' target='_self' className='text-primary hover:underline'>
             Sign Up
           </Link>
         </div>

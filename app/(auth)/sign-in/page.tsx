@@ -82,9 +82,6 @@ const SignInPage = async (props: {
             />
           </div>
           <CardTitle className='text-center'>Sign In</CardTitle>
-          <CardDescription className='text-center'>
-            Sign in to your account
-          </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           {/* Credentials sign-in form component */}

@@ -215,6 +215,7 @@ model User {
   contractorInvoices    Invoice[]                 @relation("ContractorInvoices")
   messages              Message[]
   payments              Payment[]
+  passwordResets        PasswordReset[]
   reviewsReceived       Review[]                  @relation("ReviewsReceived")
   reviewsGiven          Review[]                  @relation("ReviewsGiven")
   session               Session[]
@@ -257,6 +258,44 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+/// Password reset tokens for handling forgotten passwords
+/// @model PasswordReset
+/// @property {string} id - Unique identifier for the password reset record
+/// @property {string} userId - ID of the user requesting the password reset
+/// @property {string} token - Unique token for verification
+/// @property {Date} expiresAt - When the token expires
+/// @property {boolean} changeOnFirstLogin - Whether user should change password on first login
+/// @property {Date} createdAt - When the reset request was created
+/// @property {User} user - User who requested the password reset
+model PasswordReset {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @db.Uuid
+  token              String   @unique
+  expiresAt          DateTime @db.Timestamp(6)
+  changeOnFirstLogin Boolean  @default(false)
+  createdAt          DateTime @default(now()) @db.Timestamp(6)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Email verification tokens for new user registrations
+/// @model EmailVerification
+/// @property {string} id - Unique identifier for the verification record
+/// @property {string} email - Email address to verify
+/// @property {string} name - User's name (to create account after verification)
+/// @property {string} token - Unique token for verification
+/// @property {string} password - Hashed password (stored temporarily until verification)
+/// @property {Date} expiresAt - When the token expires
+/// @property {Date} createdAt - When the verification request was created
+model EmailVerification {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String
+  token     String   @unique
+  password  String
+  expiresAt DateTime @db.Timestamp(6)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
 }
 
 model Cart {

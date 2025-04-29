@@ -84,14 +84,37 @@ export const signInFormSchema = z.object({
  * Sign-Up Form Schema
  * 
  * Validates user registration form data.
- * @property {string} name - User's full name
+ * @property {string} name - User's full name (letters only, min 3 characters)
  * @property {string} email - User email address (must be valid email format)
- * @property {string} password - User password (minimum 8 characters)
+ * @property {string} password - User password (min 8 chars with at least 2 numbers/special chars)
+ * @property {string} confirmPassword - Confirmation password (must match password)
  */
 export const signUpFormSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z
+    .string()
+    .min(3, { message: "Name must be at least 3 characters" })
+    .regex(/^[a-zA-Z\s]+$/, { 
+      message: "Name can only contain letters and spaces" 
+    }),
+  email: z
+    .string()
+    .email({ message: "Invalid email address" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .refine(
+      (password) => {
+        // Count numbers and special characters
+        const specialCharsCount = (password.match(/[0-9!@#$%^&*(),.?":{}|<>]/g) || []).length;
+        return specialCharsCount >= 2;
+      },
+      { message: "Password must contain at least 2 numbers or special characters" }
+    ),
+  confirmPassword: z
+    .string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
 });
 
 /**

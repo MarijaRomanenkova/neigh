@@ -12,6 +12,8 @@
     "prisma:deploy": "cross-env NODE_ENV=production SKIP_ERD=true prisma generate",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:email-reset": "ts-node tests/email/password-reset.test.ts",
+    "test:email-verification": "ts-node tests/email/email-verification.test.ts",
     "email": "cp .env ./node_modules/react-email && email dev --dir email --port 3001",
     "seed": "node db/seed.mjs",
     "docs": "typedoc --out docs lib/**/*.ts",
@@ -92,6 +94,7 @@
     "@types/ws": "^8.5.13",
     "bufferutil": "^4.0.8",
     "cross-env": "^7.0.3",
+    "cross-fetch": "^4.1.0",
     "dotenv": "^16.4.5",
     "eslint": "^8",
     "eslint-config-next": "15.0.3",
@@ -104,6 +107,7 @@
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typedoc": "^0.28.1",
     "typescript": "^5"
   }

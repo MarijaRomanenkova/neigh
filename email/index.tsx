@@ -13,6 +13,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import PurchaseReceiptEmail from './purchase-receipt';
+import PasswordResetEmail from './password-reset';
+import EmailVerification from './email-verification';
 
 // Initialize Resend client with API key
 const resend = new Resend(process.env.RESEND_API_KEY as string);
@@ -35,5 +37,73 @@ export const sendPurchaseReceipt = async ({ payment }: { payment: Payment }) => 
     to: payment.user.email,
     subject: `Payment Confirmation ${payment.id}`,
     react: <PurchaseReceiptEmail payment={payment} />,
+  });
+};
+
+/**
+ * Sends a password reset email to a user
+ * 
+ * Generates and sends a formatted email containing:
+ * - User's name
+ * - Password reset link with secure token
+ * - Instructions and expiration information
+ * 
+ * @param {Object} params - Function parameters
+ * @param {string} params.email - User's email address
+ * @param {string} params.name - User's name
+ * @param {string} params.token - Secure reset token
+ * @returns {Promise<void>} A promise that resolves when the email is sent
+ */
+export const sendPasswordResetEmail = async ({
+  email,
+  name,
+  token,
+}: {
+  email: string;
+  name: string;
+  token: string;
+}) => {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const resetLink = `${baseUrl}/reset-password?token=${token}`;
+
+  await resend.emails.send({
+    from: `${APP_NAME} <${SENDER_EMAIL}>`,
+    to: email,
+    subject: `Reset Your ${APP_NAME} Password`,
+    react: <PasswordResetEmail name={name} resetLink={resetLink} />,
+  });
+};
+
+/**
+ * Sends an email verification to a user
+ * 
+ * Generates and sends a formatted email containing:
+ * - User's name
+ * - Email verification link with secure token
+ * - Instructions for completing registration
+ * 
+ * @param {Object} params - Function parameters
+ * @param {string} params.email - User's email address
+ * @param {string} params.name - User's name
+ * @param {string} params.token - Secure verification token
+ * @returns {Promise<void>} A promise that resolves when the email is sent
+ */
+export const sendVerificationEmail = async ({
+  email,
+  name,
+  token,
+}: {
+  email: string;
+  name: string;
+  token: string;
+}) => {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const verificationLink = `${baseUrl}/verify?token=${token}`;
+
+  await resend.emails.send({
+    from: `${APP_NAME} <${SENDER_EMAIL}>`,
+    to: email,
+    subject: `Verify Your ${APP_NAME} Account`,
+    react: <EmailVerification name={name} verificationLink={verificationLink} />,
   });
 };

@@ -14,26 +14,22 @@ import { insertInvoiceSchema, updateInvoiceSchema } from '../validators';
 import { z } from 'zod';
 
 /**
- * Calculate invoice totals including tax
+ * Calculate invoice totals (without tax)
  * @param items - Array of invoice items with price and quantity
- * @returns Object containing subtotal, tax amount, and total as formatted strings
+ * @returns Object containing subtotal and total as formatted strings
  */
 export async function calcTotal(items: Array<{price: number, quantity?: number, qty?: number}>) {
   // Handle both old schema (InvoiceItems with qty) and new schema (items with quantity)
-  const subtotal = round2(
+  const total = round2(
     items.reduce((acc, item) => {
       // Support both qty and quantity fields for backward compatibility
       const quantity = 'quantity' in item && item.quantity !== undefined ? item.quantity : (item.qty ?? 1);
       return acc + Number(item.price) * quantity;
     }, 0)
   );
-  const taxRate = 0.21; // 21% tax rate
-  const taxAmount = round2(subtotal * taxRate);
-  const total = round2(subtotal + taxAmount);
 
   return {
-    subtotal: subtotal.toFixed(2),
-    taxAmount: taxAmount.toFixed(2),
+    subtotal: total.toFixed(2),
     total: total.toFixed(2),
   };
 }
