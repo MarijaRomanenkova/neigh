@@ -19,7 +19,7 @@ import {
   Tailwind,
   Text,
 } from '@react-email/components';
-import { APP_NAME } from '@/lib/constants';
+import { APP_NAME, SERVER_URL } from '@/lib/constants';
 
 interface EmailVerificationProps {
   name: string;
@@ -47,11 +47,22 @@ export default function EmailVerification({
               </Text>
               <Text className="text-gray-700 mb-4">
                 Thank you for signing up with {APP_NAME}. To complete your registration and activate your account, 
-                please click the button below:
+                please use the verification link below:
               </Text>
+              
+              {/* Display the full link prominently */}
+              <Text className="text-blue-600 text-center border border-blue-100 bg-blue-50 p-3 rounded-md break-all mb-4">
+                <Link href={verificationLink} className="text-blue-600 font-medium">
+                  {verificationLink}
+                </Link>
+              </Text>
+              
+              {/* Button option */}
+              <Text className="text-center mb-2">Or click this button:</Text>
               <Button 
                 href={verificationLink}
-                className="bg-primary text-white px-6 py-3 rounded-md font-medium text-center block mx-auto"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-md text-center block mx-auto"
+                style={{ backgroundColor: "#2563EB", color: "white", padding: "16px 32px", borderRadius: "6px", fontSize: "16px", fontWeight: "bold", textDecoration: "none", display: "inline-block", textAlign: "center", margin: "0 auto" }}
               >
                 Verify Email Address
               </Button>
@@ -72,10 +83,10 @@ export default function EmailVerification({
                 &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
               </Text>
               <Link 
-                href="https://neigh-alpha.vercel.app/" 
-                className="text-gray-500 underline"
+                href={SERVER_URL} 
+                className="text-blue-500 underline font-medium"
               >
-                Visit our website
+                Visit {APP_NAME} Website
               </Link>
             </Section>
           </Container>
