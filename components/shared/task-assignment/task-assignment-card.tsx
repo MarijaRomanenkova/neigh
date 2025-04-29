@@ -261,10 +261,12 @@ export default function TaskAssignmentCard({
   reviewedByClient,
   reviewedByContractor,
 }: TaskAssignmentCardProps) {
-  // Check for completed status in a case-insensitive way
-  const isCompleted = status.name.toLowerCase() === "completed";
+  // Check for status values using direct comparison with uppercase status names
+  const isCompleted = status.name === "COMPLETED";
   // Check for accepted status directly from status name
   const isAccepted = status.name === "ACCEPTED";
+  // Check if the task is in progress (the only state where we should show the Complete button)
+  const isInProgress = status.name === "IN_PROGRESS";
   const isContractorView = viewType === 'contractor';
   const isClientView = viewType === 'client';
   const [isLoading, setIsLoading] = useState(false);
@@ -412,8 +414,8 @@ export default function TaskAssignmentCard({
             </>
           )}
 
-          {/* Step 1: Contractor can mark task as complete if not already completed */}
-          {isContractorView && !isCompleted && (
+          {/* Step 1: Contractor can mark task as complete only if it's in IN_PROGRESS status */}
+          {isContractorView && isInProgress && (
             <Button
               onClick={completeTask}
               variant="success"
@@ -425,7 +427,7 @@ export default function TaskAssignmentCard({
           )}
           
           {/* Step 2: Client can accept a completed task */}
-          {isClientView && status.name.toLowerCase() === 'completed' && (
+          {isClientView && isCompleted && (
             <AcceptTaskButton 
               taskAssignmentId={id} 
               className="" 
@@ -434,7 +436,7 @@ export default function TaskAssignmentCard({
 
           {/* Step 3: After task is accepted, both parties can submit reviews */}
           {/* Review Button for clients */}
-          {isClientView && status.name === "ACCEPTED" && (
+          {isClientView && isAccepted && (
             <ReviewTaskDialog 
               taskAssignmentId={id}
               taskName={taskName}
@@ -451,7 +453,7 @@ export default function TaskAssignmentCard({
           )}
 
           {/* Review Button for contractors */}
-          {isContractorView && status.name === "ACCEPTED" && (
+          {isContractorView && isAccepted && (
             <ReviewClientDialog 
               taskAssignmentId={id}
               clientName={clientName || 'Client'}
