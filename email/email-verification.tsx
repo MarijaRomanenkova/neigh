@@ -72,7 +72,7 @@ export default function EmailVerification({
                 &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
               </Text>
               <Link 
-                href="https://yoursite.com" 
+                href="https://neigh-alpha.vercel.app/" 
                 className="text-gray-500 underline"
               >
                 Visit our website

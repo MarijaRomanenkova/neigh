@@ -7,7 +7,7 @@
  */
 
 import { Resend } from 'resend';
-import { SENDER_EMAIL, APP_NAME } from '@/lib/constants';
+import { SENDER_EMAIL, APP_NAME, SERVER_URL } from '@/lib/constants/index';
 import { Payment } from '@/types';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -63,8 +63,8 @@ export const sendPasswordResetEmail = async ({
   name: string;
   token: string;
 }) => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const resetLink = `${baseUrl}/reset-password?token=${token}`;
+  // Use SERVER_URL constant which uses NEXT_PUBLIC_SERVER_URL environment variable
+  const resetLink = `${SERVER_URL}/reset-password?token=${token}`;
 
   await resend.emails.send({
     from: `${APP_NAME} <${SENDER_EMAIL}>`,
@@ -97,8 +97,8 @@ export const sendVerificationEmail = async ({
   name: string;
   token: string;
 }) => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const verificationLink = `${baseUrl}/verify?token=${token}`;
+  // Use SERVER_URL constant which uses NEXT_PUBLIC_SERVER_URL environment variable
+  const verificationLink = `${SERVER_URL}/verify?token=${token}`;
 
   await resend.emails.send({
     from: `${APP_NAME} <${SENDER_EMAIL}>`,

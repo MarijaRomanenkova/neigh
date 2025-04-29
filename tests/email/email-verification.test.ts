@@ -6,15 +6,15 @@
  * 
  * npm run test:email-verification
  * 
- * You can also specify an email address as a parameter:
- * npm run test:email-verification -- --email=your-email@example.com
+ * You can also specify recipient and sender emails as parameters:
+ * npm run test:email-verification -- --email=your-email@example.com --from=another-email@example.com
  */
 
 import { Resend } from 'resend';
 import EmailVerification from '../../email/email-verification';
 import dotenv from 'dotenv';
 import path from 'path';
-import { APP_NAME } from '../../lib/constants';
+import { APP_NAME, SERVER_URL } from '@/lib/constants';
 
 // Determine if running as a standalone script or in Jest
 const isRunningDirectly = require.main === module;
@@ -23,6 +23,7 @@ const isRunningDirectly = require.main === module;
 const args = process.argv.slice(2);
 const emailArg = args.find(arg => arg.startsWith('--email='));
 const nameArg = args.find(arg => arg.startsWith('--name='));
+const fromArg = args.find(arg => arg.startsWith('--from='));
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -31,7 +32,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const TEST_EMAIL = emailArg ? emailArg.split('=')[1] : 'marija@example.com';
 const TEST_NAME = nameArg ? nameArg.split('=')[1] : 'Marija';
 const TEST_TOKEN = `test-token-${Date.now()}`;
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+const SENDER_EMAIL = fromArg ? fromArg.split('=')[1] : (process.env.SENDER_EMAIL || 'onboarding@resend.dev');
 
 // Initialize Resend client with API key
 const resend = new Resend(process.env.RESEND_API_KEY as string);
@@ -44,10 +45,10 @@ async function testEmailVerification(): Promise<{ success: boolean, id?: string,
   console.log('-------------------------------------------');
   console.log(`📧 Recipient: ${TEST_EMAIL}`);
   console.log(`👤 Name: ${TEST_NAME}`);
+  console.log(`💌 From: ${SENDER_EMAIL}`);
   console.log(`🔑 Token: ${TEST_TOKEN}`);
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const verificationLink = `${baseUrl}/verify?token=${TEST_TOKEN}`;
+  const verificationLink = `${SERVER_URL}/verify?token=${TEST_TOKEN}`;
   
   console.log(`🔗 Verification Link: ${verificationLink}`);
   console.log('');
