@@ -9,7 +9,8 @@ import { fetch, Headers, Request, Response } from 'cross-fetch';
 
 // Polyfill for TextEncoder and TextDecoder
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+// @ts-expect-error TextDecoder types from util don't perfectly match DOM types
+global.TextDecoder = TextDecoder;
 
 // Polyfill for fetch API
 global.fetch = fetch;
