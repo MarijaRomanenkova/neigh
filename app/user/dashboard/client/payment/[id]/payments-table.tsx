@@ -125,7 +125,7 @@ const PaymentsTable = ({
             <CardContent className='p-6 space-y-4'>
               <div className='flex justify-between items-center'>
                 <h2 className='text-xl font-semibold'>Payment Details</h2>
-                <Badge variant={payment.isPaid ? 'secondary' : 'destructive'}>
+                <Badge variant={payment.isPaid ? 'paid' : 'unpaid'}>
                   {payment.isPaid 
                     ? `Paid at ${formatDateTime(payment.paidAt!)}`
                     : 'Not paid'}
@@ -175,10 +175,12 @@ const PaymentsTable = ({
                   <span>Subtotal</span>
                   <span>{formatCurrency(Number(payment.totalPrice))}</span>
                 </div>
-                <div className='flex justify-between'>
-                  <span>Tax (21%)</span>
-                  <span>{formatCurrency(Number(payment.taxPrice))}</span>
-                </div>
+                {Number(payment.taxPrice) > 0 && (
+                  <div className='flex justify-between'>
+                    <span>Tax (21%)</span>
+                    <span>{formatCurrency(Number(payment.taxPrice))}</span>
+                  </div>
+                )}
                 <div className='flex justify-between font-bold border-t pt-2'>
                   <span>Total</span>
                   <span>{formatCurrency(Number(payment.totalPrice) + Number(payment.taxPrice))}</span>

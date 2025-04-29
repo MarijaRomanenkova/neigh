@@ -76,7 +76,7 @@ const PaymentDetailsPage = async (props: {
       payment={{
         ...payment,
         totalPrice: payment.amount.toString(),
-        taxPrice: (Number(payment.amount) * 0.21).toString(),  // Add 21% tax
+        taxPrice: "0", // Set tax to zero instead of calculating 21%
         invoices: payment.invoices.map(item => ({
           id: item.id,
           invoiceNumber: item.invoiceNumber,

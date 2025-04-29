@@ -30,6 +30,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
+import { Invoice } from '@/types';
 
 /**
  * Interface representing a simplified invoice structure
@@ -275,13 +276,48 @@ export default function PaymentPage() {
         
         console.log(`Successfully fetched ${data.invoices.length} invoices`);
         
-        // Validate invoice structure
+        // Add detailed debugging for invoice structure
+        console.log('DEBUG - Invoice structure analysis:');
+        data.invoices.forEach((inv: Invoice, index: number) => {
+          console.log(`Invoice ${index + 1}:`, {
+            hasIdProperty: 'id' in inv,
+            idValue: inv.id,
+            idType: typeof inv.id,
+            
+            hasInvoiceNumberProperty: 'invoiceNumber' in inv,
+            invoiceNumberValue: inv.invoiceNumber,
+            invoiceNumberType: typeof inv.invoiceNumber,
+            
+            hasTotalPriceProperty: 'totalPrice' in inv,
+            totalPriceValue: inv.totalPrice,
+            totalPriceType: typeof inv.totalPrice,
+            
+            // Log all properties of the invoice object to see what we actually have
+            allProperties: Object.keys(inv),
+            
+            // Check if we can convert totalPrice to a number
+            canConvertToNumber: !isNaN(Number(inv.totalPrice)),
+            convertedValue: Number(inv.totalPrice)
+          });
+        });
+        
+        // Validate invoice structure - modified to be more lenient with number types
         const validInvoices = data.invoices.filter((inv: unknown) => 
           inv && typeof inv === 'object' && 
           'id' in inv && 
           'invoiceNumber' in inv && 
-          'totalPrice' in inv && typeof inv.totalPrice === 'number'
+          'totalPrice' in inv && 
+          (typeof inv.totalPrice === 'number' || 
+           (typeof inv.totalPrice === 'string' && !isNaN(Number(inv.totalPrice))) ||
+           (typeof inv.totalPrice === 'object' && inv.totalPrice !== null && 'toString' in inv.totalPrice))
         ) as SimpleInvoice[];
+        
+        // Log validation results
+        console.log('DEBUG - Validation results:', {
+          totalInvoices: data.invoices.length,
+          validInvoices: validInvoices.length,
+          invalidInvoices: data.invoices.length - validInvoices.length
+        });
         
         if (validInvoices.length === 0) {
           console.error('No valid invoices in the response:', data.invoices);
@@ -292,8 +328,18 @@ export default function PaymentPage() {
           console.warn(`Some invoices (${data.invoices.length - validInvoices.length}) were filtered out due to invalid format`);
         }
         
+        // Convert Prisma Decimal objects to regular numbers
+        const normalizedInvoices = validInvoices.map(inv => ({
+          ...inv,
+          totalPrice: typeof inv.totalPrice === 'number' ? inv.totalPrice : 
+                     (typeof inv.totalPrice === 'string' ? Number(inv.totalPrice) : 
+                     Number((inv.totalPrice as { toString(): string }).toString()))
+        }));
+        
+        console.log('DEBUG - Normalized invoices:', normalizedInvoices);
+        
         // Set invoices in state BEFORE attempting to create payment record
-        setInvoices(validInvoices);
+        setInvoices(normalizedInvoices);
         
         // Only after the invoices are fetched and set, attempt to create a payment record
         // Verify we have valid invoice ids before creating the payment

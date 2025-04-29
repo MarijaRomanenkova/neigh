@@ -86,7 +86,20 @@ export async function POST(request: Request) {
     // Convert Prisma objects to plain JS objects
     const plainInvoices = convertToPlainObject(invoices);
     
-    return NextResponse.json({ invoices: plainInvoices });
+    // Ensure totalPrice is properly formatted as a number for JavaScript
+    const formattedInvoices = plainInvoices.map(invoice => ({
+      ...invoice,
+      totalPrice: Number(invoice.totalPrice)
+    }));
+    
+    console.log('API DEBUG - Formatted invoices:', formattedInvoices.map(inv => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      totalPrice: inv.totalPrice,
+      totalPriceType: typeof inv.totalPrice
+    })));
+    
+    return NextResponse.json({ invoices: formattedInvoices });
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return NextResponse.json(

@@ -19,6 +19,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
  * 
  * Validates and processes Stripe webhook events. Currently handles:
  * - charge.succeeded: Updates the corresponding payment record to paid status
+ * - payment_intent.succeeded: Updates the corresponding payment record to paid status
  * 
  * Security:
  * - Verifies Stripe signature to ensure request authenticity
@@ -45,14 +46,42 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('event', event);
-    // charge.succeeded indicates a successful payment
+    
+    // Handle payment_intent.succeeded events
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      
+      // Check if paymentId exists in metadata
+      if (!paymentIntent.metadata?.paymentId) {
+        return NextResponse.json({
+          error: 'No paymentId found in payment intent metadata'
+        }, { status: 400 });
+      }
+
+      console.log('Processing payment_intent.succeeded for paymentId:', paymentIntent.metadata.paymentId);
+      
+      await updatePaymentToPaid(paymentIntent.metadata.paymentId, {
+        id: paymentIntent.id,
+        status: 'COMPLETED',
+        email_address: paymentIntent.receipt_email || '',
+        pricePaid: (paymentIntent.amount / 100).toFixed(),
+        amount: (paymentIntent.amount / 100).toFixed(),
+        created_at: new Date().toISOString(),
+      });
+
+      return NextResponse.json({
+        message: 'updatePaymentToPaid for payment intent was successful',
+      });
+    }
+    
+    // Handle charge.succeeded events
     if (event.type === 'charge.succeeded') {
       const charge = event.data.object as Stripe.Charge;
       
-      // Check if orderId exists in metadata
-      if (!charge.metadata?.orderId) {
+      // Check if paymentId exists in metadata
+      if (!charge.metadata?.paymentId) {
         return NextResponse.json({
-          error: 'No orderId found in payment metadata'
+          error: 'No paymentId found in payment metadata'
         }, { status: 400 });
       }
 
@@ -70,7 +99,7 @@ export async function POST(req: NextRequest) {
       });
     }
     return NextResponse.json({
-      message: 'event is not charge.succeeded',
+      message: 'event is not charge.succeeded or payment_intent.succeeded',
     });
   } catch (error) {
     console.error('Error processing Stripe webhook:', error);

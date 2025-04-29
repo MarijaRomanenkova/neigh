@@ -68,14 +68,27 @@ export async function getAllIncomingInvoices(userId: string) {
       include: {
         client: true,
         contractor: true,
-        items: true
+        items: true,
+        payment: {
+          select: {
+            isPaid: true,
+            paidAt: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
     
-    return convertToPlainObject(invoices);
+    // Transform the invoices to add direct isPaid and paidAt fields for easier access
+    const enhancedInvoices = invoices.map(invoice => ({
+      ...invoice,
+      isPaid: invoice.payment?.isPaid || false,
+      paidAt: invoice.payment?.paidAt || null
+    }));
+    
+    return convertToPlainObject(enhancedInvoices);
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return [];
@@ -116,14 +129,27 @@ export async function getAllOutgoingInvoices(contractorId: string) {
       include: {
         client: true,
         contractor: true,
-        items: true
+        items: true,
+        payment: {
+          select: {
+            isPaid: true,
+            paidAt: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
     
-    return convertToPlainObject(invoices);
+    // Transform the invoices to add direct isPaid and paidAt fields for easier access
+    const enhancedInvoices = invoices.map(invoice => ({
+      ...invoice,
+      isPaid: invoice.payment?.isPaid || false,
+      paidAt: invoice.payment?.paidAt || null
+    }));
+    
+    return convertToPlainObject(enhancedInvoices);
   } catch (error) {
     console.error('Error fetching outgoing invoices:', error);
     return [];
@@ -514,10 +540,25 @@ export async function getInvoiceByNumber(invoiceNumber: string) {
           },
         },
         items: true,
+        payment: {
+          select: {
+            isPaid: true,
+            paidAt: true
+          }
+        }
       },
     });
 
-    return invoice ? convertToPlainObject(invoice) : null;
+    if (!invoice) return null;
+    
+    // Add direct isPaid and paidAt fields for easier access
+    const enhancedInvoice = {
+      ...invoice,
+      isPaid: invoice.payment?.isPaid || false,
+      paidAt: invoice.payment?.paidAt || null
+    };
+
+    return convertToPlainObject(enhancedInvoice);
   } catch (error) {
     console.error('Error fetching invoice:', error);
     return null;

@@ -357,7 +357,7 @@ const InvoiceListTable = ({
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge 
-                          variant={invoice.isPaid ? "paid" : "destructive"}
+                          variant={invoice.isPaid ? "paid" : "unpaid"}
                         >
                           {invoice.isPaid ? (
                             <>

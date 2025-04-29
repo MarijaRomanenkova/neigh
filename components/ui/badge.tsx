@@ -20,9 +20,9 @@ const badgeVariants = cva(
         warning:
           "border-transparent bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))] shadow hover:bg-[hsl(var(--warning))]/80",
         paid:
-          "border-transparent bg-success text-success-foreground shadow hover:bg-success/80 flex items-center",
+          "border-transparent bg-success text-success-foreground shadow hover:bg-success/80 flex items-center justify-center w-20",
         unpaid:
-          "border-transparent bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))] shadow hover:bg-[hsl(var(--warning))]/80 flex items-center",
+          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80 flex items-center justify-center w-20",
         pending:
           "border-amber-500 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
         inProgress:

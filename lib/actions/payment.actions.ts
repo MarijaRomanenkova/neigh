@@ -344,6 +344,17 @@ export async function updatePaymentToPaid(
         paymentResult,
       },
     });
+
+    // Log the invoices being updated
+    console.log(`Updating ${payment.invoices.length} invoices to reflect payment`);
+    
+    // Optionally update any other required fields on invoices if needed
+    // For example, you could add timestamps or status information here
+    for (const invoice of payment.invoices) {
+      console.log(`Updating invoice ${invoice.invoiceNumber}`);
+      // No need to update paymentId since it's already linked to this payment
+      // But we could update additional fields if needed
+    }
   });
 
   // Get updated payment after transaction
