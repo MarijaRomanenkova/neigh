@@ -15,8 +15,9 @@ const config: Config = {
   testPathIgnorePatterns: [
     '/node_modules/', 
     '/.next/',
-    '/tests/components/InvoiceForm.test.tsx',
-    '/tests/form-validation.test.tsx',
+    // Comment these out to enable all tests
+    // '/tests/components/InvoiceForm.test.tsx',
+    // '/tests/form-validation.test.tsx',
   ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
@@ -28,7 +29,7 @@ const config: Config = {
   },
   transformIgnorePatterns: [
     // These packages use ES modules and need to be transformed
-    '/node_modules/(?!(@react-email|query-string|next-auth|decode-uri-component|split-on-first|filter-obj|@auth|stripe|@stripe|@hookform)/).*/',
+    'node_modules/(?!(query-string|decode-uri-component|split-on-first|filter-obj|@react-email|next-auth|@auth|stripe|@stripe|@hookform)/)',
   ],
   globals: {
     'ts-jest': {

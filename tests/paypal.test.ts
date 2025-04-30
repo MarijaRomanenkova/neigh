@@ -1,39 +1,99 @@
-import { generateAccessToken, paypal } from '../lib/paypal';
+/**
+ * PayPal API Integration Tests
+ */
+import { generateAccessToken, paypal } from '@/lib/paypal';
 
-// Test to generate access token from paypal
-test('generates token from paypal', async () => {
-  const tokenResponse = await generateAccessToken();
-  console.log(tokenResponse);
-  expect(typeof tokenResponse).toBe('string');
-  expect(tokenResponse.length).toBeGreaterThan(0);
-});
+// Mock fetch API for tests
+global.fetch = jest.fn();
 
-// Test to create a paypal order
-test('creates a paypal order', async () => {
-  const token = await generateAccessToken();
-  console.log(token);
-  const price = 10.0;
+// Helper to mock fetch responses
+function mockFetchResponse(status: number, data: any) {
+  return Promise.resolve({
+    status,
+    json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
+    ok: status >= 200 && status < 300
+  });
+}
 
-  const orderResponse = await paypal.createPayment(price);
-  console.log(orderResponse);
+describe('PayPal API Integration', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  expect(orderResponse).toHaveProperty('id');
-  expect(orderResponse).toHaveProperty('status');
-  expect(orderResponse.status).toBe('CREATED');
-});
+  it('generates token from paypal', async () => {
+    // Mock a successful token response
+    (global.fetch as jest.Mock).mockImplementationOnce(() => 
+      mockFetchResponse(200, {
+        access_token: 'mock-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600
+      })
+    );
 
-// Test to capture payment with mock order
-test('simulate capturing a payment from an order', async () => {
-  const orderId = '100';
+    const token = await generateAccessToken();
+    expect(token).toBe('mock-access-token');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
 
-  const mockCapturePayment = jest
-    .spyOn(paypal, 'capturePayment')
-    .mockResolvedValue({
-      status: 'COMPLETED',
-    });
+  it('creates a paypal order', async () => {
+    // Mock successful token and order creation
+    (global.fetch as jest.Mock)
+      // First for token
+      .mockImplementationOnce(() => 
+        mockFetchResponse(200, {
+          access_token: 'mock-access-token'
+        })
+      )
+      // Then for order creation
+      .mockImplementationOnce(() => 
+        mockFetchResponse(200, {
+          id: 'mock-order-id',
+          status: 'CREATED'
+        })
+      );
 
-  const captureResponse = await paypal.capturePayment(orderId);
-  expect(captureResponse).toHaveProperty('status', 'COMPLETED');
+    const order = await paypal.createPayment(100.00);
 
-  mockCapturePayment.mockRestore();
+    expect(order.id).toBe('mock-order-id');
+    expect(order.status).toBe('CREATED');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('captures a payment', async () => {
+    // Mock successful token and capture
+    (global.fetch as jest.Mock)
+      // First for token
+      .mockImplementationOnce(() => 
+        mockFetchResponse(200, {
+          access_token: 'mock-access-token'
+        })
+      )
+      // Then for payment capture
+      .mockImplementationOnce(() => 
+        mockFetchResponse(200, {
+          id: 'mock-capture-id',
+          status: 'COMPLETED'
+        })
+      );
+
+    const captureResult = await paypal.capturePayment('mock-order-id');
+    
+    expect(captureResult.id).toBe('mock-capture-id');
+    expect(captureResult.status).toBe('COMPLETED');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles API errors', async () => {
+    // Mock a failed API response
+    (global.fetch as jest.Mock).mockImplementationOnce(() => 
+      mockFetchResponse(401, {
+        error: 'invalid_client',
+        error_description: 'Client Authentication failed'
+      })
+    );
+
+    await expect(generateAccessToken()).rejects.toThrow('Client Authentication failed');
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
 });

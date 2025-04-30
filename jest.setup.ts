@@ -55,6 +55,13 @@ global.IntersectionObserver = jest.fn().mockImplementation(callback => {
   };
 });
 
+// Mock problematic ESM modules
+jest.mock('query-string', () => ({
+  parse: jest.fn((str) => ({})),
+  stringify: jest.fn((obj) => ''),
+  parseUrl: jest.fn((url) => ({ url: '', query: {} }))
+}));
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn().mockReturnValue({
@@ -72,6 +79,39 @@ jest.mock('next/navigation', () => ({
     get: jest.fn().mockImplementation(key => null),
   }),
 }));
+
+// Mock Prisma client with our test mock
+jest.mock('@/db/prisma', () => {
+  const prismaMock = {
+    prisma: {
+      user: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        count: jest.fn()
+      },
+      invoice: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn()
+      },
+      task: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        count: jest.fn()
+      },
+      $queryRaw: jest.fn().mockImplementation(() => Promise.resolve([{
+        month: '01/23',
+        totalSales: 1000
+      }]))
+    },
+    checkPrismaConnection: jest.fn().mockResolvedValue(true)
+  };
+  return prismaMock;
+});
 
 // Mock next-auth
 jest.mock('next-auth/react', () => ({
