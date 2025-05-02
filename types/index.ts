@@ -29,8 +29,6 @@ export interface Task {
   images: string[];
   /** Task category ID */
   categoryId: string;
-  /** Task status ID */
-  statusId?: string | null;
   /** Task created at timestamp */
   createdAt: Date;
   /** Task updated at timestamp */

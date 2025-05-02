@@ -24,7 +24,6 @@ type TaskWithRelations = {
   price: Prisma.Decimal;
   images: string[];
   categoryId: string;
-  statusId: string | null;
   createdAt: Date;
   updatedAt: Date;  // Explicitly include updatedAt
   isArchived: boolean;
@@ -106,7 +105,6 @@ export async function getLatestTasks() {
         price: Number(taskWithRelations.price),
         images: taskWithRelations.images,
         categoryId: taskWithRelations.categoryId,
-        statusId: taskWithRelations.statusId,
         createdAt: taskWithRelations.createdAt,
         updatedAt: taskWithRelations.updatedAt,
         isArchived: taskWithRelations.isArchived,
@@ -183,7 +181,6 @@ export async function getTaskById(taskId: string) {
       price: Number(taskWithRelations.price),
       images: taskWithRelations.images,
       categoryId: taskWithRelations.categoryId,
-      statusId: taskWithRelations.statusId,
       createdAt: taskWithRelations.createdAt,
       updatedAt: taskWithRelations.updatedAt,
       isArchived: taskWithRelations.isArchived,
@@ -298,7 +295,6 @@ export async function getAllTasks({
           price: Number(taskWithRelations.price),
           images: taskWithRelations.images,
           categoryId: taskWithRelations.categoryId,
-          statusId: taskWithRelations.statusId,
           createdAt: taskWithRelations.createdAt,
           updatedAt: taskWithRelations.updatedAt,
           isArchived: taskWithRelations.isArchived,
@@ -381,9 +377,6 @@ export async function deleteTask(id: string) {
 export async function createTask(data: z.infer<typeof insertTaskSchema> & { userId: string }) {
   try {
     const task = insertTaskSchema.parse(data);
-    const openStatus = await prisma.taskAssignmentStatus.findFirst({
-      where: { name: 'OPEN' }
-    });
     
     const createdTask = await prisma.task.create({ 
       data: {
@@ -392,7 +385,6 @@ export async function createTask(data: z.infer<typeof insertTaskSchema> & { user
         images: task.images,
         description: task.description,
         price: new Prisma.Decimal(task.price || 0),
-        statusId: openStatus!.id,
         createdById: data.userId
       } 
     });
@@ -527,7 +519,6 @@ export async function getAllTasksByClientId(clientId: string): Promise<TasksWith
         price: Number(taskWithRelations.price),
         images: taskWithRelations.images,
         categoryId: taskWithRelations.categoryId,
-        statusId: taskWithRelations.statusId,
         createdAt: taskWithRelations.createdAt,
         updatedAt: taskWithRelations.updatedAt,
         isArchived: taskWithRelations.isArchived,

@@ -8,13 +8,6 @@ async function main() {
   });
   console.table(statuses);
   
-  console.log('\nChecking if Tasks use status:');
-  const tasksWithStatus = await prisma.task.count({
-    where: { statusId: { not: null } }
-  });
-  const totalTasks = await prisma.task.count();
-  console.log(`Tasks with status: ${tasksWithStatus} of ${totalTasks} (${(tasksWithStatus/totalTasks*100).toFixed(2)}%)`);
-  
   console.log('\nChecking TaskAssignments with status:');
   const assignmentsByStatus = await prisma.taskAssignment.groupBy({
     by: ['statusId'],

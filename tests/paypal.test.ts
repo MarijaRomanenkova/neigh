@@ -7,7 +7,7 @@ import { generateAccessToken, paypal } from '@/lib/paypal';
 global.fetch = jest.fn();
 
 // Helper to mock fetch responses
-function mockFetchResponse(status: number, data: any) {
+function mockFetchResponse(status: number, data: Record<string, unknown>) {
   return Promise.resolve({
     status,
     json: () => Promise.resolve(data),

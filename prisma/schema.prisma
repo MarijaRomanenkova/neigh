@@ -44,7 +44,6 @@ model TaskAssignmentStatus {
   order       Int              @default(1)
   createdAt   DateTime         @default(now()) @db.Timestamp(6)
   updatedAt   DateTime         @updatedAt @db.Timestamp(6)
-  tasks       Task[]
   assignments TaskAssignment[]
 }
 
@@ -75,7 +74,6 @@ model Task {
   description   String?
   price         Decimal               @db.Decimal(12, 2)
   createdAt     DateTime              @default(now()) @db.Timestamp(6)
-  statusId      String?               @db.Uuid
   createdById   String                @db.Uuid
   archivedAt    DateTime?             @db.Timestamp(6)
   isArchived    Boolean               @default(false)
@@ -84,12 +82,10 @@ model Task {
   invoiceItems  InvoiceItem[]
   category      Category              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   createdBy     User                  @relation("UserTasks", fields: [createdById], references: [id], onDelete: Cascade)
-  status        TaskAssignmentStatus? @relation(fields: [statusId], references: [id])
   assignments   TaskAssignment[]
 
   @@index([createdById])
   @@index([categoryId])
-  @@index([statusId])
 }
 
 /// Assignment of tasks to contractors by clients
