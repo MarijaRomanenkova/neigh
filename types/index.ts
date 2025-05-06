@@ -297,6 +297,8 @@ export interface TaskAssignment {
   createdAt: string;
   /** Last update timestamp */
   updatedAt: string;
+  /** Completion timestamp */
+  completedAt?: string | null;
   /** Invoice information */
   invoices: TaskAssignmentInvoice[];
   /** Associated conversation */

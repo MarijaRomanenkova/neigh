@@ -4,6 +4,11 @@
  * Task assignment status management functions
  * @module TaskAssignmentStatusActions
  * @group API
+ * 
+ * This module provides server-side functions for managing task assignment statuses:
+ * - Retrieving all available statuses
+ * - Finding statuses by name
+ * - Updating task assignment statuses
  */
 
 import { prisma } from '@/db/prisma';
@@ -11,7 +16,25 @@ import { revalidatePath } from 'next/cache';
 import { serializeData } from '@/lib/actions/task-assignment.actions';
 
 /**
- * Get all task assignment statuses ordered by their defined sequence
+ * Retrieves all task assignment statuses ordered by their defined sequence
+ * 
+ * @returns Array of task assignment statuses
+ * 
+ * @example
+ * // In a status selection component
+ * const StatusSelect = async () => {
+ *   const statuses = await getAllTaskAssignmentStatuses();
+ *   
+ *   return (
+ *     <select>
+ *       {statuses.map(status => (
+ *         <option key={status.id} value={status.name}>
+ *           {status.name}
+ *         </option>
+ *       ))}
+ *     </select>
+ *   );
+ * };
  */
 export async function getAllTaskAssignmentStatuses() {
   try {
@@ -25,7 +48,23 @@ export async function getAllTaskAssignmentStatuses() {
 }
 
 /**
- * Get a task assignment status by its name
+ * Retrieves a task assignment status by its name
+ * 
+ * @param name - The name of the status to find (case-insensitive)
+ * @returns The task assignment status object
+ * @throws Error if status is not found
+ * 
+ * @example
+ * // In a status validation function
+ * const validateStatus = async (statusName: string) => {
+ *   try {
+ *     const status = await getTaskAssignmentStatusByName(statusName);
+ *     return status;
+ *   } catch (error) {
+ *     console.error('Invalid status:', error);
+ *     return null;
+ *   }
+ * };
  */
 export async function getTaskAssignmentStatusByName(name: string) {
   try {
@@ -46,10 +85,38 @@ export async function getTaskAssignmentStatusByName(name: string) {
 } 
 
 /**
- * Update a task assignment's status
+ * Updates a task assignment's status
+ * 
  * @param id - The unique identifier of the task assignment
  * @param statusName - The name of the new status (e.g., 'completed')
- * @returns The updated task assignment
+ * @returns The updated task assignment with its new status
+ * @throws Error if status is not found or update fails
+ * 
+ * @example
+ * // In a task assignment component
+ * const TaskAssignment = ({ assignment }) => {
+ *   const handleStatusChange = async (newStatus: string) => {
+ *     try {
+ *       const updated = await updateTaskAssignmentStatus(
+ *         assignment.id,
+ *         newStatus
+ *       );
+ *       // Update UI with new status
+ *     } catch (error) {
+ *       // Handle error
+ *     }
+ *   };
+ *   
+ *   return (
+ *     <div>
+ *       <h3>{assignment.task.name}</h3>
+ *       <StatusSelect
+ *         currentStatus={assignment.status.name}
+ *         onChange={handleStatusChange}
+ *       />
+ *     </div>
+ *   );
+ * };
  */
 export async function updateTaskAssignmentStatus(id: string, statusName: string) {
   try {

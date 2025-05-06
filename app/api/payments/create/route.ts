@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/db/prisma';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 /**
  * POST handler for payment creation
@@ -61,124 +61,75 @@ export async function POST(request: Request) {
       );
     }
     
-    // Calculate total amount from invoices
+    // Get all invoices
     const invoices = await prisma.invoice.findMany({
       where: {
-        id: { in: invoiceIds },
-        clientId: userId as string,
-        paymentId: null, // Only unpaid invoices
+        id: {
+          in: invoiceIds,
+        },
+      },
+      include: {
+        client: true,
+        contractor: true,
       },
     });
-    
-    if (invoices.length === 0) {
+
+    // Check if any invoices are already paid
+    const paidInvoices = invoices.filter(invoice => invoice.paymentId !== null);
+    if (paidInvoices.length > 0) {
       return NextResponse.json(
-        { error: 'No valid invoices found' },
+        { success: false, message: 'One or more invoices are already paid' },
         { status: 400 }
       );
     }
-    
-    // Log invoices that were not found or already have a paymentId
-    if (invoices.length < invoiceIds.length) {
-      const foundIds = invoices.map(inv => inv.id);
-      const missingIds = invoiceIds.filter(id => !foundIds.includes(id));
-      
-      // Check if they exist but have a payment ID
-      const paidInvoices = await prisma.invoice.findMany({
-        where: {
-          id: { in: missingIds },
-          clientId: userId as string,
-          NOT: { paymentId: null },
-        },
-        select: { id: true, paymentId: true }
-      });
-      
-      if (paidInvoices.length > 0) {
-        console.log('Already paid invoices:', paidInvoices);
-      }
-    }
-    
-    // Sum the total prices
-    const totalAmount = invoices.reduce(
-      (sum, invoice) => sum + Number(invoice.totalPrice),
-      0
-    );
-    
-    console.log('Creating payment record with total amount:', totalAmount);
-    
-    // Create a payment record
+
+    // Calculate total amount
+    const totalAmount = invoices.reduce((sum, invoice) => sum + Number(invoice.totalPrice), 0);
+
+    // Create payment record
     const payment = await prisma.payment.create({
       data: {
-        userId: userId as string,
         amount: totalAmount,
         paymentMethod,
+        userId: invoices[0].clientId,
         paymentResult: {
-          id: '',
           status: 'PENDING',
+          id: '',
           email_address: '',
-          amount: 0
-        },
-        invoices: {
-          connect: invoiceIds.map((id: string) => ({ id }))
+          amount: totalAmount
         }
-      }
-    });
-    
-    console.log('Payment record created successfully:', payment.id);
-    
-    // Double-check that the invoices were properly connected
-    const updatedInvoices = await prisma.invoice.findMany({
-      where: {
-        id: { in: invoiceIds },
-        paymentId: payment.id
       },
-      select: { id: true }
     });
-    
-    console.log(`Verified ${updatedInvoices.length} invoices updated with payment ID`);
-    
-    return NextResponse.json({ 
+
+    // Update invoices with payment ID
+    const updatedInvoices = await Promise.all(
+      invoices.map(invoice =>
+        prisma.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            paymentId: payment.id,
+          },
+        })
+      )
+    );
+
+    return NextResponse.json({
       success: true,
-      paymentId: payment.id 
+      data: {
+        payment,
+        invoices: updatedInvoices,
+      },
     });
   } catch (error) {
-    
-    // Provide more detailed error information
-    let errorMessage = 'Internal server error';
-    let statusCode = 500;
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      // Check for Prisma-specific errors
-      if (error.name === 'PrismaClientKnownRequestError') {
-        const prismaError = error as PrismaClientKnownRequestError;
-        if (prismaError.code === 'P2025') {
-          statusCode = 404;
-          errorMessage = 'Record not found';
-        } else if (prismaError.code === 'P2002') {
-          statusCode = 409;
-          errorMessage = 'Conflict with existing data';
-        }
-      }
-    }
-    
-    // Check if it's a Prisma foreign key constraint error
-    if (error instanceof Error && 
-        error.name === 'PrismaClientKnownRequestError' && 
-        (error as PrismaClientKnownRequestError).code === 'P2025') {
-      
-      // This could be because one or more invoices don't exist
-      console.log('Foreign key constraint error. Some invoices likely do not exist or are already paid');
-      
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json(
-        { error: 'One or more invoices not found or already paid' },
+        { success: false, message: 'Some invoices are already associated with a payment' },
         { status: 400 }
       );
     }
-    
     return NextResponse.json(
-      { error: errorMessage, details: error instanceof Error ? error.message : String(error) },
-      { status: statusCode }
+      { success: false, message: 'Failed to create payment' },
+      { status: 500 }
     );
   }
 } 

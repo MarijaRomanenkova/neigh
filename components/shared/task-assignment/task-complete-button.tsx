@@ -57,34 +57,39 @@ export default function TaskCompleteButton({
   }, [toast]);
 
   const handleComplete = async () => {
-    if (isUpdating || !completedStatusId) return;
-    
+    if (!completedStatusId) {
+      toast({
+        title: 'Error',
+        description: 'Could not find completed status',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsUpdating(true);
-      
       const result = await updateTaskAssignment(taskAssignmentId, completedStatusId);
-
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Task marked as completed!',
-      });
-      
-      setIsOpen(false);
-      router.refresh();
-      
-      if (onCompleted) {
-        onCompleted();
+      if (result.success) {
+        toast({
+          title: 'Task completed',
+          description: 'The task has been marked as completed.',
+        });
+        router.refresh();
+        if (onCompleted) {
+          onCompleted();
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message || 'Failed to complete task',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
-      console.error('Error completing task:', error);
       toast({
-        variant: 'destructive',
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to complete task',
+        description: 'Failed to complete task',
+        variant: 'destructive',
       });
     } finally {
       setIsUpdating(false);

@@ -69,6 +69,7 @@ type InvoiceFormProps = {
 const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
   const { toast } = useToast();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItems[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
 
@@ -216,11 +217,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
       // Then update the form value with all items
       const currentItems = form.getValues("items") || [];
       form.setValue("items", [...currentItems, formItem]);
-      
-      console.log("Added new item:", newItem);
-      console.log("Current form items:", form.getValues("items"));
     } catch (error) {
-      console.error("Error adding invoice item:", error);
       toast({
         title: "Error",
         description: "Failed to add invoice item",
@@ -237,8 +234,6 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
    */
   const handleRemoveItem = (index: number) => {
     try {
-      console.log("Removing item at index:", index);
-      
       // Update local state by filtering out the item at the specified index
       const updatedItems = invoiceItems.filter((_, i) => i !== index);
       setInvoiceItems(updatedItems);
@@ -259,10 +254,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
       }, 0);
       setTotalPrice(total);
       form.setValue("totalPrice", total);
-      
-      console.log("Updated form items after removal:", form.getValues("items"));
     } catch (error) {
-      console.error("Error removing invoice item:", error);
       toast({
         title: "Error",
         description: "Failed to remove invoice item",
@@ -322,11 +314,12 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
         setTotalPrice(total);
         form.setValue("totalPrice", total);
       }
-      
-      console.log(`Updated item ${index}, field ${field}:`, value);
-      console.log("Current form items:", form.getValues("items"));
     } catch (error) {
-      console.error(`Error updating item ${index}, field ${field}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to update item ${index}, field ${field}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -336,36 +329,37 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
    * 
    * @param {z.infer<typeof insertInvoiceSchema>} values - The form values
    */
-  const onSubmit = async (values: z.infer<typeof insertInvoiceSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof insertInvoiceSchema>) => {
     try {
+      setIsSubmitting(true);
       const result = await createInvoice(values);
-      
       if (result.success) {
         toast({
-          title: "Success",
-          description: "Invoice created successfully",
+          title: 'Invoice created',
+          description: 'The invoice has been created successfully.',
         });
-        router.push('/user/dashboard/contractor/invoices');
+        router.push(`/user/dashboard/contractor/invoices/${result.data}`);
       } else {
         toast({
-          title: "Error",
-          description: result.message || "Failed to create invoice",
-          variant: "destructive",
+          title: 'Error',
+          description: result.message || 'Failed to create invoice',
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error("Failed to create invoice:", error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to create invoice',
+        variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         {existingInvoices.length > 0 && (
           <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" />
@@ -560,7 +554,7 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
           </div>
         </div>
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {type === 'Create' ? 'Create Invoice' : 'Update Invoice'}
         </Button>
       </form>

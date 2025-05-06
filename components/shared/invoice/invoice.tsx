@@ -1,13 +1,36 @@
-'use client';
-
 /**
  * Invoice Details Component
  * @module Components
  * @group Shared/Invoice
  * 
- * This client-side component renders a detailed view of an invoice,
- * including item breakdown, pricing, and payment status.
+ * A client-side component that renders a detailed view of an invoice, including:
+ * - Invoice header with number and issue date
+ * - Client and contractor information
+ * - Itemized list of services/products with quantities and prices
+ * - Total amount calculation
+ * - Payment status and date information
+ * 
+ * @example
+ * ```tsx
+ * <InvoiceDetails
+ *   invoice={{
+ *     id: "inv-123",
+ *     invoiceNumber: "INV-001",
+ *     totalPrice: "100.00",
+ *     items: [{
+ *       id: "item-1",
+ *       name: "Service A",
+ *       price: "50.00",
+ *       qty: 2
+ *     }],
+ *     isPaid: false,
+ *     createdAt: new Date()
+ *   }}
+ * />
+ * ```
  */
+
+'use client';
 
 import { Invoice } from '@/types';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
@@ -25,11 +48,11 @@ import { Button } from '@/components/ui/button';
 /**
  * Props for the InvoiceDetails component
  * @interface InvoiceDetailsProps
- * @property {Invoice} invoice - The invoice data to display
  */
-type InvoiceDetailsProps = {
+interface InvoiceDetailsProps {
+  /** The invoice data to display */
   invoice: Invoice;
-};
+}
 
 /**
  * Invoice Details Component
@@ -40,8 +63,6 @@ type InvoiceDetailsProps = {
  * - Itemized list of services/products with quantities and prices
  * - Total amount calculation
  * - Payment status and date information
- * 
- * Uses shadcn/ui Card and Table components for consistent styling.
  * 
  * @param {InvoiceDetailsProps} props - Component properties
  * @returns {JSX.Element} The rendered invoice details
@@ -64,35 +85,30 @@ const InvoiceDetails = ({ invoice }: InvoiceDetailsProps) => {
           </div>
         </div>
       </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* Contact Information */}
-        <div className="grid grid-cols-2 gap-6">
+      <CardContent>
+        {/* Client and Contractor Information */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <p className="text-sm font-semibold mb-2">From (Contractor)</p>
-            <div className="text-sm">
-              <p>{invoice.contractor.name}</p>
-              <p>{invoice.contractor.email}</p>
-            </div>
+            <p className="text-sm font-medium">From</p>
+            <p className="text-sm text-muted-foreground">{invoice.contractor.name}</p>
+            <p className="text-sm text-muted-foreground">{invoice.contractor.email}</p>
           </div>
           <div>
-            <p className="text-sm font-semibold mb-2">To (Client)</p>
-            <div className="text-sm">
-              <p>{invoice.client.name}</p>
-              <p>{invoice.client.email}</p>
-            </div>
+            <p className="text-sm font-medium">To</p>
+            <p className="text-sm text-muted-foreground">{invoice.client.name}</p>
+            <p className="text-sm text-muted-foreground">{invoice.client.email}</p>
           </div>
         </div>
 
-        {/* Invoice Items */}
-        <div>
+        {/* Items Table */}
+        <div className="space-y-4">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">#</TableHead>
+                <TableHead>#</TableHead>
                 <TableHead>Item</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>

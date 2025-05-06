@@ -1,11 +1,26 @@
-'use client';
-
 /**
- * @module TaskActionButton
- * @description A conditional button component that displays either an edit button for task owners
- * or a contact button for other users. The displayed action depends on whether the current user
- * is the owner of the task.
+ * Task Action Button Component
+ * @module Components
+ * @group Shared/Tasks
+ * 
+ * A client-side component that conditionally renders either an edit button for task owners
+ * or a contact button for other users. Features include:
+ * - User role-based button rendering
+ * - Session-based authentication check
+ * - Consistent styling with shadcn/ui
+ * - Seamless integration with task management
+ * 
+ * @example
+ * ```tsx
+ * <TaskActionButton
+ *   taskId="task123"
+ *   taskOwnerId="user456"
+ *   className="custom-class"
+ * />
+ * ```
  */
+
+'use client';
 
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
@@ -14,33 +29,26 @@ import TaskContactButton from './task-contact-button';
 import { Pencil } from 'lucide-react';
 
 /**
+ * Props for the TaskActionButton component
  * @interface TaskActionButtonProps
- * @property {string} taskId - The unique identifier of the task
- * @property {string} taskOwnerId - The unique identifier of the task owner
- * @property {string} [className] - Optional CSS class names to apply to the button
  */
 interface TaskActionButtonProps {
+  /** The unique identifier of the task */
   taskId: string;
+  /** The unique identifier of the task owner */
   taskOwnerId: string;
+  /** Optional CSS class names */
   className?: string;
 }
 
 /**
- * TaskActionButton component that conditionally renders different actions based on user ownership.
- * For task owners, it displays an edit button that navigates to the task edit page.
- * For other users, it displays a contact button to initiate conversation with the task owner.
+ * TaskActionButton component that conditionally renders different actions based on user role.
+ * Shows edit button for task owners and contact button for other users.
  * 
- * @param {Object} props - Component props
- * @param {string} props.taskId - The ID of the task
- * @param {string} props.taskOwnerId - The ID of the task owner
- * @param {string} [props.className] - Optional class name for styling
- * @returns {JSX.Element} Either an Edit button or a TaskContactButton component
+ * @param {TaskActionButtonProps} props - Component properties
+ * @returns {JSX.Element} Either an edit button or a contact button based on user role
  */
-const TaskActionButton = ({ 
-  taskId, 
-  taskOwnerId,
-  className = ''
-}: TaskActionButtonProps) => {
+const TaskActionButton = ({ taskId, taskOwnerId, className }: TaskActionButtonProps) => {
   const { data: session } = useSession();
   const router = useRouter();
   

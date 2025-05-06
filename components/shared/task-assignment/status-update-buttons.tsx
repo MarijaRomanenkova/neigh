@@ -11,41 +11,40 @@ interface StatusUpdateButtonsProps {
   currentStatus: string;
 }
 
+interface StatusUpdateResult {
+  success: boolean;
+  message?: string;
+}
+
 export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpdateButtonsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   
-  const updateStatus = async (newStatus: string) => {
-    if (isUpdating) return;
-    
+  const handleStatusUpdate = async (newStatus: string) => {
     try {
       setIsUpdating(true);
-      setError(null);
+      const result = await updateTaskAssignmentStatus(taskId, newStatus) as StatusUpdateResult;
       
-      // Use the server action instead of fetch API call
-      const result = await updateTaskAssignmentStatus(taskId, newStatus);
-      
-      if (!result) {
-        throw new Error('Failed to update task status');
+      if (result.success) {
+        toast({
+          title: 'Status updated',
+          description: 'Task status has been updated successfully.',
+        });
+        router.refresh();
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message || 'Failed to update task status',
+          variant: 'destructive',
+        });
       }
-      
-      toast({
-        title: 'Success',
-        description: `Task status updated to ${newStatus}`,
-      });
-      
-      // Refresh the page to show updated status
-      router.refresh();
     } catch (error) {
-      console.error('Error updating task status:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update task status';
-      setError(errorMessage);
       toast({
-        variant: 'destructive',
         title: 'Error',
-        description: errorMessage,
+        description: 'Failed to update task status',
+        variant: 'destructive',
       });
     } finally {
       setIsUpdating(false);
@@ -62,7 +61,7 @@ export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpd
           <Button 
             variant="outline"
             size="sm"
-            onClick={() => updateStatus('IN_PROGRESS')}
+            onClick={() => handleStatusUpdate('IN_PROGRESS')}
             disabled={isUpdating}
           >
             {isUpdating ? "Processing..." : "Start Task"}
@@ -73,7 +72,7 @@ export default function StatusUpdateButtons({ taskId, currentStatus }: StatusUpd
           <Button 
             variant="success-outline"
             size="sm"
-            onClick={() => updateStatus('COMPLETED')}
+            onClick={() => handleStatusUpdate('COMPLETED')}
             disabled={isUpdating}
           >
             {isUpdating ? "Processing..." : "Complete"}

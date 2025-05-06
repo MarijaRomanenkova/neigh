@@ -5,8 +5,28 @@
  * @module Components
  * @group Shared/Task
  * 
- * This client-side component provides a form for creating and updating tasks,
- * with validation, image uploads, and category selection.
+ * A client-side component that provides a form for creating and updating tasks.
+ * Features include:
+ * - Form validation using Zod schemas
+ * - Image upload with preview
+ * - Category selection
+ * - Price input with validation
+ * - Description editor
+ * - Automatic slug generation
+ * - Toast notifications for feedback
+ * 
+ * @example
+ * ```tsx
+ * <TaskForm
+ *   type="Create"
+ *   task={null}
+ *   categories={[
+ *     { id: "1", name: "Gardening" },
+ *     { id: "2", name: "Cleaning" }
+ *   ]}
+ *   userId="user123"
+ * />
+ * ```
  */
 
 import { useToast } from '@/hooks/use-toast';
@@ -46,24 +66,24 @@ import { useState } from 'react';
 /**
  * Props for the TaskForm component
  * @interface TaskFormProps
- * @property {'Create'|'Update'} type - The form mode (create new task or update existing)
- * @property {Task|null} task - Existing task data for update mode (null for create)
- * @property {string} [taskId] - ID of the task being updated
- * @property {Object[]} categories - Available categories for selection
- * @property {string} categories[].id - Category ID
- * @property {string} categories[].name - Category name
- * @property {string} userId - ID of the user creating/updating the task
  */
-type TaskFormProps = {
+interface TaskFormProps {
+  /** The form mode (create new task or update existing) */
   type: 'Create' | 'Update';
+  /** Existing task data for update mode (null for create) */
   task: Task | null;
+  /** ID of the task being updated */
   taskId?: string;
+  /** Available categories for selection */
   categories: {
+    /** Category ID */
     id: string;
+    /** Category name */
     name: string;
   }[];
+  /** ID of the user creating/updating the task */
   userId: string;
-};
+}
 
 /**
  * Task Form Component
@@ -121,10 +141,17 @@ const TaskForm = ({
   ) => {
     // On Create
     if (type === 'Create') {
-      const res = await createTask({
-        ...values,
-        userId: userId
+      const formData = new FormData();
+      Object.entries(values).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        } else {
+          formData.append(key, String(value));
+        }
       });
+      formData.append('userId', userId);
+
+      const res = await createTask(formData);
 
       if (!res.success) {
         toast({

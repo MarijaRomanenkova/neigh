@@ -9,7 +9,7 @@
  */
 
 import { SessionProvider } from 'next-auth/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * AuthProvider Component
@@ -24,10 +24,15 @@ import { useEffect } from 'react';
  * @returns {JSX.Element} The SessionProvider with children
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Log when the auth provider is initialized
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    console.log("Auth provider initialized");
+    setMounted(true);
   }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <SessionProvider>

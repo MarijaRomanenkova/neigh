@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * Payment Page Component
- * @module Pages
- * @group Payments
- * 
- * This client-side component handles the payment process for selected invoices.
- * It supports multiple payment methods (Stripe and PayPal) and manages the entire
- * payment flow from creation to completion.
- */
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -32,17 +22,6 @@ import {
 } from '@stripe/react-stripe-js';
 import { Invoice } from '@/types';
 
-/**
- * Interface representing a simplified invoice structure
- * @interface SimpleInvoice
- * @property {string} id - Unique identifier for the invoice
- * @property {string} invoiceNumber - Human-readable invoice number
- * @property {number} totalPrice - Total amount to be paid
- * @property {Object} client - Information about the client
- * @property {string} client.name - Name of the client
- * @property {Object} contractor - Information about the service provider
- * @property {string} contractor.name - Name of the contractor
- */
 interface SimpleInvoice {
   id: string;
   invoiceNumber: string;
@@ -55,18 +34,7 @@ interface SimpleInvoice {
   };
 }
 
-/**
- * Main payment page component
- * 
- * Handles the entire payment flow:
- * 1. Retrieves selected invoices from session storage
- * 2. Creates a payment record in the database
- * 3. Initializes the selected payment method (Stripe or PayPal)
- * 4. Processes the payment and handles success/failure
- * 
- * @returns {JSX.Element} The rendered payment page with payment options
- */
-export default function PaymentPage() {
+export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -77,10 +45,8 @@ export default function PaymentPage() {
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const hasFetchedInvoices = useRef(false);
   
-  // Calculate total from all invoices
   const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.totalPrice, 0);
 
-  // Fetch Stripe client secret
   const fetchStripeClientSecret = useCallback(async (paymentId: string) => {
     try {
       const response = await fetch(`/api/payments/${paymentId}/stripe-intent`, {
@@ -102,9 +68,7 @@ export default function PaymentPage() {
     }
   }, [toast]);
 
-  // Define createPaymentRecord outside useEffect
   const createPaymentRecord = useCallback(async (invoices: SimpleInvoice[]) => {
-    // Validate invoices array
     if (!invoices || !Array.isArray(invoices) || invoices.length === 0) {
       console.error('Invalid invoices provided to createPaymentRecord:', invoices);
       toast({
@@ -114,16 +78,14 @@ export default function PaymentPage() {
       return;
     }
     
-    // Don't try to create a payment if we already have a payment ID and the method hasn't changed
     if (paymentId && !processingPayment) {
       console.log('Payment record already exists, fetching new client secret for changed payment method');
       
       try {
-        // If we're switching to Stripe and already have a payment ID, fetch a new client secret
         if (paymentMethod === 'Stripe') {
           await fetchStripeClientSecret(paymentId);
         }
-        return; // Skip creating a new payment record
+        return;
       } catch (error) {
         console.error('Error fetching client secret for existing payment:', error);
       }
@@ -132,22 +94,16 @@ export default function PaymentPage() {
     try {
       setProcessingPayment(true);
       
-      // Extract invoice IDs and ensure they are valid
       const invoiceIds = invoices.map(inv => inv.id).filter(Boolean);
       
       if (invoiceIds.length === 0) {
         throw new Error('No valid invoice IDs available');
       }
       
-      console.log('Creating payment record for invoices:', invoiceIds);
-      console.log('Using payment method:', paymentMethod);
-      
       const payload = { 
         invoiceIds,
         paymentMethod: paymentMethod
       };
-      
-      console.log('Request payload:', payload);
       
       const response = await fetch('/api/payments/create', {
         method: 'POST',
@@ -159,31 +115,17 @@ export default function PaymentPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        console.error('Server response error:', { 
-          status: response.status, 
-          statusText: response.statusText,
-          data: errorData 
-        });
         throw new Error(`Failed to create payment record: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Payment record created successfully:', data);
       setPaymentId(data.paymentId);
 
-      // If Stripe is selected as payment method, fetch client secret
       if (paymentMethod === 'Stripe') {
         await fetchStripeClientSecret(data.paymentId);
       }
     } catch (error) {
       console.error('Error creating payment record:', error);
-      
-      // More detailed error logging
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-      
       toast({
         variant: 'destructive',
         description: error instanceof Error 
@@ -196,7 +138,6 @@ export default function PaymentPage() {
   }, [paymentId, paymentMethod, processingPayment, toast, fetchStripeClientSecret]);
 
   useEffect(() => {
-    // Retrieve selected invoice IDs from session storage
     const selectedIds = sessionStorage.getItem('selectedInvoices');
     
     if (!selectedIds) {
@@ -208,7 +149,6 @@ export default function PaymentPage() {
       return;
     }
 
-    // Only fetch invoices once
     if (hasFetchedInvoices.current) {
       return;
     }
@@ -235,8 +175,6 @@ export default function PaymentPage() {
           return;
         }
         
-        console.log('Fetching invoices with IDs:', ids);
-        
         const response = await fetch('/api/invoices/batch', {
           method: 'POST',
           headers: {
@@ -246,26 +184,16 @@ export default function PaymentPage() {
         });
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('Failed to fetch invoice details:', { 
-            status: response.status,
-            statusText: response.statusText,
-            data: errorData
-          });
           throw new Error(`Failed to fetch invoice details: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
         
-        console.log('Server response data:', data);
-        
         if (!data.invoices || !Array.isArray(data.invoices)) {
-          console.error('Invalid response format. Expected invoices array but got:', data);
           throw new Error('Invalid invoice data format returned from server');
         }
         
         if (data.invoices.length === 0) {
-          console.warn('Server returned empty invoices array. This could mean the invoices were already paid or do not exist.');
           toast({
             variant: 'destructive',
             description: 'No invoices found for the selected IDs. They may have been paid already or do not exist.',
@@ -274,34 +202,6 @@ export default function PaymentPage() {
           return;
         }
         
-        console.log(`Successfully fetched ${data.invoices.length} invoices`);
-        
-        // Add detailed debugging for invoice structure
-        console.log('DEBUG - Invoice structure analysis:');
-        data.invoices.forEach((inv: Invoice, index: number) => {
-          console.log(`Invoice ${index + 1}:`, {
-            hasIdProperty: 'id' in inv,
-            idValue: inv.id,
-            idType: typeof inv.id,
-            
-            hasInvoiceNumberProperty: 'invoiceNumber' in inv,
-            invoiceNumberValue: inv.invoiceNumber,
-            invoiceNumberType: typeof inv.invoiceNumber,
-            
-            hasTotalPriceProperty: 'totalPrice' in inv,
-            totalPriceValue: inv.totalPrice,
-            totalPriceType: typeof inv.totalPrice,
-            
-            // Log all properties of the invoice object to see what we actually have
-            allProperties: Object.keys(inv),
-            
-            // Check if we can convert totalPrice to a number
-            canConvertToNumber: !isNaN(Number(inv.totalPrice)),
-            convertedValue: Number(inv.totalPrice)
-          });
-        });
-        
-        // Validate invoice structure - modified to be more lenient with number types
         const validInvoices = data.invoices.filter((inv: unknown) => 
           inv && typeof inv === 'object' && 
           'id' in inv && 
@@ -312,23 +212,10 @@ export default function PaymentPage() {
            (typeof inv.totalPrice === 'object' && inv.totalPrice !== null && 'toString' in inv.totalPrice))
         ) as SimpleInvoice[];
         
-        // Log validation results
-        console.log('DEBUG - Validation results:', {
-          totalInvoices: data.invoices.length,
-          validInvoices: validInvoices.length,
-          invalidInvoices: data.invoices.length - validInvoices.length
-        });
-        
         if (validInvoices.length === 0) {
-          console.error('No valid invoices in the response:', data.invoices);
           throw new Error('Invoices missing required fields');
         }
         
-        if (validInvoices.length < data.invoices.length) {
-          console.warn(`Some invoices (${data.invoices.length - validInvoices.length}) were filtered out due to invalid format`);
-        }
-        
-        // Convert Prisma Decimal objects to regular numbers
         const normalizedInvoices = validInvoices.map(inv => ({
           ...inv,
           totalPrice: typeof inv.totalPrice === 'number' ? inv.totalPrice : 
@@ -336,19 +223,12 @@ export default function PaymentPage() {
                      Number((inv.totalPrice as { toString(): string }).toString()))
         }));
         
-        console.log('DEBUG - Normalized invoices:', normalizedInvoices);
-        
-        // Set invoices in state BEFORE attempting to create payment record
         setInvoices(normalizedInvoices);
         
-        // Only after the invoices are fetched and set, attempt to create a payment record
-        // Verify we have valid invoice ids before creating the payment
         const invoiceIds = validInvoices.map((inv: SimpleInvoice) => inv.id);
         if (invoiceIds.length > 0) {
-          console.log('Creating payment record with valid invoice IDs:', invoiceIds);
           await createPaymentRecord(validInvoices);
         } else {
-          console.error('No valid invoice IDs found for payment record creation');
           throw new Error('No valid invoices to process');
         }
       } catch (error) {
@@ -368,15 +248,8 @@ export default function PaymentPage() {
     fetchInvoices();
   }, [router, toast, createPaymentRecord]);
 
-  // Add a separate effect for handling payment method changes
   useEffect(() => {
-    // We ONLY want to trigger payment record creation when the payment method changes
-    // AND we already have invoices AND a previous payment ID
     if (paymentMethod && invoices.length > 0 && paymentId) {
-      // No need to create a new payment record, just update payment method on the existing one
-      console.log(`Payment method changed to ${paymentMethod} with existing payment ID ${paymentId}`);
-      
-      // If Stripe is selected, fetch a new client secret for the existing payment
       if (paymentMethod === 'Stripe' && !stripeClientSecret) {
         fetchStripeClientSecret(paymentId).catch(error => {
           console.error('Failed to fetch client secret after payment method change:', error);
@@ -385,7 +258,6 @@ export default function PaymentPage() {
     }
   }, [paymentMethod, invoices.length, paymentId, stripeClientSecret, fetchStripeClientSecret]);
 
-  // Stripe components
   const stripePromise = loadStripe(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string
   );
@@ -407,7 +279,7 @@ export default function PaymentPage() {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/user/dashboard/client/payment/${paymentId}/stripe-payment-success`,
+          return_url: `${window.location.origin}/user/dashboard/client/payments/${paymentId}/stripe-payment-success`,
         },
       });
       
@@ -440,7 +312,6 @@ export default function PaymentPage() {
     );
   };
 
-  // PayPal component
   const PayPalPaymentButton = () => {
     const { toast } = useToast();
     const [{ isPending }] = usePayPalScriptReducer();
@@ -491,8 +362,7 @@ export default function PaymentPage() {
             description: 'Payment completed successfully!',
           });
           
-          // Redirect to success page
-          router.push(`/user/dashboard/client/payment/${paymentId}`);
+          router.push(`/user/dashboard/client/payments/${paymentId}`);
         }}
       />
     );

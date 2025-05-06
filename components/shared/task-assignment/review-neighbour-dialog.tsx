@@ -1,3 +1,27 @@
+/**
+ * Review Neighbour Dialog Component
+ * @module Components
+ * @group Shared/TaskAssignment
+ * 
+ * A client-side dialog component that allows users to review their neighbours.
+ * Features include:
+ * - Star rating system
+ * - Optional feedback text
+ * - Loading states
+ * - Error handling with toast notifications
+ * - Automatic refresh after submission
+ * 
+ * @example
+ * ```tsx
+ * <ReviewNeighbourDialog
+ *   taskAssignmentId="task123"
+ *   neighbourName="Jane Smith"
+ * >
+ *   <Button>Review Neighbour</Button>
+ * </ReviewNeighbourDialog>
+ * ```
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -17,12 +41,26 @@ import { markTaskAsReviewed } from "@/lib/actions/task-assignment.actions";
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
+/**
+ * Props for the ReviewNeighbourDialog component
+ * @interface ReviewNeighbourDialogProps
+ */
 interface ReviewNeighbourDialogProps {
+  /** Unique identifier of the task assignment */
   taskAssignmentId: string;
+  /** Name of the neighbour being reviewed */
   neighbourName: string;
+  /** Optional trigger element to open the dialog */
   children?: ReactNode;
 }
 
+/**
+ * ReviewNeighbourDialog component that provides a form for reviewing neighbours.
+ * Allows users to provide ratings and feedback about their neighbours.
+ * 
+ * @param {ReviewNeighbourDialogProps} props - Component properties
+ * @returns {JSX.Element} A dialog with a review form
+ */
 export default function ReviewNeighbourDialog({ taskAssignmentId, neighbourName, children }: ReviewNeighbourDialogProps) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
@@ -43,7 +81,6 @@ export default function ReviewNeighbourDialog({ taskAssignmentId, neighbourName,
 
     setIsSubmitting(true);
     try {
-      // Reuse the existing markTaskAsReviewed function since contractorId is the neighbour
       const result = await markTaskAsReviewed(taskAssignmentId, rating, feedback);
       
       if (result.success) {
@@ -61,10 +98,9 @@ export default function ReviewNeighbourDialog({ taskAssignmentId, neighbourName,
         });
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       toast({
         title: "Error",
-        description: "An error occurred while submitting your review",
+        description: "Failed to submit review",
         variant: "destructive"
       });
     } finally {

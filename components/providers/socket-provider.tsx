@@ -56,6 +56,7 @@ export const useSocket = () => {
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const socketInstance = ClientIO('/', {
@@ -70,22 +71,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socketInstance.on('connect', () => {
-      console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('Socket disconnected');
       setIsConnected(false);
     });
 
-    socketInstance.on('connect_error', (err) => {
-      try {
-        console.log('Socket connection error:', err.message);
-        setIsConnected(false);
-      } catch (e) {
-        console.log('Failed to log socket error');
-      }
+    socketInstance.on('error', (err: Error) => {
+      setError(err.message);
     });
 
     setSocket(socketInstance);

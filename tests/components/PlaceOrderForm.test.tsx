@@ -37,13 +37,13 @@ const MockPlaceOrderForm = () => {
 };
 
 // Mock the actual component import
-jest.mock('@/app/user/dashboard/client/place-payment/place-order-form', () => ({
+jest.mock('@/app/user/dashboard/client/payments/checkout/page', () => ({
   __esModule: true,
   default: () => <MockPlaceOrderForm />,
 }));
 
 // Import after mocking
-import PlaceOrderForm from '@/app/user/dashboard/client/place-payment/place-order-form';
+import CheckoutPage from '@/app/user/dashboard/client/payments/checkout/page';
 
 describe('PlaceOrderForm', () => {
   beforeEach(() => {
@@ -62,7 +62,7 @@ describe('PlaceOrderForm', () => {
   });
 
   it('renders the place order button', () => {
-    render(<PlaceOrderForm />);
+    render(<CheckoutPage />);
     
     // Check if the button is rendered
     const button = screen.getByTestId('place-order-button');
@@ -81,7 +81,7 @@ describe('PlaceOrderForm', () => {
     (paymentActions.createPayment as jest.Mock).mockImplementation(createPayment);
     
     const user = userEvent.setup();
-    render(<PlaceOrderForm />);
+    render(<CheckoutPage />);
     
     // Click the place order button
     await user.click(screen.getByTestId('place-order-button'));
@@ -98,7 +98,7 @@ describe('PlaceOrderForm', () => {
     (paymentActions.createPayment as jest.Mock).mockImplementation(createPayment);
     
     const user = userEvent.setup();
-    render(<PlaceOrderForm />);
+    render(<CheckoutPage />);
     
     // Click the place order button
     await user.click(screen.getByTestId('place-order-button'));
@@ -111,7 +111,7 @@ describe('PlaceOrderForm', () => {
     (paymentActions.createPayment as jest.Mock).mockImplementation(createPayment);
     
     const user = userEvent.setup();
-    render(<PlaceOrderForm />);
+    render(<CheckoutPage />);
     
     // Click the place order button
     await user.click(screen.getByTestId('place-order-button'));

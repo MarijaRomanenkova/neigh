@@ -1,3 +1,28 @@
+/**
+ * Task Contact Button Component
+ * @module Components
+ * @group Shared/Tasks
+ * 
+ * A client-side component that provides a button to initiate conversation with a task owner.
+ * Features include:
+ * - Authentication check
+ * - Existing conversation lookup
+ * - New conversation creation
+ * - Error handling with toast notifications
+ * - Loading state management
+ * 
+ * @example
+ * ```tsx
+ * <TaskContactButton
+ *   taskId="task123"
+ *   taskOwnerId="user456"
+ *   variant="default"
+ *   size="default"
+ *   className="custom-class"
+ * />
+ * ```
+ */
+
 'use client';
 
 /**
@@ -13,18 +38,19 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 /**
+ * Props for the TaskContactButton component
  * @interface TaskContactButtonProps
- * @property {string} taskId - The unique identifier of the task
- * @property {string} taskOwnerId - The unique identifier of the task owner
- * @property {'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'} [variant='default'] - Button styling variant
- * @property {'default' | 'sm' | 'lg' | 'icon'} [size='default'] - Button size
- * @property {string} [className] - Optional CSS class names to apply to the button
  */
 interface TaskContactButtonProps {
+  /** The unique identifier of the task */
   taskId: string;
+  /** The unique identifier of the task owner */
   taskOwnerId: string;
+  /** Button styling variant */
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
+  /** Button size */
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  /** Optional CSS class names */
   className?: string;
 }
 
@@ -32,12 +58,7 @@ interface TaskContactButtonProps {
  * TaskContactButton component that allows users to initiate conversations with task owners.
  * Handles authentication check, existing conversation lookup, and creation of new conversations.
  * 
- * @param {Object} props - Component props
- * @param {string} props.taskId - The ID of the task
- * @param {string} props.taskOwnerId - The ID of the task owner
- * @param {'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'} [props.variant='default'] - Button styling variant
- * @param {'default' | 'sm' | 'lg' | 'icon'} [props.size='default'] - Button size
- * @param {string} [props.className] - Optional class name for styling
+ * @param {TaskContactButtonProps} props - Component properties
  * @returns {JSX.Element} A button that initiates contact with the task owner
  */
 const TaskContactButton = ({ 

@@ -39,34 +39,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const event = stripe.webhooks.constructEvent(
+    const event = await stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log('event', event);
-    
-    // Handle payment_intent.succeeded events
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      
-      // Check if paymentId exists in metadata
-      if (!paymentIntent.metadata?.paymentId) {
+      // Get the payment ID from the metadata
+      const paymentId = paymentIntent.metadata.paymentId;
+
+      if (!paymentId) {
         return NextResponse.json({
-          error: 'No paymentId found in payment intent metadata'
+          error: 'No payment ID found in metadata'
         }, { status: 400 });
       }
 
-      console.log('Processing payment_intent.succeeded for paymentId:', paymentIntent.metadata.paymentId);
-      
-      await updatePaymentToPaid(paymentIntent.metadata.paymentId, {
+      // Update the payment status in the database
+      await updatePaymentToPaid(paymentId, {
         id: paymentIntent.id,
         status: 'COMPLETED',
         email_address: paymentIntent.receipt_email || '',
-        pricePaid: (paymentIntent.amount / 100).toFixed(),
-        amount: (paymentIntent.amount / 100).toFixed(),
-        created_at: new Date().toISOString(),
+        amount: (paymentIntent.amount / 100).toString(),
+        pricePaid: (paymentIntent.amount / 100).toString(),
+        created_at: new Date(paymentIntent.created * 1000).toISOString()
       });
 
       return NextResponse.json({
@@ -102,10 +100,9 @@ export async function POST(req: NextRequest) {
       message: 'event is not charge.succeeded or payment_intent.succeeded',
     });
   } catch (error) {
-    console.error('Error processing Stripe webhook:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to create conversation', 
+        error: 'Failed to process webhook', 
         message: error instanceof Error ? error.message : 'Unknown error' 
       },
       { status: 500 }

@@ -1,3 +1,29 @@
+/**
+ * Review Task Dialog Component
+ * @module Components
+ * @group Shared/TaskAssignment
+ * 
+ * A client-side dialog component that allows clients to review completed tasks.
+ * Features include:
+ * - Star rating system
+ * - Optional feedback text
+ * - Edit mode for updating existing reviews
+ * - Loading states for data fetching
+ * - Error handling with toast notifications
+ * - Automatic refresh after submission
+ * 
+ * @example
+ * ```tsx
+ * <ReviewTaskDialog
+ *   taskAssignmentId="task123"
+ *   taskName="Garden Maintenance"
+ *   isEditMode={false}
+ * >
+ *   <Button>Review Task</Button>
+ * </ReviewTaskDialog>
+ * ```
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,13 +43,28 @@ import { markTaskAsReviewed, getClientReviewOfTask } from "@/lib/actions/task-as
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
+/**
+ * Props for the ReviewTaskDialog component
+ * @interface ReviewTaskDialogProps
+ */
 interface ReviewTaskDialogProps {
+  /** Unique identifier of the task assignment */
   taskAssignmentId: string;
+  /** Name of the task being reviewed */
   taskName: string;
+  /** Optional trigger element to open the dialog */
   children?: ReactNode;
+  /** Whether the dialog is in edit mode */
   isEditMode?: boolean;
 }
 
+/**
+ * ReviewTaskDialog component that provides a form for clients to review completed tasks.
+ * Supports both creating new reviews and editing existing ones.
+ * 
+ * @param {ReviewTaskDialogProps} props - Component properties
+ * @returns {JSX.Element} A dialog with a review form
+ */
 export default function ReviewTaskDialog({ 
   taskAssignmentId, 
   taskName, 
@@ -108,10 +149,9 @@ export default function ReviewTaskDialog({
         });
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       toast({
         title: "Error",
-        description: "An error occurred while submitting your review",
+        description: "Failed to submit review",
         variant: "destructive"
       });
     } finally {

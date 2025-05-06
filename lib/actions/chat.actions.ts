@@ -2,6 +2,11 @@
  * Chat and conversation management functions
  * @module ChatActions
  * @group API
+ * 
+ * This module provides server-side functions for managing chat conversations:
+ * - Creating new conversations between users
+ * - Retrieving existing conversations
+ * - Managing conversation participants
  */
 
 // Get or create a conversation between users
@@ -30,6 +35,26 @@ import { prisma } from '@/db/prisma';
  *     router.push(`/user/dashboard/messages/${result.conversation.id}`);
  *   }
  * };
+ * 
+ * @example
+ * // In a task list component with contact buttons
+ * const TaskList = ({ tasks }) => {
+ *   return (
+ *     <div>
+ *       {tasks.map(task => (
+ *         <div key={task.id}>
+ *           <h3>{task.name}</h3>
+ *           <button
+ *             onClick={() => handleContactOwner(task)}
+ *             disabled={task.createdById === session.user.id}
+ *           >
+ *             Contact Owner
+ *           </button>
+ *         </div>
+ *       ))}
+ *     </div>
+ *   );
+ * };
  */
 export const getOrCreateConversation = async (
   currentUserId: string,
@@ -46,19 +71,69 @@ export const getOrCreateConversation = async (
       return { error: 'User not found' };
     }
 
-    console.log('Conversation participants:', {
-      currentUserId,
-      taskCreatorId,
-      isSame: currentUserId === taskCreatorId
-    });
-
     // Make sure we're not creating a conversation with ourselves
     if (currentUserId === taskCreatorId) {
       return { error: 'Cannot create a conversation with yourself' };
     }
 
     // Check for existing conversation
-    // ... rest of your logic ...
+    const existingConversation = await prisma.conversation.findFirst({
+      where: {
+        taskId,
+        participants: {
+          every: {
+            userId: {
+              in: [currentUserId, taskCreatorId]
+            }
+          }
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (existingConversation) {
+      return { conversation: existingConversation };
+    }
+
+    // Create new conversation
+    const newConversation = await prisma.conversation.create({
+      data: {
+        taskId,
+        participants: {
+          create: [
+            { userId: currentUserId },
+            { userId: taskCreatorId }
+          ]
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return { conversation: newConversation };
   } catch (error) {
     console.error('Error in getOrCreateConversation:', error);
     return { error: 'Failed to get or create conversation' };

@@ -3,8 +3,19 @@
  * @module Components
  * @group Shared/TaskAssignment
  * 
- * This component renders a card displaying task assignment information,
- * linking a task to a contractor with status information.
+ * A card component that displays task assignment information with status badges,
+ * action buttons, and user-specific views for both clients and contractors.
+ * 
+ * @example
+ * ```tsx
+ * <TaskAssignmentCard
+ *   id="123"
+ *   taskId="456"
+ *   taskName="Garden Maintenance"
+ *   status={{ name: "IN_PROGRESS", color: "blue" }}
+ *   viewType="client"
+ * />
+ * ```
  */
 
 'use client';
@@ -68,36 +79,71 @@ const formatDateAsDDMMYYYY = (date: string | Date | number | object | undefined)
   }
 };
 
-// Type for a minimal task assignment that both client and contractor views can use
+/**
+ * Type definition for the status badge variants
+ */
+type StatusBadgeVariant = 
+  | 'default'
+  | 'secondary'
+  | 'destructive'
+  | 'outline'
+  | 'success'
+  | 'warning'
+  | 'paid'
+  | 'unpaid'
+  | 'pending'
+  | 'inProgress'
+  | 'completed'
+  | 'cancelled'
+  | 'archived';
+
+/**
+ * Props for the TaskAssignmentCard component
+ * @interface TaskAssignmentCardProps
+ */
 interface TaskAssignmentCardProps {
+  /** Unique identifier for the task assignment */
   id: string;
+  /** Unique identifier for the associated task */
   taskId: string;
+  /** Name of the task */
   taskName: string;
+  /** Optional description of the task */
   taskDescription?: string | null;
+  /** Optional category name for the task */
   categoryName?: string | null;
+  /** Price of the task */
   price: number;
+  /** Status information for the task assignment */
   status: {
+    /** Current status name (e.g., "IN_PROGRESS", "COMPLETED") */
     name: string;
+    /** Color theme for the status badge */
     color: string;
   };
-  // For contractor view
+  /** Optional client identifier (for contractor view) */
   clientId?: string;
+  /** Optional client name (for contractor view) */
   clientName?: string;
-  // For client view
+  /** Optional contractor identifier (for client view) */
   contractorId?: string;
+  /** Optional contractor name (for client view) */
   contractorName?: string;
-  // For invoice info
+  /** Whether the task has an associated invoice */
   hasInvoice?: boolean;
+  /** Whether the invoice has been paid */
   isPaid?: boolean;
+  /** Optional invoice identifier */
   invoiceId?: string;
-  // For task acceptance status
+  /** Whether the contractor has accepted the task */
   hasContractorAccepted?: boolean;
-  // What type of user is viewing this card
+  /** Type of user viewing the card ("client" or "contractor") */
   viewType: 'client' | 'contractor';
-  // Assignment creation date
+  /** Optional creation date of the task assignment */
   createdAt?: string | Date;
-  // Review statuses
+  /** Whether the client has reviewed the task */
   reviewedByClient?: boolean;
+  /** Whether the contractor has reviewed the client */
   reviewedByContractor?: boolean;
 }
 
@@ -199,22 +245,6 @@ function ContactButton({
     </Button>
   );
 }
-
-// Define a type for the badge variants
-type StatusBadgeVariant = 
-  | 'default'
-  | 'secondary'
-  | 'destructive'
-  | 'outline'
-  | 'success'
-  | 'warning'
-  | 'paid'
-  | 'unpaid'
-  | 'pending'
-  | 'inProgress'
-  | 'completed'
-  | 'cancelled'
-  | 'archived';
 
 // Function to determine which badge variant to use based on status name
 const getStatusVariant = (statusName: string): StatusBadgeVariant => {

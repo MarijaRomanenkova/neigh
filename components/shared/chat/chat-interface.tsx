@@ -23,6 +23,7 @@ import { ImageIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message, User } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
+import { markMessageAsRead } from '@/lib/actions/messages.actions';
 
 
 // Add an extended user type that includes contractor rating
@@ -78,31 +79,16 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   useEffect(() => {
     if (!session?.user) return;
     
-    const markMessagesAsRead = async () => {
+    const markMessagesAsRead = async (messages: Message[]) => {
       try {
-        const response = await fetch('/api/messages/read', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ conversationId }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to mark messages as read: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        if (result.markedAsRead > 0) {
-          console.log(`Marked ${result.markedAsRead} messages as read`);
-        }
+        await Promise.all(messages.map(message => markMessageAsRead(message.id)));
       } catch (error) {
-        console.error('Error marking messages as read:', error);
+        // Handle error
       }
     };
     
-    markMessagesAsRead();
-  }, [conversationId, session?.user]);
+    markMessagesAsRead(messages);
+  }, [messages, session?.user]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

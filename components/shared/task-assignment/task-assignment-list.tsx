@@ -1,3 +1,23 @@
+/**
+ * Task Assignment List Component
+ * @module Components
+ * @group Shared/TaskAssignment
+ * 
+ * A component that renders a list of task assignment cards with pagination support.
+ * Handles both client and contractor views, displaying relevant information and actions
+ * based on the user type.
+ * 
+ * @example
+ * ```tsx
+ * <TaskAssignmentList
+ *   assignments={assignments}
+ *   totalPages={5}
+ *   currentPage={1}
+ *   viewType="client"
+ * />
+ * ```
+ */
+
 'use client';
 
 import Link from 'next/link';
@@ -12,52 +32,93 @@ import AcceptTaskButton from './accept-task-button';
 import TaskAssignmentCard from './task-assignment-card';
 import Pagination from '@/components/shared/pagination';
 
-// Define a more specific type for task assignments
+/**
+ * Type definition for a serialized task assignment
+ * @interface SerializedTaskAssignment
+ */
 interface SerializedTaskAssignment {
+  /** Unique identifier for the task assignment */
   id: string;
+  /** Creation date of the task assignment */
   createdAt?: string | Date;
+  /** Last update date of the task assignment */
   updatedAt?: string | Date;
+  /** Completion date of the task assignment */
   completedAt?: string | Date | null;
+  /** Whether the task has been reviewed by the client */
   wasReviewed?: boolean;
+  /** Whether the client has been reviewed by the contractor */
   wasClientReviewed?: boolean;
+  /** Associated task information */
   task: {
+    /** Unique identifier for the task */
     id: string;
+    /** Name of the task */
     name: string;
+    /** Description of the task */
     description: string | null;
-    price: number; // Price as a number, not Decimal
+    /** Price of the task */
+    price: number;
+    /** Optional category information */
     category?: {
+      /** Name of the category */
       name?: string | null;
     } | null;
   };
+  /** Status information for the task assignment */
   status: {
+    /** Current status name */
     name: string;
+    /** Color theme for the status */
     color: string;
   };
+  /** Optional contractor information */
   contractor?: {
+    /** Unique identifier for the contractor */
     id: string;
+    /** Name of the contractor */
     name?: string;
   } | null;
+  /** Optional client information */
   client?: {
+    /** Unique identifier for the client */
     id?: string;
+    /** Name of the client */
     name?: string;
+    /** Email of the client */
     email: string;
   } | null;
+  /** Optional invoice items associated with the task */
   invoiceItems?: Array<{
+    /** Invoice information */
     invoice: {
+      /** Unique identifier for the invoice */
       id: string;
+      /** Invoice number */
       invoiceNumber: string;
+      /** Optional payment identifier */
       paymentId: string | null;
+      /** Optional payment information */
       payment?: {
+        /** Whether the invoice has been paid */
         isPaid: boolean;
       };
     };
   }> | null;
 }
 
+/**
+ * Props for the TaskAssignmentList component
+ * @interface TaskAssignmentListProps
+ */
 interface TaskAssignmentListProps {
+  /** Array of task assignments to display */
   assignments: SerializedTaskAssignment[];
+  /** Total number of pages for pagination */
   totalPages: number;
+  /** Current page number */
   currentPage: number;
+  /** Type of user viewing the list ("client" or "contractor") */
   viewType: 'client' | 'contractor';
 }
 

@@ -1,9 +1,15 @@
 'use server';
 
 /**
- * User authentication and profile management functions
+ * User management functions for authentication and profile operations
  * @module UserActions
  * @group API
+ * 
+ * This module provides server-side functions for handling user operations including:
+ * - User authentication (sign in, sign out)
+ * - Profile management
+ * - User creation and updates
+ * - Role-based access control
  */
 
 import {
@@ -464,7 +470,6 @@ export async function requestPasswordReset(email: string) {
     // Even if the user doesn't exist, we return success for security reasons
     // This prevents user enumeration attacks
     if (!user) {
-      console.log(`Password reset requested for non-existent email: ${email}`);
       return {
         success: true,
         message: 'If an account with that email exists, we have sent a password reset link',
@@ -500,15 +505,12 @@ export async function requestPasswordReset(email: string) {
       name: user.name,
       token,
     });
-
-    console.log(`Password reset email sent to: ${email}`);
     
     return {
       success: true,
       message: 'If an account with that email exists, we have sent a password reset link',
     };
   } catch (error) {
-    console.error('Error requesting password reset:', error);
     return {
       success: false,
       message: 'An error occurred while processing your request',
@@ -572,15 +574,11 @@ export async function resetPassword({
       where: { id: passwordReset.id },
     });
 
-    // Log the successful password reset
-    console.log(`Password reset successful for user: ${passwordReset.user.email}`);
-
     return {
       success: true,
       message: 'Password has been reset successfully',
     };
   } catch (error) {
-    console.error('Error resetting password:', error);
     return {
       success: false,
       message: 'An error occurred while resetting your password',

@@ -1,8 +1,36 @@
 /**
- * @module TaskList
- * @description A component that renders a grid of task cards with configurable title,
- * limit, and empty state message. This component is used to display task collections
- * across the application.
+ * Task List Component
+ * @module Components
+ * @group Shared/Tasks
+ * 
+ * A component that renders a grid of task cards with configurable title,
+ * limit, and empty state message. Features include:
+ * - Responsive grid layout
+ * - Optional title display
+ * - Configurable task limit
+ * - Customizable empty state message
+ * - Consistent card styling
+ * 
+ * @example
+ * ```tsx
+ * <TaskList
+ *   data={[
+ *     {
+ *       id: "task1",
+ *       name: "Garden Maintenance",
+ *       price: 100
+ *     },
+ *     {
+ *       id: "task2",
+ *       name: "House Cleaning",
+ *       price: 150
+ *     }
+ *   ]}
+ *   title="Available Tasks"
+ *   limit={4}
+ *   emptyMessage="No tasks available at the moment"
+ * />
+ * ```
  */
 
 import TaskCard from './task-card';
@@ -12,16 +40,17 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
 /**
+ * Props for the TaskList component
  * @interface TaskListProps
- * @property {Task[]} data - Array of task objects to display
- * @property {string} [title] - Optional heading to display above the task list
- * @property {number} [limit] - Optional maximum number of tasks to display
- * @property {string} [emptyMessage="No tasks found"] - Message to display when there are no tasks
  */
 interface TaskListProps {
+  /** Array of task objects to display */
   data: Task[];
+  /** Optional heading to display above the task list */
   title?: string;
+  /** Optional maximum number of tasks to display */
   limit?: number;
+  /** Message to display when there are no tasks */
   emptyMessage?: string;
 }
 
@@ -29,11 +58,7 @@ interface TaskListProps {
  * TaskList component for displaying a grid of task cards with optional title and limits.
  * Handles empty states with a configurable message.
  * 
- * @param {Object} props - Component props
- * @param {Task[]} props.data - Array of task objects to display
- * @param {string} [props.title] - Optional heading to display above the task list
- * @param {number} [props.limit] - Optional maximum number of tasks to display
- * @param {string} [props.emptyMessage="No tasks found"] - Message to display when there are no tasks
+ * @param {TaskListProps} props - Component properties
  * @returns {JSX.Element} A grid of task cards or an empty state message
  */
 const TaskList = ({

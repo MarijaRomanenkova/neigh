@@ -21,9 +21,9 @@ export default async function TaskAssignmentDetailsPage({ params }: { params: Pr
   }
   
   const { id } = await params;
-  const result = await getTaskAssignmentById(id);
+  const taskAssignment = await getTaskAssignmentById(id);
   
-  if (!result.success) {
+  if (!taskAssignment?.success || !taskAssignment.data) {
     return (
       <div className="container mx-auto py-10">
         <DashboardHeader
@@ -42,7 +42,7 @@ export default async function TaskAssignmentDetailsPage({ params }: { params: Pr
     );
   }
   
-  const assignment = result.data as TaskAssignment;
+  const assignment = taskAssignment.data as TaskAssignment;
   const latestInvoice = assignment.invoices && assignment.invoices.length > 0 
     ? [...assignment.invoices].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] as TaskAssignmentInvoice
     : null;
@@ -52,13 +52,6 @@ export default async function TaskAssignmentDetailsPage({ params }: { params: Pr
     !assignment.wasReviewed;
     
   const canAcceptTask = assignment.status.name === 'COMPLETED';
-
-  // Debug date format
-  console.log('Task assignment dates:', {
-    createdAt: assignment.createdAt,
-    updatedAt: assignment.updatedAt,
-    taskDueDate: assignment.task.dueDate
-  });
 
   // Helper function to safely format dates with fallback
   const safeFormatDate = (dateString: string | Date | null | undefined, formatStr: string) => {
@@ -150,6 +143,13 @@ export default async function TaskAssignmentDetailsPage({ params }: { params: Pr
     }
   };
 
+  // Format dates for display
+  const formattedDates = {
+    createdAt: safeFormatDate(assignment.createdAt, 'PPP'),
+    updatedAt: safeFormatDate(assignment.updatedAt, 'PPP'),
+    completedAt: assignment.completedAt ? safeFormatDate(assignment.completedAt, 'PPP') : null,
+  };
+
   return (
     <div className="container mx-auto py-10">
       <DashboardHeader
@@ -171,7 +171,7 @@ export default async function TaskAssignmentDetailsPage({ params }: { params: Pr
               </Badge>
             </div>
             <CardDescription>
-              Task assigned on {safeFormatDate(assignment.createdAt, 'PPP')}
+              Task assigned on {formattedDates.createdAt}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

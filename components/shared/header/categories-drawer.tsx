@@ -22,6 +22,7 @@ import { MenuIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Category } from '@/types';
 import { useState, useEffect } from 'react';
+import { getCategories } from '@/lib/actions/category.actions';
 
 /**
  * Props for the CategoriesDrawer component
@@ -69,21 +70,10 @@ const CategoriesDrawer = ({ initialCategories = [] }: CategoriesDrawerProps) => 
        */
       const fetchCategories = async () => {
         try {
-          setIsLoading(true);
-          console.log("Fetching categories from API");
-          const response = await fetch('/api/categories');
-          
-          if (!response.ok) {
-            throw new Error(`API error with status ${response.status}`);
-          }
-          
-          const data = await response.json();
-          console.log("Categories fetched:", data);
+          const data = await getCategories();
           setCategories(data);
         } catch (error) {
-          console.error('Error fetching categories:', error);
-        } finally {
-          setIsLoading(false);
+          // Handle error
         }
       };
 

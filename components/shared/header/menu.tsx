@@ -22,58 +22,52 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 /**
- * Custom hook for tracking unread messages count with auto-refresh
- * @returns {number} The current count of unread messages
+ * Fetches the count of unread messages for the current user
  */
-const useUnreadMessages = () => {
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const { status } = useSession();
-  
-  useEffect(() => {
-    if (status !== 'authenticated') return;
+async function fetchUnreadCount(userId: string) {
+  try {
+    const response = await fetch('/api/messages/unread');
     
-    const getUnreadCount = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/messages/unread');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        if (typeof data.count === 'number') {
-          setCount(data.count);
-        } else {
-          console.warn('Invalid count received:', data);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
-        console.error('Failed to fetch unread message count:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status}`);
+    }
     
-    getUnreadCount();
-    const interval = setInterval(getUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [status]);
-  
-  return count;
-};
+    const data = await response.json();
+    return typeof data.count === 'number' ? data.count : 0;
+  } catch (err) {
+    return 0;
+  }
+}
 
 /**
  * Responsive navigation menu component with user controls and notifications
  * @returns {JSX.Element} The rendered menu component
  */
 const Menu = () => {
-  const unreadMessagesCount = useUnreadMessages();
-  const hasUnreadMessages = unreadMessagesCount > 0;
+  const { data: session } = useSession();
+  const [count, setCount] = useState<number>(0);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchCount = async () => {
+      try {
+        setError(null);
+        const count = await fetchUnreadCount(session.user.id);
+        setCount(count);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
+      }
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [session?.user?.id]);
+
+  const hasUnreadMessages = count > 0;
   
   return (
     <div className='flex justify-end gap-3'>
@@ -89,7 +83,7 @@ const Menu = () => {
             <Badge 
               className="absolute -top-1 -right-1 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
             >
-              {unreadMessagesCount}
+              {count}
             </Badge>
           )}
         </div>
@@ -114,7 +108,7 @@ const Menu = () => {
                   <Badge 
                     className="ml-2 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
                   >
-                    {unreadMessagesCount}
+                    {count}
                   </Badge>
                 )}
               </Link>

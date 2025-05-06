@@ -81,19 +81,19 @@ const MockStripeCheckoutForm = ({
 };
 
 // Mock the actual component import
-jest.mock('@/app/user/dashboard/client/payment/[id]/stripe-payment', () => ({
+jest.mock('@/app/user/dashboard/client/payments/[id]/page', () => ({
   __esModule: true,
-  default: ({ priceInCents, paymentId, clientSecret }: { priceInCents: number, paymentId: string, clientSecret: string }) => (
+  default: ({ params }: { params: { id: string } }) => (
     <MockStripeCheckoutForm
-      priceInCents={priceInCents}
-      paymentId={paymentId}
-      clientSecret={clientSecret}
+      priceInCents={2500}
+      paymentId={params.id}
+      clientSecret="secret-123"
     />
   ),
 }));
 
 // Import the component after mocking
-import StripePayment from '@/app/user/dashboard/client/payment/[id]/stripe-payment';
+import PaymentDetailsPage from '@/app/user/dashboard/client/payments/[id]/page';
 
 // Mock Stripe and Elements functions
 const mockStripe = {
@@ -115,10 +115,8 @@ describe('StripeCheckoutForm', () => {
 
   it('renders the Stripe checkout form correctly', () => {
     render(
-      <StripePayment
-        priceInCents={2500}
-        paymentId="payment-123"
-        clientSecret="secret-123"
+      <PaymentDetailsPage
+        params={Promise.resolve({ id: 'payment-123' })}
       />
     );
     
@@ -135,10 +133,8 @@ describe('StripeCheckoutForm', () => {
   it('allows entering an email address', async () => {
     const user = userEvent.setup();
     render(
-      <StripePayment
-        priceInCents={2500}
-        paymentId="payment-123"
-        clientSecret="secret-123"
+      <PaymentDetailsPage
+        params={Promise.resolve({ id: 'payment-123' })}
       />
     );
     
@@ -153,10 +149,8 @@ describe('StripeCheckoutForm', () => {
   it('submits the payment form', async () => {
     const user = userEvent.setup();
     render(
-      <StripePayment
-        priceInCents={2500}
-        paymentId="payment-123"
-        clientSecret="secret-123"
+      <PaymentDetailsPage
+        params={Promise.resolve({ id: 'payment-123' })}
       />
     );
     
@@ -176,10 +170,8 @@ describe('StripeCheckoutForm', () => {
     
     const user = userEvent.setup();
     render(
-      <StripePayment
-        priceInCents={2500}
-        paymentId="payment-123"
-        clientSecret="secret-123"
+      <PaymentDetailsPage
+        params={Promise.resolve({ id: 'payment-123' })}
       />
     );
     

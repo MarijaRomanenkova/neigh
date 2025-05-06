@@ -325,3 +325,15 @@ export const insertTaskAssignmentSchema = z.object({
  * Makes all fields from the insertion schema optional.
  */
 export const updateTaskAssignmentSchema = insertTaskAssignmentSchema.partial();
+
+/**
+ * Category Schema
+ * 
+ * Validates data for creating and updating task categories.
+ * @property {string} name - Category name (must be unique)
+ * @property {string} description - Optional category description
+ */
+export const insertCategorySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+});

@@ -7,6 +7,7 @@ import DashboardHeader from '@/components/shared/dashboard-header';
 import GoBackButton from '@/components/shared/go-back-button';
 import { TaskAssignment } from '@/types';
 import { prisma } from '@/db/prisma';
+import { formatDateTime } from '@/lib/utils';
 
 /**
  * Helper function to deeply clone and clean objects for client component consumption
@@ -74,7 +75,6 @@ export default async function UnifiedTaskAssignmentDetailsPage({ params }: { par
   });
   
   if (!taskAssignment) {
-    console.error(`Task assignment with ID ${assignmentId} not found in database`);
     return (
       <div className="container mx-auto py-10">
         <DashboardHeader
@@ -102,17 +102,8 @@ export default async function UnifiedTaskAssignmentDetailsPage({ params }: { par
     userRole = 'contractor';
   }
   
-  console.log('Task Assignment:', {
-    id: taskAssignment.id,
-    clientId: taskAssignment.clientId,
-    contractorId: taskAssignment.contractorId,
-    userId: session.user.id,
-    determinedRole: userRole
-  });
-  
   // Redirect if user is neither client nor contractor
   if (!userRole) {
-    console.error(`User ${session.user.id} is neither client nor contractor for task assignment ${assignmentId}`);
     redirect('/user/dashboard');
   }
   

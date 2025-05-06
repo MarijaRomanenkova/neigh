@@ -4,10 +4,19 @@
  * Message and notification functions for system-generated messages
  * @module MessageActions
  * @group API
+ * 
+ * This module provides server-side functions for handling message operations including:
+ * - Sending system notifications
+ * - Managing task-related communications
+ * - Handling payment notifications
+ * - Archiving messages
  */
 
 import { prisma } from '@/db/prisma';
 import { convertToPlainObject } from '@/lib/utils';
+import { auth } from '@/auth';
+import { revalidatePath } from 'next/cache';
+import { formatError } from '../utils';
 
 /**
  * Create a system message in a conversation related to a task assignment
@@ -103,19 +112,20 @@ export async function createTaskAssignmentNotification(
         data: {
           content: message,
           conversationId: conversation.id,
-          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId, // Use client as sender for review notifications
+          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId,
           isSystemMessage: true,
           metadata: messageMetadata
         }
       });
     } catch (err) {
       console.log("Could not create system message with metadata, falling back to standard message", err);
-      // Fall back to standard message if the schema doesn't support system messages yet
+      // Fallback to standard message if metadata creation fails
       systemMessage = await prisma.message.create({
         data: {
-          content: `[SYSTEM] ${message}`,
           conversationId: conversation.id,
-          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId
+          senderId: eventType === 'review-submitted' ? taskAssignment.clientId : taskAssignment.contractorId,
+          content: message,
+          isSystemMessage: true
         }
       });
     }
@@ -134,119 +144,500 @@ export async function createTaskAssignmentNotification(
 }
 
 /**
- * Send a notification to all conversations about a task when it's archived
- * Informs contractors that the task is no longer available
+ * Sends a system notification to a user
  * 
- * @param taskId - The ID of the archived task
- * @returns Array of created messages or empty array if none created
+ * @param userId - The ID of the user to notify
+ * @param message - The notification message
+ * @param type - The type of notification
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task assignment handler
+ * const result = await sendSystemNotification(
+ *   contractorId,
+ *   'You have been assigned a new task',
+ *   'TASK_ASSIGNED'
+ * );
+ */
+export async function sendSystemNotification(
+  userId: string,
+  message: string,
+  type: 'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'PAYMENT_RECEIVED' | 'REVIEW_REQUESTED'
+) {
+  try {
+    // Find or create a system conversation for this user
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        participants: {
+          some: {
+            userId,
+          },
+        },
+        taskId: null, // System messages are not tied to a specific task
+      },
+    });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          participants: {
+            create: {
+              userId,
+            },
+          },
+        },
+      });
+    }
+
+    const systemMessage = await prisma.message.create({
+      data: {
+        content: message,
+        conversationId: conversation.id,
+        senderId: userId,
+        isSystemMessage: true,
+        metadata: {
+          type,
+        },
+      },
+    });
+
+    revalidatePath('/user/notifications');
+    return {
+      success: true,
+      message: 'Notification sent successfully',
+      data: systemMessage.id,
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+/**
+ * Sends notifications to contractors when a task is archived
+ * 
+ * @param taskId - The ID of the task that was archived
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task archiving handler
+ * const result = await sendTaskArchivedNotifications(taskId);
+ * if (result.success) {
+ *   console.log('Notifications sent to contractors');
+ * }
  */
 export async function sendTaskArchivedNotifications(taskId: string) {
   try {
-    // Get task details
-    const task = await prisma.task.findUnique({
-      where: { id: taskId },
-      select: {
-        id: true,
-        name: true,
-        createdById: true
-      }
-    });
-
-    if (!task) {
-      console.error(`Task not found: ${taskId}`);
-      return [];
-    }
-
-    // Find all conversations about this task
+    // Get all contractors who have conversations about this task
     const conversations = await prisma.conversation.findMany({
-      where: {
-        taskId: taskId
-      },
+      where: { taskId },
       include: {
         participants: {
           select: {
-            userId: true
+            userId: true,
+            user: {
+              select: {
+                role: true
+              }
+            }
           }
         }
       }
     });
 
-    if (!conversations || conversations.length === 0) {
-      console.log(`No conversations found for task: ${taskId}`);
-      return [];
-    }
+    // Send notifications to each contractor
+    const messages = await Promise.all(
+      conversations.flatMap((conversation) =>
+        conversation.participants
+          .filter(participant => participant.user.role === 'contractor')
+          .map(async (participant) => {
+            // Find or create a system conversation for this user
+            let systemConversation = await prisma.conversation.findFirst({
+              where: {
+                participants: {
+                  some: {
+                    userId: participant.userId,
+                  },
+                },
+                taskId: null,
+              },
+            });
 
-    const messages = [];
+            if (!systemConversation) {
+              systemConversation = await prisma.conversation.create({
+                data: {
+                  participants: {
+                    create: {
+                      userId: participant.userId,
+                    },
+                  },
+                },
+              });
+            }
 
-    // Find all task assignments for this task
-    const taskAssignments = await prisma.taskAssignment.findMany({
-      where: {
-        taskId: taskId
-      },
-      select: {
-        contractorId: true
-      }
-    });
-
-    // Get array of contractor IDs who have been assigned to this task
-    const assignedContractorIds = taskAssignments.map(ta => ta.contractorId);
-
-    // Process each conversation and send notifications
-    for (const conversation of conversations) {
-      // Get all contractor participants (those who are not the task creator/client)
-      const contractorParticipants = conversation.participants
-        .filter(participant => participant.userId !== task.createdById);
-
-      // For each contractor, check if they have been assigned to the task
-      for (const participant of contractorParticipants) {
-        const isAssigned = assignedContractorIds.includes(participant.userId);
-
-        // If contractor is not assigned, send notification
-        if (!isAssigned) {
-          // Create the system message
-          try {
-            const message = await prisma.message.create({
+            return prisma.message.create({
               data: {
-                content: `This task is no longer available: "${task.name}"`,
-                conversationId: conversation.id,
-                senderId: task.createdById, // Use task creator (client) as sender
+                content: 'A task you were discussing has been archived',
+                conversationId: systemConversation.id,
+                senderId: participant.userId,
                 isSystemMessage: true,
                 metadata: {
-                  eventType: 'task-archived',
-                  taskId: task.id,
-                  taskName: task.name
-                }
-              }
+                  type: 'TASK_ARCHIVED',
+                  taskId,
+                },
+              },
             });
+          })
+      )
+    );
 
-            messages.push(convertToPlainObject(message));
-          } catch (err) {
-            console.log("Could not create system message with metadata, falling back to standard message", err);
-            
-            // Fall back to standard message if the schema doesn't support system messages
-            const message = await prisma.message.create({
-              data: {
-                content: `[SYSTEM] This task is no longer available: "${task.name}"`,
-                conversationId: conversation.id,
-                senderId: task.createdById
-              }
-            });
+    revalidatePath('/user/notifications');
+    return {
+      success: true,
+      message: 'Notifications sent successfully',
+      data: messages.map((message) => message.id),
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
 
-            messages.push(convertToPlainObject(message));
-          }
-
-          // Update conversation's last activity timestamp
-          await prisma.conversation.update({
-            where: { id: conversation.id },
-            data: { updatedAt: new Date() }
-          });
-        }
-      }
+/**
+ * Marks a notification as read
+ * 
+ * @param notificationId - The ID of the notification to mark as read
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a notification list component
+ * const handleMarkAsRead = async (notificationId: string) => {
+ *   const result = await markNotificationAsRead(notificationId);
+ *   if (result.success) {
+ *     // Update UI to show notification as read
+ *   }
+ * };
+ */
+export async function markNotificationAsRead(notificationId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
     }
+
+    const message = await prisma.message.update({
+      where: {
+        id: notificationId,
+        conversation: {
+          participants: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
+      data: {
+        readAt: new Date(),
+      },
+    });
+
+    revalidatePath('/user/notifications');
+    return {
+      success: true,
+      message: 'Notification marked as read',
+      data: message.id,
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+/**
+ * Retrieves all notifications for the current user
+ * 
+ * @returns Array of notifications
+ * 
+ * @example
+ * // In a notifications page
+ * const notifications = await getUserNotifications();
+ * 
+ * return (
+ *   <div>
+ *     <h2>Notifications</h2>
+ *     {notifications.map(notification => (
+ *       <NotificationItem
+ *         key={notification.id}
+ *         message={notification.message}
+ *         type={notification.type}
+ *         read={notification.read}
+ *         createdAt={notification.createdAt}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
+export async function getUserNotifications() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const messages = await prisma.message.findMany({
+      where: {
+        conversation: {
+          participants: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+        isSystemMessage: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+    });
 
     return messages;
   } catch (error) {
-    console.error("Error sending task archived notifications:", error);
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Sends a system message to a user
+ * 
+ * @param userId - The ID of the user to notify
+ * @param message - The notification message
+ * @param type - The type of notification
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task assignment handler
+ * const result = await sendSystemMessage(
+ *   contractorId,
+ *   'You have been assigned a new task',
+ *   'TASK_ASSIGNED'
+ * );
+ */
+export async function sendSystemMessage(
+  userId: string,
+  message: string,
+  type: 'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'PAYMENT_RECEIVED' | 'REVIEW_REQUESTED'
+) {
+  try {
+    // Find or create a system conversation for this user
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        participants: {
+          some: {
+            userId,
+          },
+        },
+        taskId: null, // System messages are not tied to a specific task
+      },
+    });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          participants: {
+            create: {
+              userId,
+            },
+          },
+        },
+      });
+    }
+
+    const systemMessage = await prisma.message.create({
+      data: {
+        content: message,
+        conversationId: conversation.id,
+        senderId: userId, // System messages are sent by the user themselves
+        isSystemMessage: true,
+        metadata: {
+          type,
+        },
+      },
+    });
+
+    revalidatePath('/user/dashboard/messages');
+    return {
+      success: true,
+      message: 'Message sent successfully',
+      data: systemMessage.id,
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+/**
+ * Sends messages to contractors when a task is archived
+ * 
+ * @param taskId - The ID of the task that was archived
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task archiving handler
+ * const result = await sendTaskArchivedMessages(taskId);
+ * if (result.success) {
+ *   console.log('Messages sent to contractors');
+ * }
+ */
+export async function sendTaskArchivedMessages(taskId: string) {
+  try {
+    // Get all contractors who have conversations about this task
+    const conversations = await prisma.conversation.findMany({
+      where: { taskId },
+      include: {
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    // Send messages to each contractor
+    const messages = await Promise.all(
+      conversations.flatMap((conversation) =>
+        conversation.participants.map((participant) =>
+          prisma.message.create({
+            data: {
+              content: 'A task you were discussing has been archived',
+              conversationId: conversation.id,
+              senderId: participant.userId,
+              isSystemMessage: true,
+              metadata: {
+                type: 'TASK_ARCHIVED',
+                taskId,
+              },
+            },
+          })
+        )
+      )
+    );
+
+    revalidatePath('/user/dashboard/messages');
+    return {
+      success: true,
+      message: 'Messages sent successfully',
+      data: messages.map((m) => m.id),
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+/**
+ * Marks a message as read
+ * 
+ * @param messageId - The ID of the message to mark as read
+ * @returns Result with success status and message
+ * 
+ * @example
+ * // In a message list component
+ * const handleMarkAsRead = async (messageId: string) => {
+ *   const result = await markMessageAsRead(messageId);
+ *   if (result.success) {
+ *     // Update UI to show message as read
+ *   }
+ * };
+ */
+export async function markMessageAsRead(messageId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const message = await prisma.message.update({
+      where: {
+        id: messageId,
+        conversation: {
+          participants: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
+      data: {
+        readAt: new Date(),
+      },
+    });
+
+    revalidatePath('/user/dashboard/messages');
+    return {
+      success: true,
+      message: 'Message marked as read',
+      data: message.id,
+    };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+/**
+ * Retrieves all messages for the current user
+ * 
+ * @returns Array of messages
+ * 
+ * @example
+ * // In a messages page
+ * const messages = await getUserMessages();
+ * 
+ * return (
+ *   <div>
+ *     <h2>Messages</h2>
+ *     {messages.map(message => (
+ *       <MessageItem
+ *         key={message.id}
+ *         content={message.content}
+ *         isSystemMessage={message.isSystemMessage}
+ *         readAt={message.readAt}
+ *         createdAt={message.createdAt}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
+export async function getUserMessages() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const messages = await prisma.message.findMany({
+      where: {
+        conversation: {
+          participants: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return messages;
+  } catch (error) {
+    console.error('Error fetching messages:', error);
     return [];
   }
 } 

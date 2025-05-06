@@ -1,3 +1,22 @@
+/**
+ * Task Assignment Details Component
+ * @module Components
+ * @group Shared/TaskAssignment
+ * 
+ * A detailed view component for task assignments that displays comprehensive information
+ * about a task, including status, client/contractor details, invoice information,
+ * and review functionality. The component adapts its display and available actions
+ * based on whether the user is a client or contractor.
+ * 
+ * @example
+ * ```tsx
+ * <TaskAssignmentDetails
+ *   assignment={taskAssignment}
+ *   userRole="client"
+ * />
+ * ```
+ */
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,12 +36,20 @@ import { StarRatingDisplay } from '@/components/ui/star-rating-display';
 import { TaskAssignment, TaskAssignmentInvoice } from '@/types';
 import { Button } from '@/components/ui/button';
 
-// Config flag for enabling neighbour reviews
-// This should be set to true since we're implementing it now
+/**
+ * Configuration flag for enabling neighbour reviews
+ * @constant
+ */
 const ENABLE_NEIGHBOUR_REVIEWS = true;
 
+/**
+ * Props for the TaskAssignmentDetails component
+ * @interface TaskAssignmentDetailsProps
+ */
 interface TaskAssignmentDetailsProps {
+  /** The task assignment data to display */
   assignment: TaskAssignment;
+  /** The role of the user viewing the details ("client" or "contractor") */
   userRole: 'client' | 'contractor';
 }
 
@@ -135,6 +162,32 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
       return 'Date error';
     }
   };
+
+  function formatDate(dateString: string | Date | null | undefined): string {
+    if (!dateString) return 'N/A';
+    
+    try {
+      if (typeof dateString === 'string') {
+        return format(new Date(dateString), 'PPP');
+      }
+      if (dateString instanceof Date) {
+        return format(dateString, 'PPP');
+      }
+      return 'Invalid date';
+    } catch (error) {
+      return 'Invalid date';
+    }
+  }
+
+  function formatDistance(distance: number | null | undefined): string {
+    if (distance === null || distance === undefined) return 'N/A';
+    
+    try {
+      return `${distance.toFixed(1)} km`;
+    } catch (error) {
+      return 'Invalid distance';
+    }
+  }
 
   return (
     <div className="container mx-auto py-10">

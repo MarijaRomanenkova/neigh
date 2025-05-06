@@ -36,7 +36,7 @@ export async function GET() {
     // Initialize Socket.IO
     io = new SocketIOServer(httpServer, {
       cors: {
-        origin: "*",
+        origin: process.env.NEXT_PUBLIC_APP_URL,
         methods: ["GET", "POST"]
       },
       transports: ["websocket"]
@@ -54,9 +54,7 @@ export async function GET() {
     
     // Start the server on a port
     const PORT = 3100;
-    httpServer.listen(PORT, () => {
-      console.log(`Socket.IO server running on port ${PORT}`);
-    });
+    httpServer.listen(PORT);
   }
   
   return NextResponse.json({ status: "Socket.IO initialized" });

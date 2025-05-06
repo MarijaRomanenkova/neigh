@@ -4,6 +4,14 @@ import { prisma } from '@/db/prisma';
 import { auth } from '@/auth';
 import { convertToPlainObject } from '@/lib/utils';
 
+interface AddressData {
+  address: string;
+}
+
+function isAddressData(data: unknown): data is AddressData {
+  return typeof data === 'object' && data !== null && 'address' in data && typeof (data as AddressData).address === 'string';
+}
+
 /**
  * GET handler for downloading an invoice as PDF
  * 
@@ -25,58 +33,77 @@ export async function GET(request: Request) {
     const pathParts = url.pathname.split('/');
     const invoiceNumber = pathParts[pathParts.indexOf('invoices') + 1];
 
-    console.log(`Fetching invoice ${invoiceNumber} for user ${userId}`);
-
-    // Fetch the invoice with related data
+    // Get the invoice data
     const invoice = await prisma.invoice.findUnique({
       where: { invoiceNumber },
       include: {
-        items: true,
-        client: {
-          select: { name: true, email: true }
-        },
-        contractor: {
-          select: { name: true, email: true }
+        client: true,
+        contractor: true,
+        items: {
+          select: {
+            id: true,
+            invoiceId: true,
+            taskId: true,
+            qty: true,
+            price: true,
+            task: {
+              select: {
+                name: true
+              }
+            }
+          }
         }
       }
     });
 
     if (!invoice) {
-      console.log(`Invoice ${invoiceNumber} not found`);
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      return new Response('Invoice not found', { status: 404 });
     }
 
-    // Check if user is authorized to access this invoice
+    // Check authorization
     if (invoice.clientId !== userId && invoice.contractorId !== userId) {
-      console.log(`User ${userId} not authorized to access invoice ${invoiceNumber}`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return new Response('Unauthorized', { status: 403 });
     }
 
-    console.log(`Serializing invoice data for ${invoiceNumber}`);
-    // Generate PDF
-    const serializedInvoice = convertToPlainObject(invoice);
-    
-    // Log invoice structure for debugging
-    console.log('Invoice data structure:', JSON.stringify({
-      invoiceNumber: serializedInvoice.invoiceNumber,
-      hasItems: serializedInvoice.items?.length > 0,
-      hasClient: !!serializedInvoice.client,
-      hasContractor: !!serializedInvoice.contractor
-    }, null, 2));
-    
-    console.log(`Generating PDF for invoice ${invoiceNumber}`);
-    const pdfBuffer = generateInvoicePDF(serializedInvoice);
+    // Transform invoice data for PDF generation
+    const invoiceData = {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      createdAt: invoice.createdAt,
+      totalPrice: invoice.totalPrice.toString(),
+      clientId: invoice.clientId,
+      contractorId: invoice.contractorId,
+      client: {
+        name: invoice.client.name,
+        email: invoice.client.email,
+        address: invoice.client.address ? String(JSON.parse(invoice.client.address as string).address) : null
+      },
+      contractor: {
+        name: invoice.contractor.name,
+        email: invoice.contractor.email,
+        address: invoice.contractor.address ? String(JSON.parse(invoice.contractor.address as string).address) : null
+      },
+      items: invoice.items.map(item => ({
+        id: item.id,
+        invoiceId: item.invoiceId,
+        taskId: item.taskId,
+        name: item.task.name,
+        quantity: item.qty || 1,
+        price: item.price.toString()
+      }))
+    };
 
-    console.log(`Successfully generated PDF for invoice ${invoiceNumber}`);
-    // Return PDF with appropriate headers
-    return new NextResponse(pdfBuffer, {
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
+
+    // Return the PDF
+    return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="invoice-${invoiceNumber}.pdf"`
       }
     });
   } catch (error) {
-    console.error('Error generating invoice PDF:', error);
     // Return a more detailed error response
     return NextResponse.json(
       { 

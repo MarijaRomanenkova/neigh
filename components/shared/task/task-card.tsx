@@ -5,8 +5,31 @@
  * @module Components
  * @group Shared/Tasks
  * 
- * This component renders a card displaying task information in a compact format,
- * intended for use in grids or lists of tasks.
+ * A client-side component that renders a card displaying task information in a compact format.
+ * Features include:
+ * - Task name and truncated description
+ * - Price display (or "For negotiation" if no price)
+ * - Author information with rating
+ * - Image display with fallback
+ * - Action buttons (edit/contact) based on user role
+ * - Archive functionality for task owners
+ * 
+ * @example
+ * ```tsx
+ * <TaskCard
+ *   task={{
+ *     id: "task123",
+ *     name: "Garden Maintenance",
+ *     description: "Weekly garden maintenance required",
+ *     price: 100,
+ *     images: ["image1.jpg"],
+ *     author: {
+ *       name: "John Doe",
+ *       clientRating: 4.5
+ *     }
+ *   }}
+ * />
+ * ```
  */
 
 import Image from 'next/image';
@@ -26,9 +49,10 @@ import UserRatingDisplay from '../ratings/user-rating-display';
  * Renders a card UI for a task with:
  * - Task name and truncated description
  * - Price display (or "For negotiation" if no price)
- * - Author information
- * - "See more" button linking to task details
- * - Archive button (if user is the task creator)
+ * - Author information with rating
+ * - Image display with fallback
+ * - Action buttons (edit/contact) based on user role
+ * - Archive functionality for task owners
  * 
  * Uses shadcn/ui Card components for consistent styling.
  * 

@@ -1,3 +1,29 @@
+/**
+ * Review Client Dialog Component
+ * @module Components
+ * @group Shared/TaskAssignment
+ * 
+ * A client-side dialog component that allows contractors to review clients after task completion.
+ * Features include:
+ * - Star rating system
+ * - Optional feedback text
+ * - Edit mode for updating existing reviews
+ * - Loading states for data fetching
+ * - Error handling with toast notifications
+ * - Automatic refresh after submission
+ * 
+ * @example
+ * ```tsx
+ * <ReviewClientDialog
+ *   taskAssignmentId="task123"
+ *   clientName="John Doe"
+ *   isEditMode={false}
+ * >
+ *   <Button>Review Client</Button>
+ * </ReviewClientDialog>
+ * ```
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,13 +43,28 @@ import { markClientAsReviewed, getContractorReviewOfClient } from "@/lib/actions
 import { useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
+/**
+ * Props for the ReviewClientDialog component
+ * @interface ReviewClientDialogProps
+ */
 interface ReviewClientDialogProps {
+  /** Unique identifier of the task assignment */
   taskAssignmentId: string;
+  /** Name of the client being reviewed */
   clientName: string;
+  /** Optional trigger element to open the dialog */
   children?: ReactNode;
+  /** Whether the dialog is in edit mode */
   isEditMode?: boolean;
 }
 
+/**
+ * ReviewClientDialog component that provides a form for contractors to review clients.
+ * Supports both creating new reviews and editing existing ones.
+ * 
+ * @param {ReviewClientDialogProps} props - Component properties
+ * @returns {JSX.Element} A dialog with a review form
+ */
 export default function ReviewClientDialog({ 
   taskAssignmentId, 
   clientName, 
@@ -108,10 +149,9 @@ export default function ReviewClientDialog({
         });
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       toast({
         title: "Error",
-        description: "An error occurred while submitting your review",
+        description: "Failed to submit review",
         variant: "destructive"
       });
     } finally {

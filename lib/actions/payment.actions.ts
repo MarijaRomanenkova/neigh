@@ -4,6 +4,12 @@
  * Payment management functions for creating, processing, and retrieving payment information
  * @module PaymentActions
  * @group API
+ * 
+ * This module provides server-side functions for handling payment operations including:
+ * - Creating and processing payments
+ * - Managing payment status
+ * - Retrieving payment history
+ * - Generating payment reports
  */
 
 import { isRedirectError } from 'next/dist/client/components/redirect';
@@ -22,118 +28,87 @@ import { sendPurchaseReceipt } from '@/email';
 
 /**
  * Type definition for an invoice with associated client details
+ * Used when processing payments to include client information
  */
 type InvoiceWithClient = Prisma.InvoiceGetPayload<{
   include: { client: true }
 }>;
 
 /**
- * Creates a new payment based on the user's cart items
+ * Creates a new payment record for selected invoices
  * 
- * @returns Object containing success status, message, and optional redirect URL
- * @throws Will redirect errors if they occur during the payment process
+ * @param formData - Form data containing payment details
+ * @returns Object containing success status, message, and payment ID if successful
  * 
  * @example
- * // In a checkout component
- * async function handleCheckout() {
- *   const result = await createPayment();
- *   
+ * // In a payment form component
+ * const handleSubmit = async (formData: FormData) => {
+ *   const result = await createPayment(formData);
  *   if (result.success) {
- *     router.push(result.redirectTo);
+ *     // Redirect to payment processing
+ *     router.push(`/payment/${result.data}`);
  *   } else {
- *     setError(result.message);
- *     if (result.redirectTo) {
- *       router.push(result.redirectTo);
- *     }
+ *     showError(result.message);
  *   }
- * }
+ * };
  */
-export async function createPayment() {
+export async function createPayment(formData: FormData) {
   try {
     const session = await auth();
-    if (!session) throw new Error('User is not authenticated');
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
 
+    const user = await getUserById(session.user.id);
     const cart = await getMyCart();
-    const userId = session?.user?.id;
-    if (!userId) throw new Error('User not found');
-
-    const user = await getUserById(userId);
 
     if (!cart || cart.invoices.length === 0) {
-      return {
-        success: false,
-        message: 'Your cart is empty',
-        redirectTo: '/cart',
-      };
+      throw new Error('Cart is empty');
     }
 
     if (!user.paymentMethod) {
-      return {
-        success: false,
-        message: 'No payment method',
-        redirectTo: '/payment-method',
-      };
+      throw new Error('Payment method not selected');
     }
 
-    // Create order object
-    const payment = insertPaymentSchema.parse({
-      userId: user.id,
-      paymentMethod: user.paymentMethod,
-      invoiceIds: cart.invoices.map(invoice => invoice.id),
-      totalPrice: cart.totalPrice,
-    });
+    const paymentMethod = formData.get('paymentMethod') as string;
+    const paymentData = {
+      paymentMethod,
+      amount: cart.totalPrice,
+      invoiceIds: cart.invoices.map((invoice) => invoice.id)
+    };
 
-    // Create a transaction to create payment a
-    const insertedPaymentId = await prisma.$transaction(async (tx) => {
-      // Create payment
-      const insertedPayment = await tx.payment.create({ 
-        data: {
-          ...payment,
-          user: {
-            connect: {
-              id: userId
-            }
-          },
-          paymentResult: {
-            id: '',
-            status: 'PENDING',
-            email_address: '',
-            amount: 0
-          }
-        } 
-      });
-      // Create order items from the cart items
-      for (const invoice of cart.invoices as InvoiceWithClient[]) {
-        await tx.invoice.update({
-          where: { id: invoice.id },
-          data: {
-            paymentId: insertedPayment.id
-          }
-        });
-      }
-      // Clear cart
-      await tx.cart.update({
-        where: { id: cart.id },
-        data: {
-          invoices: {
-            set: []  // Clear all invoice connections
-          },
-          totalPrice: 0,
+    const validatedData = insertPaymentSchema.parse(paymentData);
+
+    const payment = await prisma.payment.create({
+      data: {
+        userId: session.user.id,
+        paymentMethod: validatedData.paymentMethod,
+        amount: validatedData.amount,
+        paymentResult: {
+          id: '',
+          status: 'PENDING',
+          email_address: '',
+          amount: 0
+        },
+        invoices: {
+          connect: validatedData.invoiceIds.map((id: string) => ({ id }))
         }
-      });
-
-      return insertedPayment.id;
+      },
     });
 
-    if (!insertedPaymentId) throw new Error('Payment not created');
+    // Clear the cart after successful payment creation
+    await prisma.cart.delete({
+      where: { id: cart.id },
+    });
+
+    revalidatePath('/user/dashboard/client/payments');
 
     return {
       success: true,
-      message: 'Payment created',
-      redirectTo: `/payment/${insertedPaymentId}`,
+      message: 'Payment created successfully',
+      data: payment.id,
     };
   } catch (error) {
-    if (isRedirectError(error)) throw error;
     return { success: false, message: formatError(error) };
   }
 }
@@ -164,7 +139,16 @@ export async function getPaymentById(paymentId: string) {
     where: { id: paymentId },
     include: {
       user: true,
-      invoices: true,
+      invoices: {
+        include: {
+          client: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -344,14 +328,9 @@ export async function updatePaymentToPaid(
         paymentResult,
       },
     });
-
-    // Log the invoices being updated
-    console.log(`Updating ${payment.invoices.length} invoices to reflect payment`);
-    
-    // Optionally update any other required fields on invoices if needed
-    // For example, you could add timestamps or status information here
+      
+    // Update any other required fields on invoices if needed
     for (const invoice of payment.invoices) {
-      console.log(`Updating invoice ${invoice.invoiceNumber}`);
       // No need to update paymentId since it's already linked to this payment
       // But we could update additional fields if needed
     }
@@ -630,6 +609,7 @@ export async function updateCODPaymentToPaid(
 
 /**
  * Summary of payment data with total amount, count, and monthly breakdown
+ * Used for generating payment reports and analytics
  */
 type PaymentSummary = {
   /** Total amount of all payments */

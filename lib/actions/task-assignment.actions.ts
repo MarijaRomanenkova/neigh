@@ -4,6 +4,14 @@
  * Task assignment management functions for creating, retrieving, updating and deleting task assignments
  * @module TaskAssignmentActions
  * @group API
+ * 
+ * This module provides server-side functions for managing task assignments, including:
+ * - Creating and updating task assignments
+ * - Managing task assignment statuses
+ * - Handling client and contractor reviews
+ * - Processing task completion and acceptance
+ * - Managing invoice relationships
+ * - Calculating and updating user ratings
  */
 
 import { prisma } from '@/db/prisma';
@@ -16,6 +24,9 @@ import { auth } from '@/auth';
 
 /**
  * Type guard to check if an object is a Prisma Decimal
+ * 
+ * @param value - The value to check
+ * @returns True if the value is a Prisma Decimal object
  */
 function isDecimal(value: unknown): value is { toString(): string } {
   return (
@@ -31,6 +42,16 @@ function isDecimal(value: unknown): value is { toString(): string } {
 
 /**
  * Helper function to serialize data and convert Decimal objects to regular numbers
+ * 
+ * @param data - The data to serialize
+ * @returns The serialized data with Decimal values converted to numbers
+ * 
+ * @example
+ * // Convert Prisma data with Decimal values to plain objects
+ * const taskData = await prisma.task.findUnique({
+ *   where: { id: taskId }
+ * });
+ * const serializedData = await serializeData(taskData);
  */
 export async function serializeData(data: unknown): Promise<unknown> {
   if (data === null || data === undefined) {
@@ -67,6 +88,12 @@ export async function serializeData(data: unknown): Promise<unknown> {
 /**
  * Type definition for task assignments with detailed contractor view information
  * Includes task details, client information, status, and invoice data
+ * 
+ * @typedef {Object} TaskAssignmentWithContractorDetails
+ * @property {Object} task - Task details including name, price, and category
+ * @property {Object} client - Client information including name and email
+ * @property {Object} status - Assignment status with name and color
+ * @property {Array} invoiceItems - Related invoice items with payment status
  */
 type TaskAssignmentWithContractorDetails = Prisma.TaskAssignmentGetPayload<{
   include: {
@@ -117,6 +144,10 @@ type TaskAssignmentWithContractorDetails = Prisma.TaskAssignmentGetPayload<{
 
 /**
  * Paginated list of task assignments for contractor view
+ * 
+ * @typedef {Object} TaskAssignmentContractorList
+ * @property {Array<TaskAssignmentWithContractorDetails>} data - Array of task assignments
+ * @property {number} totalPages - Total number of pages
  */
 type TaskAssignmentContractorList = {
   /** Array of task assignments with detailed information */
@@ -128,6 +159,11 @@ type TaskAssignmentContractorList = {
 /**
  * Type definition for task assignments with client view information
  * Includes minimal task details, contractor name, and status
+ * 
+ * @typedef {Object} TaskAssignmentWithClientDetails
+ * @property {Object} task - Task details including name and price
+ * @property {Object} contractor - Contractor's basic information
+ * @property {Object} status - Assignment status with name and color
  */
 type TaskAssignmentWithClientDetails = Prisma.TaskAssignmentGetPayload<{
   include: {
@@ -161,6 +197,10 @@ type TaskAssignmentWithClientDetails = Prisma.TaskAssignmentGetPayload<{
 
 /**
  * Paginated list of task assignments for client view
+ * 
+ * @typedef {Object} TaskAssignmentClientList
+ * @property {Array<TaskAssignmentWithClientDetails>} data - Array of task assignments
+ * @property {number} totalPages - Total number of pages
  */
 type TaskAssignmentClientList = {
   /** Array of task assignments with client-focused information */
@@ -663,6 +703,19 @@ export async function createTaskAssignment(
  * @param id - The task assignment ID
  * @param statusId - The new status ID
  * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task status update component
+ * const handleStatusChange = async (newStatusId) => {
+ *   const result = await updateTaskAssignment(taskId, newStatusId);
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', result.message);
+ *     refreshTaskStatus();
+ *   } else {
+ *     showError(result.message);
+ *   }
+ * };
  */
 export async function updateTaskAssignment(id: string, statusId: string) {
   try {
@@ -741,6 +794,23 @@ export async function updateTaskAssignment(id: string, statusId: string) {
  * @param rating - The rating (1-5)
  * @param feedback - Optional review feedback text
  * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task review form
+ * const handleReviewSubmit = async (formData) => {
+ *   const result = await markTaskAsReviewed(
+ *     taskId,
+ *     parseInt(formData.rating),
+ *     formData.feedback
+ *   );
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', 'Review submitted successfully');
+ *     router.push('/dashboard/tasks');
+ *   } else {
+ *     showError(result.message);
+ *   }
+ * };
  */
 export async function markTaskAsReviewed(id: string, rating: number, feedback?: string) {
   try {
@@ -885,9 +955,14 @@ export async function markTaskAsReviewed(id: string, rating: number, feedback?: 
 }
 
 /**
- * Updates a contractor's average rating based on their reviews
+ * Updates the average rating for a contractor based on their task reviews
  * 
- * @param contractorId - The contractor's user ID
+ * @param contractorId - The ID of the contractor to update
+ * @returns The updated average rating or null if no reviews exist
+ * 
+ * @example
+ * // After submitting a contractor review
+ * await updateContractorRating(taskAssignment.contractorId);
  */
 async function updateContractorRating(contractorId: string) {
   // Calculate average rating
@@ -912,10 +987,23 @@ async function updateContractorRating(contractorId: string) {
 }
 
 /**
- * Accepts a completed task assignment (client only)
+ * Accepts a task assignment and marks it as completed
  * 
  * @param id - The task assignment ID
  * @returns Result with success status and message
+ * 
+ * @example
+ * // In a task acceptance component
+ * const handleAcceptTask = async () => {
+ *   const result = await acceptTaskAssignment(taskId);
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', 'Task accepted successfully');
+ *     refreshTaskStatus();
+ *   } else {
+ *     showError(result.message);
+ *   }
+ * };
  */
 export async function acceptTaskAssignment(id: string) {
   try {
@@ -1005,10 +1093,33 @@ export async function acceptTaskAssignment(id: string) {
 }
 
 /**
- * Gets the invoice history for a task assignment
+ * Retrieves the invoice history for a task assignment
  * 
  * @param assignmentId - The task assignment ID
- * @returns Object containing the invoice history for the assignment
+ * @returns Object containing invoiced status and array of related invoices
+ * 
+ * @example
+ * // In a task invoice history component
+ * const TaskInvoiceHistory = async ({ assignmentId }) => {
+ *   const { invoiced, invoices } = await getTaskAssignmentInvoiceHistory(assignmentId);
+ *   
+ *   return (
+ *     <div>
+ *       <h3>Invoice History</h3>
+ *       {invoiced ? (
+ *         <ul>
+ *           {invoices.map(invoice => (
+ *             <li key={invoice.id}>
+ *               Invoice #{invoice.invoiceNumber} - {formatDate(invoice.createdAt)}
+ *             </li>
+ *           ))}
+ *         </ul>
+ *       ) : (
+ *         <p>No invoices found</p>
+ *       )}
+ *     </div>
+ *   );
+ * };
  */
 export async function getTaskAssignmentInvoiceHistory(assignmentId: string): Promise<{
   invoiced: boolean;
@@ -1074,11 +1185,26 @@ export async function getTaskAssignmentInvoiceHistory(assignmentId: string): Pro
 }
 
 /**
- * Checks if a task assignment has been invoiced (maintained for backward compatibility)
+ * Checks if a task assignment has been invoiced
  * 
  * @param assignmentId - The task assignment ID
- * @returns Boolean indicating if the assignment has been invoiced and latest invoice number if available
- * @deprecated Use getTaskAssignmentInvoiceHistory instead to get full invoice history
+ * @returns Object containing invoiced status and invoice details if found
+ * 
+ * @example
+ * // In a task action button component
+ * const TaskActions = async ({ assignmentId }) => {
+ *   const { invoiced, invoiceNumber } = await isTaskAssignmentInvoiced(assignmentId);
+ *   
+ *   return (
+ *     <div>
+ *       {invoiced ? (
+ *         <p>Invoiced: #{invoiceNumber}</p>
+ *       ) : (
+ *         <button onClick={handleCreateInvoice}>Create Invoice</button>
+ *       )}
+ *     </div>
+ *   );
+ * };
  */
 export async function isTaskAssignmentInvoiced(assignmentId: string): Promise<{
   invoiced: boolean;
@@ -1106,10 +1232,22 @@ export async function isTaskAssignmentInvoiced(assignmentId: string): Promise<{
 }
 
 /**
- * Gets a task assignment by invoice number
+ * Retrieves a task assignment by invoice number
  * 
- * @param invoiceNumber - The invoice number
- * @returns Object containing the task assignment ID if found
+ * @param invoiceNumber - The invoice number to search for
+ * @returns Object containing success status and task assignment ID if found
+ * 
+ * @example
+ * // In an invoice detail component
+ * const InvoiceDetails = async ({ invoiceNumber }) => {
+ *   const { success, taskAssignmentId } = await getTaskAssignmentByInvoiceNumber(invoiceNumber);
+ *   
+ *   if (success && taskAssignmentId) {
+ *     return <TaskAssignmentDetails id={taskAssignmentId} />;
+ *   }
+ *   
+ *   return <p>No task assignment found for this invoice</p>;
+ * };
  */
 export async function getTaskAssignmentByInvoiceNumber(invoiceNumber: string): Promise<{
   success: boolean;
@@ -1150,12 +1288,29 @@ export async function getTaskAssignmentByInvoiceNumber(invoiceNumber: string): P
 }
 
 /**
- * Adds or updates a review from a contractor for a client on a task assignment
+ * Adds or updates a review from a contractor for a client
  * 
  * @param id - The task assignment ID
  * @param rating - The rating (1-5)
  * @param feedback - Optional review feedback text
  * @returns Result with success status and message
+ * 
+ * @example
+ * // In a client review form
+ * const handleClientReview = async (formData) => {
+ *   const result = await markClientAsReviewed(
+ *     taskId,
+ *     parseInt(formData.rating),
+ *     formData.feedback
+ *   );
+ *   
+ *   if (result.success) {
+ *     showNotification('Success', 'Client review submitted');
+ *     router.push('/dashboard/clients');
+ *   } else {
+ *     showError(result.message);
+ *   }
+ * };
  */
 export async function markClientAsReviewed(id: string, rating: number, feedback?: string) {
   try {
@@ -1306,9 +1461,14 @@ export async function markClientAsReviewed(id: string, rating: number, feedback?
 }
 
 /**
- * Updates a client's average rating based on their reviews
+ * Updates the average rating for a client based on their task reviews
  * 
- * @param clientId - The client's user ID
+ * @param clientId - The ID of the client to update
+ * @returns The updated average rating or null if no reviews exist
+ * 
+ * @example
+ * // After submitting a client review
+ * await updateClientRating(taskAssignment.clientId);
  */
 async function updateClientRating(clientId: string) {
   // Calculate average rating
@@ -1338,10 +1498,28 @@ async function updateClientRating(clientId: string) {
 }
 
 /**
- * Gets the client's review of a task assignment
+ * Retrieves the client's review of a task assignment
  * 
  * @param id - The task assignment ID
- * @returns The review data or null if not found
+ * @returns Object containing success status and review details if found
+ * 
+ * @example
+ * // In a task review display component
+ * const TaskReview = async ({ taskId }) => {
+ *   const { success, review } = await getClientReviewOfTask(taskId);
+ *   
+ *   if (success && review) {
+ *     return (
+ *       <div>
+ *         <h3>Client Review</h3>
+ *         <Rating value={review.rating} readOnly />
+ *         <p>{review.feedback}</p>
+ *       </div>
+ *     );
+ *   }
+ *   
+ *   return <p>No review yet</p>;
+ * };
  */
 export async function getClientReviewOfTask(id: string) {
   try {
@@ -1390,10 +1568,28 @@ export async function getClientReviewOfTask(id: string) {
 }
 
 /**
- * Gets the contractor's review of a client
+ * Retrieves the contractor's review of a client for a task assignment
  * 
  * @param id - The task assignment ID
- * @returns The review data or null if not found
+ * @returns Object containing success status and review details if found
+ * 
+ * @example
+ * // In a client review display component
+ * const ClientReview = async ({ taskId }) => {
+ *   const { success, review } = await getContractorReviewOfClient(taskId);
+ *   
+ *   if (success && review) {
+ *     return (
+ *       <div>
+ *         <h3>Contractor's Review</h3>
+ *         <Rating value={review.rating} readOnly />
+ *         <p>{review.feedback}</p>
+ *       </div>
+ *     );
+ *   }
+ *   
+ *   return <p>No review yet</p>;
+ * };
  */
 export async function getContractorReviewOfClient(id: string) {
   try {

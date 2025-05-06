@@ -92,13 +92,6 @@ export async function POST(request: Request) {
       totalPrice: Number(invoice.totalPrice)
     }));
     
-    console.log('API DEBUG - Formatted invoices:', formattedInvoices.map(inv => ({
-      id: inv.id,
-      invoiceNumber: inv.invoiceNumber,
-      totalPrice: inv.totalPrice,
-      totalPriceType: typeof inv.totalPrice
-    })));
-    
     return NextResponse.json({ invoices: formattedInvoices });
   } catch (error) {
     console.error('Error fetching invoices:', error);

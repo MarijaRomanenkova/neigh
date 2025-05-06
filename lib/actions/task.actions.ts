@@ -4,6 +4,12 @@
  * Task management functions for creating, retrieving, updating and deleting tasks
  * @module TaskActions
  * @group API
+ * 
+ * This module provides server-side functions for handling task operations including:
+ * - Creating and updating tasks
+ * - Managing task assignments
+ * - Retrieving task listings with filtering and pagination
+ * - Archiving tasks
  */
 
 import { prisma } from '@/db/prisma';
@@ -137,7 +143,7 @@ export async function getLatestTasks() {
  * @example
  * const task = await getTaskById('task-123');
  * if (task) {
- *   console.log(`Found task: ${task.name} by ${task.createdBy.name}`);
+ *   // Handle task data
  * }
  */
 export async function getTaskById(taskId: string) {
@@ -360,38 +366,51 @@ export async function deleteTask(id: string) {
 /**
  * Creates a new task
  * 
- * @param data - Task data including user ID of the creator
- * @returns Result with success status and message
+ * @param formData - Form data containing task details
+ * @returns Object containing success status, message, and task ID if successful
  * 
  * @example
- * const result = await createTask({
- *   name: 'House Painting',
- *   slug: 'house-painting',
- *   categoryId: 'category-123',
- *   description: 'Professional house painting service',
- *   price: 200,
- *   images: ['image1.jpg', 'image2.jpg'],
- *   userId: 'user-123'
- * });
+ * // In a task creation form
+ * const handleSubmit = async (formData: FormData) => {
+ *   const result = await createTask(formData);
+ *   if (result.success) {
+ *     router.push(`/task/${result.data}`);
+ *   } else {
+ *     showError(result.message);
+ *   }
+ * };
  */
-export async function createTask(data: z.infer<typeof insertTaskSchema> & { userId: string }) {
+export async function createTask(formData: FormData) {
   try {
-    const task = insertTaskSchema.parse(data);
-    
-    const createdTask = await prisma.task.create({ 
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const taskData = {
+      name: formData.get('name') as string,
+      categoryId: formData.get('categoryId') as string,
+      images: formData.getAll('images') as string[],
+      description: formData.get('description') as string,
+      price: formData.get('price') as string,
+    };
+
+    const validatedData = insertTaskSchema.parse(taskData);
+
+    const task = await prisma.task.create({
       data: {
-        name: task.name,
-        categoryId: task.categoryId,
-        images: task.images,
-        description: task.description,
-        price: new Prisma.Decimal(task.price || 0),
-        createdById: data.userId
-      } 
+        ...validatedData,
+        createdById: session.user.id,
+      },
     });
-    
-    revalidatePath('/');
-    revalidatePath('/user/dashboard/client/tasks');
-    return { success: true, message: 'Task created successfully' };
+
+    revalidatePath('/tasks');
+
+    return {
+      success: true,
+      message: 'Task created successfully',
+      data: task.id,
+    };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
@@ -435,7 +454,28 @@ export async function updateTask(data: z.infer<typeof updateTaskSchema>) {
   }
 }
 
-// Get all categories
+/**
+ * Retrieves all categories with task counts
+ * 
+ * @returns Array of categories with their task counts
+ * 
+ * @example
+ * // In a category filter component
+ * const categories = await getAllCategories();
+ * 
+ * return (
+ *   <div>
+ *     <h3>Categories</h3>
+ *     {categories.map(category => (
+ *       <CategoryItem
+ *         key={category.id}
+ *         name={category.name}
+ *         count={category._count.tasks}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
 export async function getAllCategories() {
   try {
     // Check Prisma's connection status properly
@@ -671,7 +711,7 @@ export async function getTaskStatistics() {
  * @example
  * const result = await archiveTask('task-123');
  * if (result.success) {
- *   console.log('Task archived successfully');
+ *   // Handle success
  * }
  */
 export async function archiveTask(taskId: string) {

@@ -7,98 +7,119 @@
  * It shows payment history with details like date, amount, and payment status.
  */
 
-import { Metadata } from 'next';
-import { getMyPayments } from '@/lib/actions/payment.actions';
-import { formatCurrency, formatDateTime, formatId } from '@/lib/utils';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
+import { Loader, Plus } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import Pagination from '@/components/shared/pagination';
 
-/**
- * Metadata for the Payments page
- * Sets the page title for SEO purposes
- */
-export const metadata: Metadata = {
-  title: 'My Payments',
-};
+interface Payment {
+  id: string;
+  status: string;
+  amount: number;
+  createdAt: string;
+  paymentMethod: string;
+  invoices: {
+    id: string;
+    invoiceNumber: string;
+  }[];
+}
 
-/**
- * Client Payments Page Component
- * 
- * Renders a table of all payments made by the user, showing:
- * - Payment ID
- * - Creation date
- * - Total amount
- * - Payment status (paid/unpaid)
- * - Link to payment details
- * 
- * Supports pagination for large payment histories.
- * 
- * @param {Object} props - Component properties
- * @param {Promise<{page: string}>} props.searchParams - URL search parameters for pagination
- * @returns {Promise<JSX.Element>} The rendered payments page with table
- */
-const PaymentsPage = async (props: {
-  searchParams: Promise<{ page: string }>;
-}) => {
-  const { page } = await props.searchParams;
+export default function PaymentsPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const payments = await getMyPayments({
-    page: Number(page) || 1,
-  });
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const response = await fetch('/api/payments');
+        if (!response.ok) {
+          throw new Error('Failed to fetch payments');
+        }
+        const data = await response.json();
+        setPayments(data.payments);
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          description: 'Failed to load payments',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [toast]);
+
+  if (loading) {
+    return (
+      <div className="container py-8 flex justify-center items-center">
+        <Loader className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className='space-y-2'>
-      <h2 className='h2-bold'>Payments</h2>
-      <div className='overflow-x-auto'>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>DATE</TableHead>
-              <TableHead>TOTAL</TableHead>
-              <TableHead>PAID</TableHead>
-              <TableHead>ACTIONS</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.data.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>{formatId(payment.id)}</TableCell>
-                <TableCell>
-                  {formatDateTime(payment.createdAt)}
-                </TableCell>
-                <TableCell>{formatCurrency(Number(payment.amount))}</TableCell>
-                <TableCell>
-                  {payment.isPaid && payment.paidAt
-                    ? formatDateTime(payment.paidAt)
-                    : 'Not Paid'}
-                </TableCell>
-                <TableCell>
-                  <Link href={`/payment/${payment.id}`}>
-                    <span className='px-2'>Details</span>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {payments.totalPages > 1 && (
-          <Pagination
-            page={Number(page) || 1}
-            totalPages={payments.totalPages}
-          />
+    <div className="container py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Payments</h1>
+        <Link href="/user/dashboard/client/invoices">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            New Payment
+          </Button>
+        </Link>
+      </div>
+
+      <div className="grid gap-6">
+        {payments.map((payment) => (
+          <Card key={payment.id}>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold mb-2">
+                    Payment #{payment.id.slice(-8)}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {new Date(payment.createdAt).toLocaleDateString()}
+                  </p>
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      {payment.invoices.length} invoice(s)
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                  <p className="text-sm text-gray-500">{payment.paymentMethod}</p>
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                    payment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {payment.status}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {payments.length === 0 && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500">No payments found</p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
   );
-};
-
-export default PaymentsPage;
+}
