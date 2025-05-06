@@ -311,10 +311,11 @@ export default function TaskAssignmentCard({
       <CardHeader className="space-y-0.5 pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="line-clamp-1">{taskName}</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-w-[50%]">
             {hasInvoice && isContractorView && (
               <Badge
                 variant={isPaid ? "paid" : "unpaid"}
+                className="px-2.5 py-1 rounded-md shadow-sm whitespace-nowrap overflow-hidden text-ellipsis"
               >
                 {isPaid ? (
                   <>
@@ -329,7 +330,7 @@ export default function TaskAssignmentCard({
             )}
             <Badge
               variant={getStatusVariant(status.name)}
-              className="px-2.5 py-1 rounded-md shadow-sm"
+              className="px-2.5 py-1 rounded-md shadow-sm whitespace-nowrap overflow-hidden text-ellipsis"
             >
               {status.name}
             </Badge>
