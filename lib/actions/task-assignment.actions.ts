@@ -1635,4 +1635,27 @@ export async function getContractorReviewOfClient(id: string) {
     console.error('[GET_CONTRACTOR_REVIEW]', error);
     return { success: false, message: 'Failed to fetch review' };
   }
+}
+
+/**
+ * Gets the ID of the "Completed" task assignment status
+ * 
+ * @returns The ID and name of the completed status
+ */
+export async function getCompletedTaskAssignmentStatus() {
+  const status = await prisma.taskAssignmentStatus.findFirst({
+    where: {
+      name: 'Completed'
+    },
+    select: {
+      id: true,
+      name: true
+    }
+  });
+
+  if (!status) {
+    throw new Error('Completed status not found');
+  }
+
+  return status;
 } 

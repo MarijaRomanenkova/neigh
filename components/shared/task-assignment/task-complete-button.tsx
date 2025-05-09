@@ -18,8 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { updateTaskAssignment } from '@/lib/actions/task-assignment.actions';
-import { getCompletedTaskAssignmentStatus } from '@/app/actions';
+import { updateTaskAssignment, getCompletedTaskAssignmentStatus } from '@/lib/actions/task-assignment.actions';
 
 interface TaskCompleteButtonProps {
   taskAssignmentId: string;

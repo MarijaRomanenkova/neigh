@@ -78,33 +78,15 @@ export default async function ConversationPage({
 }: { 
   params: Promise<{ id: string }> 
 }) {
+  const { id } = await params;
+  const session = await auth();
+  
+  if (!session?.user) {
+    redirect('/auth/signin');
+  }
+
   try {
-    // Await the params object
-    const { id } = await params;
-    
-    // Validate the ID parameter
-    if (!id || typeof id !== 'string') {
-      notFound();
-    }
-
-    const session = await auth();
-    if (!session?.user) {
-      redirect('/login');
-    }
-
-    // Check if user is a participant
-    const participant = await prisma.conversationParticipant.findFirst({
-      where: {
-        conversationId: id,
-        userId: session.user.id
-      }
-    });
-
-    if (!participant) {
-      redirect('/user/dashboard/messages');
-    }
-
-    // Get conversation details
+    // Get conversation with participants and messages
     const conversation = await prisma.conversation.findUnique({
       where: { id },
       include: {
@@ -119,80 +101,59 @@ export default async function ConversationPage({
             }
           }
         },
-        task: true
+        messages: {
+          orderBy: {
+            createdAt: 'asc'
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          }
+        },
+        task: {
+          select: {
+            id: true,
+            name: true,
+            createdById: true
+          }
+        }
       }
     });
 
     if (!conversation) {
-      notFound();
+      return (
+        <div className="w-full text-center py-10">
+          <p className="text-red-500">Conversation not found.</p>
+          <Link 
+            href="/user/dashboard/messages"
+            className="text-primary hover:underline mt-4 inline-block"
+          >
+            Back to messages
+          </Link>
+        </div>
+      );
     }
-    
-    // Get messages
-    const dbMessages = await prisma.message.findMany({
-      where: { conversationId: id },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            image: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'asc' }
-    });
 
-    // Transform messages to match the expected type
-    const messages = transformMessages(dbMessages);
+    // Transform messages to include ratings
+    const messagesWithRatings = transformMessages(conversation.messages);
 
-    // Enhance message senders with ratings info
-    const userIds = messages.map(msg => msg.senderId);
-    const usersWithRatings = await prisma.user.findMany({
-      where: {
-        id: { in: [...new Set(userIds)] }
-      },
-      select: {
-        id: true,
-        contractorRating: true,
-        clientRating: true
-      }
-    });
-
-    // Create a map of user IDs to ratings
-    const userRatingsMap = new Map();
-    usersWithRatings.forEach(user => {
-      userRatingsMap.set(user.id, {
-        contractorRating: user.contractorRating ? parseFloat(user.contractorRating.toString()) : null,
-        clientRating: user.clientRating ? parseFloat(user.clientRating.toString()) : null
-      });
-    });
-
-    // Enhance messages with ratings
-    const messagesWithRatings = messages.map(message => {
-      const ratings = userRatingsMap.get(message.senderId);
-      return {
-        ...message,
-        sender: {
-          ...message.sender,
-          contractorRating: ratings?.contractorRating || null,
-          clientRating: ratings?.clientRating || null
-        }
-      };
-    });
-
-    // Get other participants (fetch more user data for ratings)
-    let otherParticipants: ExtendedUserWithRatings[] = [];
+    // Get the other participant (the one who is not the current user)
+    let otherParticipant: ExtendedUserWithRatings | null = null;
     
     if (conversation.participants.length > 0) {
-      const participantIds = conversation.participants
-        .filter(p => p.userId !== session.user.id)
-        .map(p => p.userId);
+      const otherParticipantData = conversation.participants
+        .find(p => p.userId !== session.user.id);
       
-      // Fetch detailed user info including ratings
-      if (participantIds.length > 0) {
-        const users = await prisma.user.findMany({
+      if (otherParticipantData) {
+        // Fetch detailed user info including ratings
+        const user = await prisma.user.findUnique({
           where: {
-            id: { in: participantIds }
+            id: otherParticipantData.userId
           },
           select: {
             id: true,
@@ -203,14 +164,15 @@ export default async function ConversationPage({
           }
         });
         
-        // Transform the users data to handle Decimal values
-        otherParticipants = users.map(user => ({
-          id: user.id,
-          name: user.name,
-          image: user.image,
-          contractorRating: user.contractorRating ? parseFloat(user.contractorRating.toString()) : null,
-          clientRating: user.clientRating ? parseFloat(user.clientRating.toString()) : null
-        }));
+        if (user) {
+          otherParticipant = {
+            id: user.id,
+            name: user.name,
+            image: user.image,
+            contractorRating: user.contractorRating ? parseFloat(user.contractorRating.toString()) : null,
+            clientRating: user.clientRating ? parseFloat(user.clientRating.toString()) : null
+          };
+        }
       }
     }
 
@@ -223,29 +185,24 @@ export default async function ConversationPage({
     // Normalize task data if it exists
     const task = conversation.task ? conversation.task : null;
     
-    if (task) {
-      // Get the first other participant as the contractor
-      if (otherParticipants.length > 0) {
-        contractorId = otherParticipants[0].id;
-      }
+    if (task && otherParticipant) {
+      contractorId = otherParticipant.id;
       
-      if (contractorId) {
-        // Check if this specific contractor is already assigned to this task
-        const taskAssignment = await prisma.taskAssignment.findFirst({
-          where: { 
-            taskId: task.id,
-            contractorId
-          },
-          include: {
-            status: true
-          }
-        });
-        
-        if (taskAssignment) {
-          isTaskAssignedToContractor = true;
-          taskAssignmentId = taskAssignment.id;
-          isTaskCompleted = taskAssignment.status.name === 'COMPLETED';
+      // Check if this specific contractor is already assigned to this task
+      const taskAssignment = await prisma.taskAssignment.findFirst({
+        where: { 
+          taskId: task.id,
+          contractorId
+        },
+        include: {
+          status: true
         }
+      });
+      
+      if (taskAssignment) {
+        isTaskAssignedToContractor = true;
+        taskAssignmentId = taskAssignment.id;
+        isTaskCompleted = taskAssignment.status.name === 'COMPLETED';
       }
     }
 
@@ -266,15 +223,13 @@ export default async function ConversationPage({
           <div className="flex justify-between items-start mb-2">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
-                {otherParticipants.length > 0
-                  ? (otherParticipants.length > 1
-                    ? `Conversation with ${otherParticipants[0]?.name || 'Unknown'} and ${otherParticipants.length - 1} others`
-                    : `Conversation with ${otherParticipants[0]?.name || 'Unknown'}`)
+                {otherParticipant
+                  ? `Conversation with ${otherParticipant.name || 'Unknown'}`
                   : 'Conversation'}
                   
-                {otherParticipants.length > 0 && otherParticipants[0]?.contractorRating && (
+                {otherParticipant?.contractorRating && (
                   <UserRatingDisplay 
-                    rating={otherParticipants[0].contractorRating} 
+                    rating={otherParticipant.contractorRating} 
                     size="md"
                     tooltipText="Neighbour Rating"
                   />
