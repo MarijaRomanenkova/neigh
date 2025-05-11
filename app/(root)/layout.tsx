@@ -15,6 +15,9 @@ import { getAllCategories } from '@/lib/actions/task.actions';
 import { checkPrismaConnection } from '@/db/prisma';
 import { Category } from '@/types';
 
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic';
+
 /**
  * Root Layout Component
  * 

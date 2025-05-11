@@ -16,6 +16,11 @@ import TaskCard from '@/components/shared/task/task-card';
 import { Button } from '@/components/ui/button';
 import { getAllTasks, getAllCategories } from '@/lib/actions/task.actions';
 import Link from 'next/link';
+import { Suspense } from 'react';
+import { Task } from '@/types';
+
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic';
 
 /**
  * Available price range filters for tasks
@@ -71,6 +76,21 @@ export async function generateMetadata(props: {
   return {
     title: 'Search tasks',
   };
+}
+
+// Loading component for search results
+function SearchResultsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="space-y-4">
+          <div className="h-[200px] w-full bg-muted animate-pulse rounded-lg" />
+          <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -145,108 +165,118 @@ const SearchPage = async (props: {
     return `/search?${new URLSearchParams(params).toString()}`;
   };
 
-  // Fetch tasks and categories in parallel for better performance
-  const [tasks, categories] = await Promise.all([
+  // Fetch categories and tasks with loading states
+  const [categories, tasksResult] = await Promise.all([
+    getAllCategories(),
     getAllTasks({
-      query: q,
-      category,
-      price,
+      query: q !== 'all' ? q : undefined,
+      category: category !== 'all' ? category : undefined,
+      price: price !== 'all' ? price : undefined,
       sort: validSort,
       page: Number(page),
     }),
-    getAllCategories()
   ]);
 
   return (
-    <div className='grid md:grid-cols-5 md:gap-5'>
-      {/* Filter sidebar */}
-      <div className='filter-links'>
-        {/* Category Links */}
-        <div className='text-lg text-muted-foreground mb-2 mt-3'>Category</div>
-        <ul className='space-y-1'>
-          <li>
-            <Link
-              className={`${(category === 'all' || category === '') && 'font-bold'}`}
-              href={getFilterUrl({ c: 'all' })}
-            >
-              All
-            </Link>
-          </li>
-          {categories.map((c) => (
-            <li key={c.name}>
-              <Link
-                className={`${c.name === category && 'font-bold'}`}
-                href={getFilterUrl({ c: c.name })}
-              >
-                {c.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/* Filter Sidebar */}
+        <div className="md:col-span-1">
+          <div className="space-y-6">
+            {/* Categories */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Categories</h3>
+              <div className="space-y-2">
+                <Link
+                  href={getFilterUrl({ c: 'all' })}
+                  className={`block px-4 py-2 rounded-lg ${
+                    category === 'all'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  All Categories
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={getFilterUrl({ c: cat.id })}
+                    className={`block px-4 py-2 rounded-lg ${
+                      category === cat.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-        {/* Price Links */}
-        <div className='text-lg text-muted-foreground mb-2 mt-8'>Pay</div>
-        <ul className='space-y-1'>
-          <li>
-            <Link
-              className={`${price === 'all' && 'font-bold'}`}
-              href={getFilterUrl({ p: 'all' })}
-            >
-              Any
-            </Link>
-          </li>
-          {prices.map((p) => (
-            <li key={p.value}>
-              <Link
-                className={`${price === p.value && 'font-bold'}`}
-                href={getFilterUrl({ p: p.value })}
-              >
-                {p.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Search results and controls */}
-      <div className='md:col-span-4 space-y-4'>
-        <div className='flex-between flex-col md:flex-row my-4'>
-          {/* Active filters display and clear button */}
-          <div className='flex items-center'>
-            {q !== 'all' && q !== '' && 'Query: ' + q}
-            {category !== 'all' && category !== '' && 'Category: ' + category}
-            {price !== 'all' && ' Price: ' + price}
-            &nbsp;
-            {(q !== 'all' && q !== '') ||
-            (category !== 'all' && category !== '') ||
-            price !== 'all' ? (
-              <Button variant={'link'} asChild>
-                <Link href='/search'>Clear</Link>
-              </Button>
-            ) : null}
-          </div>
-          
-          {/* Sort options */}
-          <div>
-            Sort by{' '}
-            {sortOrders.map((s) => (
-              <Link
-                key={s}
-                className={`mx-2 ${sort == s && 'font-bold'}`}
-                href={getFilterUrl({ s: s as 'newest' | 'lowest' | 'highest' })}
-              >
-                {s}
-              </Link>
-            ))}
+            {/* Price Ranges */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Price Range</h3>
+              <div className="space-y-2">
+                <Link
+                  href={getFilterUrl({ p: 'all' })}
+                  className={`block px-4 py-2 rounded-lg ${
+                    price === 'all'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  All Prices
+                </Link>
+                {prices.map((p) => (
+                  <Link
+                    key={p.value}
+                    href={getFilterUrl({ p: p.value })}
+                    className={`block px-4 py-2 rounded-lg ${
+                      price === p.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {p.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Task grid */}
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
-          {tasks.data.length === 0 && <div>No tasks found</div>}
-          {tasks.data.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
+        {/* Search Results */}
+        <div className="md:col-span-3">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">
+              {q !== 'all' ? `Search Results for "${q}"` : 'All Tasks'}
+            </h2>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">Sort by:</span>
+              <div className="flex space-x-2">
+                {sortOrders.map((s) => (
+                  <Button
+                    key={s}
+                    variant={sort === s ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = getFilterUrl({ s: s as 'newest' | 'lowest' | 'highest' });
+                    }}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Suspense fallback={<SearchResultsSkeleton />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tasksResult.data.map((task: Task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </div>
+          </Suspense>
         </div>
       </div>
     </div>

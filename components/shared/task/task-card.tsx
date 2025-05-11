@@ -100,7 +100,7 @@ const TaskCard = ({ task }: { task: Task }) => {
             <span className="truncate font-medium">
               {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
             </span>
-            {!isOwner && task.author?.clientRating && (
+            {!isOwner && task.author?.clientRating && Number(task.author.clientRating) > 0 ? (
               <div className="ml-1.5 flex items-center">
                 <UserRatingDisplay 
                   rating={typeof task.author.clientRating === 'number' ? task.author.clientRating : Number(task.author.clientRating)} 
@@ -108,7 +108,7 @@ const TaskCard = ({ task }: { task: Task }) => {
                   tooltipText="Client rating" 
                 />
               </div>
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="flex-1"></div> /* Spacer when not authenticated */

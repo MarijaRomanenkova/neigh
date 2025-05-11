@@ -3,18 +3,26 @@
  * @module Pages
  * @group Dashboard/Contractor
  * 
- * This page displays detailed information about a specific invoice for the contractor.
- * It shows invoice details, line items, client information, and payment status.
+ * This page displays detailed information about a specific invoice created by the contractor.
+ * It includes invoice items, totals, and payment status.
  */
 
 import { getInvoiceByNumber } from '@/lib/actions/invoice.actions';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
-import Invoice from '@/components/shared/invoice/invoice';
+import InvoiceDetails from '@/components/shared/invoice/invoice';
+import DownloadInvoiceButton from '@/components/shared/invoice/download-invoice-button';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { Invoice } from '@/types';
+
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic';
 
 /**
- * Properties for the ContractorInvoicePage component
+ * Props for the ContractorInvoicePage component
  * @interface Props
  * @property {Promise<{invoiceNumber: string}>} params - Route parameters containing the invoice number
  */
@@ -25,7 +33,7 @@ interface Props {
 }
 
 /**
- * Generates metadata for the invoice page
+ * Generate metadata for the invoice page
  * Sets the page title based on the invoice number
  * 
  * @param {Props} props - Component properties containing route parameters
@@ -39,36 +47,50 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Contractor Invoice Detail Page Component
+ * Contractor Invoice Page Component
  * 
- * Fetches and displays detailed information about a specific invoice, including:
- * - Invoice number, date, and status
- * - Client information
- * - Line items and services
- * - Amount and payment details
+ * This server component renders the invoice detail view with:
+ * - Invoice information and items
+ * - Payment status
+ * - Download functionality
+ * - Navigation back to invoices list
  * 
- * Includes authentication and authorization checks to ensure the contractor
- * has permission to view the invoice.
- * 
- * @param {Props} props - Component properties containing route parameters
- * @returns {Promise<JSX.Element | null>} The rendered invoice detail page or notFound
+ * @component
+ * @param {Props} props - Component properties
+ * @returns {Promise<JSX.Element>} Invoice detail page
  */
-async function ContractorInvoicePage({ params }: Props) {
-  const session = await auth();
-  if (!session) return notFound();
-
+export default async function ContractorInvoicePage({ params }: Props) {
   const { invoiceNumber } = await params;
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return notFound();
+  }
+
   const invoice = await getInvoiceByNumber(invoiceNumber);
-  
+
   if (!invoice || invoice.contractorId !== session.user.id) {
     return notFound();
   }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <Invoice invoice={invoice} />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Button variant="ghost" asChild>
+          <Link href="/user/dashboard/contractor/invoices">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Invoices
+          </Link>
+        </Button>
+      </div>
+
+      <div className="space-y-6">
+        <InvoiceDetails invoice={invoice} />
+        
+        <div className="flex justify-end">
+          <DownloadInvoiceButton invoiceNumber={invoice.invoiceNumber} />
+        </div>
+      </div>
     </div>
   );
 }
-
-export default ContractorInvoicePage;

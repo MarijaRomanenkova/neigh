@@ -1,68 +1,67 @@
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
-WORKDIR /app
+FROM node:20-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
 # Install Python and other build dependencies
-RUN apk add --no-cache python3 make g++ gcc
+RUN apk add --no-cache python3 make g++ gcc libc6-compat
+WORKDIR /app
 
 # Copy package files and Prisma schema
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies without running postinstall script
+RUN npm install --ignore-scripts
 
-# Stage 2: Builder
-FROM node:20-alpine AS builder
+# Rebuild the source code only when needed
+FROM base AS builder
 WORKDIR /app
-
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Set environment variables
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-ENV HOSTNAME "0.0.0.0"
 
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Build application
+# Next.js collects completely anonymous telemetry data about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# Uncomment the following line in case you want to disable telemetry during the build.
+ENV NEXT_TELEMETRY_DISABLED 1
+
 RUN npm run build
 
-# Stage 3: Runner
-FROM node:20-alpine AS runner
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV HOSTNAME "0.0.0.0"
-ENV PORT 3000
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/db ./db
+
+# Copy necessary node_modules for seed script
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/bcrypt-ts ./node_modules/bcrypt-ts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Set correct permissions
-RUN chown -R nextjs:nodejs /app
-
-# Switch to non-root user
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
-# Start the application
 CMD ["node", "server.js"] 

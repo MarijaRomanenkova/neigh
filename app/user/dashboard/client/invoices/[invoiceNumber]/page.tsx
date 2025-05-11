@@ -19,6 +19,9 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Invoice } from '@/types';
 
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic';
+
 /**
  * Props for the ClientInvoicePage component
  * @interface Props
@@ -44,59 +47,56 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Client Invoice Detail Page Component
+ * Client Invoice Page Component
  * 
- * Renders detailed information for a specific invoice including:
- * - Invoice header with number, date, and status
- * - Contractor and client details
- * - Line items with descriptions and costs
- * - Total amounts and taxes
+ * This server component renders the invoice detail view with:
+ * - Invoice information and items
  * - Payment options for unpaid invoices
+ * - Download functionality
+ * - Navigation back to invoices list
  * 
- * Includes authentication and authorization checks to ensure the 
- * invoice belongs to the current user.
- * 
+ * @component
  * @param {Props} props - Component properties
- * @returns {Promise<JSX.Element>} The rendered invoice detail page
+ * @returns {Promise<JSX.Element>} Invoice detail page
  */
-async function ClientInvoicePage({ params }: Props) {
-  // Await the params object to get the invoiceNumber
+export default async function ClientInvoicePage({ params }: Props) {
   const { invoiceNumber } = await params;
-
   const session = await auth();
-  if (!session) return notFound();
 
-  const invoiceData = await getInvoiceByNumber(invoiceNumber);
-  
-  if (!invoiceData || invoiceData.clientId !== session.user.id) {
+  if (!session?.user?.id) {
     return notFound();
   }
-  
-  // Cast to proper Invoice type
-  const invoice = invoiceData as Invoice;
+
+  const invoice = await getInvoiceByNumber(invoiceNumber);
+
+  if (!invoice || invoice.clientId !== session.user.id) {
+    return notFound();
+  }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Button variant="ghost" size="sm" asChild>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Button variant="ghost" asChild>
           <Link href="/user/dashboard/client/invoices">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Invoices
           </Link>
         </Button>
+      </div>
+
+      <div className="space-y-6">
+        <InvoiceDetails invoice={invoice} />
         
-        <div className="flex items-center gap-3">
-          <DownloadInvoiceButton invoiceNumber={invoice.invoiceNumber} />
-          
-          {!invoice.isPaid && (
+        {!invoice.isPaid && (
+          <div className="flex justify-end space-x-4">
             <AddToCartButton invoice={invoice} />
-          )}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <DownloadInvoiceButton invoiceNumber={invoice.invoiceNumber} />
         </div>
       </div>
-      
-      <InvoiceDetails invoice={invoice} />
     </div>
   );
 }
-
-export default ClientInvoicePage;
