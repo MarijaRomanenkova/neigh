@@ -62,11 +62,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ClientInvoicePage({ params }: Props) {
   const { invoiceNumber } = await params;
   const session = await auth();
-
+  
   if (!session?.user?.id) {
     return notFound();
   }
-
+  
   const invoice = await getInvoiceByNumber(invoiceNumber);
 
   if (!invoice || invoice.clientId !== session.user.id) {
@@ -83,15 +83,15 @@ export default async function ClientInvoicePage({ params }: Props) {
           </Link>
         </Button>
       </div>
-
+        
       <div className="space-y-6">
         <InvoiceDetails invoice={invoice} />
-        
-        {!invoice.isPaid && (
+          
+          {!invoice.isPaid && (
           <div className="flex justify-end space-x-4">
             <AddToCartButton invoice={invoice} />
           </div>
-        )}
+          )}
 
         <div className="flex justify-end">
           <DownloadInvoiceButton invoiceNumber={invoice.invoiceNumber} />

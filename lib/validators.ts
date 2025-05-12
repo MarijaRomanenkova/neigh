@@ -45,7 +45,7 @@ const PAYMENT_METHODS = ['CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER'];
  */
 export const insertTaskSchema = z.object({
   name: z.string().min(3).max(255),
-  categoryId: z.string(),
+  categoryId: z.string().uuid('Invalid category ID'),
   images: z.array(z.string()),
   description: z.string().min(12, 'Description must be at least 12 characters'),
   price: z.coerce.number().min(0),

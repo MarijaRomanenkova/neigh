@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/db/prisma';
 import { auth } from '@/auth';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET handler for conversations
@@ -118,18 +119,112 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Verify the task exists and get its details
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { 
+        id: true, 
+        createdById: true,
+        isArchived: true
+      }
+    });
+
+    if (!task) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    if (task.isArchived) {
+      return NextResponse.json(
+        { error: 'Cannot create conversation for archived task' },
+        { status: 400 }
+      );
+    }
+
+    // Verify all participant IDs are valid users
+    const participants = await prisma.user.findMany({
+      where: {
+        id: {
+          in: [...new Set([...participantIds, session.user.id])]
+        }
+      },
+      select: { id: true }
+    });
+
+    if (participants.length !== new Set([...participantIds, session.user.id]).size) {
+      return NextResponse.json(
+        { error: 'One or more participants not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify the current user is either the task creator or one of the participants
+    if (task.createdById !== session.user.id && !participantIds.includes(session.user.id)) {
+      // Allow any user to create a conversation with the task owner
+      // The task owner's ID should be in the participantIds array
+      if (!participantIds.includes(task.createdById)) {
+        return NextResponse.json(
+          { error: 'You can only create conversations with the task owner' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check for existing conversation
+    const existingConversation = await prisma.conversation.findFirst({
+      where: {
+        taskId,
+        participants: {
+          every: {
+            userId: {
+              in: [...new Set([...participantIds, session.user.id])]
+            }
+          }
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (existingConversation) {
+      return NextResponse.json(existingConversation);
+    }
     
-    // Ensure current user is included in participants
-    const allParticipantIds = [...new Set([...participantIds, session.user.id])];
-    
-    // Create conversation
+    // Create conversation with all participants
     const conversation = await prisma.conversation.create({
       data: {
         taskId,
         participants: {
-          create: allParticipantIds.map(userId => ({
+          create: [...new Set([...participantIds, session.user.id])].map(userId => ({
             userId
           }))
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          }
         }
       }
     });
@@ -138,11 +233,25 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Error creating conversation:', error);
     
-    // Fix the error object formatting
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Handle specific Prisma errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A conversation already exists for this task and participants' },
+          { status: 409 }
+        );
+      }
+      
+      if (error.code === 'P2003') {
+        return NextResponse.json(
+          { error: 'Invalid task or participant reference' },
+          { status: 400 }
+        );
+      }
+    }
     
     return NextResponse.json(
-      { error: 'Failed to create conversation', message: errorMessage },
+      { error: 'Failed to create conversation' },
       { status: 500 }
     );
   }

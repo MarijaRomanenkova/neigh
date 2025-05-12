@@ -20,13 +20,17 @@ import Search from './search';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSocket } from '@/components/providers/socket-provider';
 
 /**
  * Fetches the count of unread messages for the current user
  */
 async function fetchUnreadCount(userId: string) {
   try {
-    const response = await fetch('/api/messages/unread');
+    const response = await fetch('/api/messages/unread', {
+      cache: 'no-store',
+      credentials: 'include'
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch: ${response.status}`);
@@ -35,6 +39,7 @@ async function fetchUnreadCount(userId: string) {
     const data = await response.json();
     return typeof data.count === 'number' ? data.count : 0;
   } catch (err) {
+    console.error('Error fetching unread count:', err);
     return 0;
   }
 }
@@ -44,30 +49,40 @@ async function fetchUnreadCount(userId: string) {
  * @returns {JSX.Element} The rendered menu component
  */
 const Menu = () => {
-  const { data: session } = useSession();
-  const [count, setCount] = useState<number>(0);
+  const { data: session, status } = useSession();
+  const { unreadCount, resetUnreadCount } = useSocket();
+  const [initialCount, setInitialCount] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
+    }
 
     const fetchCount = async () => {
       try {
         setError(null);
         const count = await fetchUnreadCount(session.user.id);
-        setCount(count);
+        console.log('Fetched initial unread count:', count);
+        setInitialCount(count);
       } catch (err) {
+        console.error('Error in fetchCount:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
       }
     };
 
+    // Initial fetch
     fetchCount();
-    const interval = setInterval(fetchCount, 30000); // Refresh every 30 seconds
+  }, [session, session?.user?.id, status]);
 
-    return () => clearInterval(interval);
-  }, [session?.user?.id]);
+  const totalUnreadCount = initialCount + unreadCount;
+  console.log('Current unread counts:', { initialCount, unreadCount, totalUnreadCount });
+  const hasUnreadMessages = totalUnreadCount > 0;
 
-  const hasUnreadMessages = count > 0;
+  // Reset unread count when clicking on messages link
+  const handleMessagesClick = () => {
+    resetUnreadCount();
+  };
   
   return (
     <div className='flex justify-end gap-3'>
@@ -75,7 +90,7 @@ const Menu = () => {
         <ModeToggle />
         <div className="relative">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/user/dashboard/messages">
+            <Link href="/user/dashboard/messages" onClick={handleMessagesClick}>
               <MessageSquare className="h-5 w-5" />
             </Link>
           </Button>
@@ -83,7 +98,7 @@ const Menu = () => {
             <Badge 
               className="absolute -top-1 -right-1 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
             >
-              {count}
+              {totalUnreadCount}
             </Badge>
           )}
         </div>
@@ -101,14 +116,14 @@ const Menu = () => {
             <SheetTitle>Menu</SheetTitle>
             <ModeToggle />
             <Button asChild variant='ghost' className="relative w-full justify-start">
-              <Link href='/user/dashboard/messages'>
+              <Link href='/user/dashboard/messages' onClick={handleMessagesClick}>
                 <MessageSquare className="h-5 w-5 mr-2" /> 
                 Messages
                 {hasUnreadMessages && (
                   <Badge 
                     className="ml-2 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
                   >
-                    {count}
+                    {totalUnreadCount}
                   </Badge>
                 )}
               </Link>

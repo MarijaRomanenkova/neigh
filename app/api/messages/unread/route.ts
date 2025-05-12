@@ -12,9 +12,12 @@ import { prisma } from "@/db/prisma";
  */
 export async function GET() {
   try {
+    console.log('Fetching session in unread messages API');
     const session = await auth();
+    console.log('Session in API:', session);
     
     if (!session?.user?.id) {
+      console.log('No session or user ID found');
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -31,6 +34,7 @@ export async function GET() {
       }
     });
     
+    console.log('User conversations:', userConversations);
     const conversationIds = userConversations.map(c => c.conversationId);
     
     // Count messages that are:
@@ -45,6 +49,7 @@ export async function GET() {
       }
     });
     
+    console.log('Unread count:', unreadCount);
     return NextResponse.json({ count: unreadCount });
     
   } catch (error) {

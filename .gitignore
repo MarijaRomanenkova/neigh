@@ -27,7 +27,9 @@ yarn-error.log*
 
 # local env files
 .env*.local
-.env
+.env.production
+.env.development
+.env.test
 
 # vercel
 .vercel
@@ -44,3 +46,7 @@ next-env.d.ts
 !.vscode/launch.json
 *.code-workspace
 .history/
+
+# Docker
+.docker/
+docker-compose.override.yml

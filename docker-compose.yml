@@ -24,28 +24,50 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-    env_file:
-      - .env.local
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
     command: >
-      sh -c '
-        echo "Running database migrations..."
-        npx prisma migrate deploy
-        echo "Seeding database..."
-        node db/seed.mjs
-        echo "Starting application..."
-        node server.js
-      '
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        while ! nc -z db 5432; do
+          sleep 1
+        done &&
+        echo 'Database is ready!' &&
+        npx prisma db push &&
+        echo 'Checking if database needs seeding...' &&
+        if ! psql -h db -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT EXISTS (SELECT 1 FROM "User" LIMIT 1);' | grep -q 't'; then
+          echo 'Seeding database...' &&
+          node db/seed.mjs
+        else
+          echo 'Database already seeded, skipping...'
+        fi &&
+        npm run dev
+      "
     networks:
       - app-network
+
+  socket:
+    build:
+      context: .
+      dockerfile: Dockerfile.socket
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    depends_on:
+      - app
 
 volumes:
   postgres_data:

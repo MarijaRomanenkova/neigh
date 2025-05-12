@@ -33,3 +33,4 @@ else
 fi
 
 echo "Database initialization completed!" 
+ 

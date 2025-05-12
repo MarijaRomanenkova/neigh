@@ -569,47 +569,6 @@ export async function getTaskAssignmentById(id: string) {
 }
 
 /**
- * Deletes a task assignment by its ID
- * 
- * @param id - The unique identifier of the task assignment to delete
- * @returns Object containing success status and message
- * 
- * @example
- * // In a task management component
- * async function handleDelete(assignmentId) {
- *   const { success, message } = await deleteTaskAssignment(assignmentId);
- *   
- *   if (success) {
- *     showNotification('Success', message);
- *     refreshAssignments();
- *   } else {
- *     showNotification('Error', message);
- *   }
- * }
- */
-export async function deleteTaskAssignment(id: string) {
-  try {
-    await prisma.taskAssignment.delete({
-      where: { id }
-    });
-
-    revalidatePath('/user/dashboard/contractor/assignments');
-    revalidatePath('/user/dashboard/client/task-assignments');
-    
-    return {
-      success: true,
-      message: 'Task assignment deleted successfully'
-    };
-  } catch (error) {
-    console.error('Error deleting task assignment:', error);
-    return {
-      success: false,
-      message: 'Failed to delete task assignment'
-    };
-  }
-}
-
-/**
  * Creates a new task assignment
  * 
  * @param data - Task assignment data including task ID, contractor ID, client ID, and status ID
@@ -1635,7 +1594,7 @@ export async function getContractorReviewOfClient(id: string) {
     console.error('[GET_CONTRACTOR_REVIEW]', error);
     return { success: false, message: 'Failed to fetch review' };
   }
-}
+} 
 
 /**
  * Gets the ID of the "Completed" task assignment status

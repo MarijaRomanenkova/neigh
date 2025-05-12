@@ -9,18 +9,27 @@
  * and notifications.
  */
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io as ClientIO, Socket } from 'socket.io-client';
+import { useSession } from 'next-auth/react';
 
 /**
  * Socket Context Type Definition
  * @interface SocketContextType
  * @property {Socket|null} socket - The Socket.IO client instance or null if not connected
  * @property {boolean} isConnected - Whether the socket is currently connected
+ * @property {number} unreadCount - The count of unread messages
+ * @property {function} incrementUnreadCount - Function to increment the unread count
+ * @property {function} decrementUnreadCount - Function to decrement the unread count
+ * @property {function} resetUnreadCount - Function to reset the unread count
  */
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
+  unreadCount: number;
+  incrementUnreadCount: () => void;
+  decrementUnreadCount: () => void;
+  resetUnreadCount: () => void;
 }
 
 /**
@@ -29,7 +38,11 @@ interface SocketContextType {
  */
 const SocketContext = createContext<SocketContextType>({
   socket: null,
-  isConnected: false
+  isConnected: false,
+  unreadCount: 0,
+  incrementUnreadCount: () => {},
+  decrementUnreadCount: () => {},
+  resetUnreadCount: () => {}
 });
 
 /**
@@ -56,41 +69,138 @@ export const useSocket = () => {
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const socketRef = useRef<Socket | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const { status, data: session } = useSession();
+
+  const incrementUnreadCount = () => setUnreadCount(prev => prev + 1);
+  const decrementUnreadCount = () => setUnreadCount(prev => Math.max(0, prev - 1));
+  const resetUnreadCount = () => setUnreadCount(0);
 
   useEffect(() => {
-    const socketInstance = ClientIO('/', {
-      path: '/api/socketio',
-      addTrailingSlash: false,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      transports: ['websocket'],
-      autoConnect: true,
-      withCredentials: false,
-    });
+    let mounted = true;
 
-    socketInstance.on('connect', () => {
-      setIsConnected(true);
-    });
+    const checkSocketServer = async () => {
+      try {
+        const response = await fetch('/api/socketio/health');
+        return response.ok;
+      } catch (error) {
+        console.error('Socket server health check failed:', error);
+        return false;
+      }
+    };
 
-    socketInstance.on('disconnect', () => {
-      setIsConnected(false);
-    });
+    const initializeSocket = async () => {
+      if (!mounted) return;
 
-    socketInstance.on('error', (err: Error) => {
-      setError(err.message);
-    });
+      // Clear any existing retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
 
-    setSocket(socketInstance);
+      // Disconnect existing socket if any
+      if (socketRef.current?.connected) {
+        socketRef.current.disconnect();
+      }
+
+      // Only proceed if user is authenticated
+      if (status !== 'authenticated') {
+        setSocket(null);
+        setIsConnected(false);
+        return;
+      }
+
+      const isServerReady = await checkSocketServer();
+      if (!isServerReady) {
+        console.log('Socket server not ready, retrying in 2 seconds...');
+        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
+        return;
+      }
+
+      const socketInstance = ClientIO('http://localhost:3001', {
+        path: '/api/socketio',
+        addTrailingSlash: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+        withCredentials: true,
+        timeout: 10000
+      });
+
+      socketInstance.on('connect', () => {
+        if (!mounted) return;
+        console.log('Socket connected:', socketInstance.id);
+        setIsConnected(true);
+      });
+
+      socketInstance.on('disconnect', () => {
+        if (!mounted) return;
+        console.log('Socket disconnected');
+        setIsConnected(false);
+      });
+
+      socketInstance.on('connect_error', (err) => {
+        if (!mounted) return;
+        console.error('Socket connection error:', err);
+        setIsConnected(false);
+        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
+      });
+
+      // Handle new message events
+      socketInstance.on('new_message', (data) => {
+        if (!mounted) return;
+        // Only increment if the message is not from the current user
+        if (data.senderId !== session?.user?.id) {
+          console.log('New message received from other user, incrementing unread count');
+          incrementUnreadCount();
+        }
+      });
+
+      // Handle message read events
+      socketInstance.on('message_read', (data) => {
+        if (!mounted) return;
+        // Only decrement if the message was read by the current user
+        if (data.readByUserId === session?.user?.id) {
+          console.log('Message read by current user, decrementing unread count');
+          decrementUnreadCount();
+        }
+      });
+
+      if (mounted) {
+        socketRef.current = socketInstance;
+        setSocket(socketInstance);
+      } else {
+        socketInstance.disconnect();
+      }
+    };
+
+    // Initial connection attempt
+    initializeSocket();
 
     return () => {
-      socketInstance.disconnect();
+      mounted = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (socketRef.current?.connected) {
+        socketRef.current.disconnect();
+      }
     };
-  }, []);
+  }, [status, session]); // Add status and session as dependencies
 
+  // Always render children, even if socket is not connected
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ 
+      socket, 
+      isConnected, 
+      unreadCount,
+      incrementUnreadCount,
+      decrementUnreadCount,
+      resetUnreadCount
+    }}>
       {children}
     </SocketContext.Provider>
   );

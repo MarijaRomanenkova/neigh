@@ -68,7 +68,7 @@ export default async function ContractorInvoicePage({ params }: Props) {
   }
 
   const invoice = await getInvoiceByNumber(invoiceNumber);
-
+  
   if (!invoice || invoice.contractorId !== session.user.id) {
     return notFound();
   }

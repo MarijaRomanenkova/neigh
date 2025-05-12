@@ -187,18 +187,18 @@ const SearchPage = async (props: {
             <div>
               <h3 className="text-lg font-semibold mb-4">Categories</h3>
               <div className="space-y-2">
-                <Link
-                  href={getFilterUrl({ c: 'all' })}
+            <Link
+              href={getFilterUrl({ c: 'all' })}
                   className={`block px-4 py-2 rounded-lg ${
                     category === 'all'
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted'
                   }`}
-                >
+            >
                   All Categories
-                </Link>
+            </Link>
                 {categories.map((cat) => (
-                  <Link
+              <Link
                     key={cat.id}
                     href={getFilterUrl({ c: cat.id })}
                     className={`block px-4 py-2 rounded-lg ${
@@ -206,10 +206,10 @@ const SearchPage = async (props: {
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted'
                     }`}
-                  >
+              >
                     {cat.name}
-                  </Link>
-                ))}
+              </Link>
+          ))}
               </div>
             </div>
 
@@ -217,34 +217,34 @@ const SearchPage = async (props: {
             <div>
               <h3 className="text-lg font-semibold mb-4">Price Range</h3>
               <div className="space-y-2">
-                <Link
-                  href={getFilterUrl({ p: 'all' })}
+            <Link
+              href={getFilterUrl({ p: 'all' })}
                   className={`block px-4 py-2 rounded-lg ${
                     price === 'all'
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted'
                   }`}
-                >
+            >
                   All Prices
-                </Link>
-                {prices.map((p) => (
-                  <Link
+            </Link>
+          {prices.map((p) => (
+              <Link
                     key={p.value}
-                    href={getFilterUrl({ p: p.value })}
+                href={getFilterUrl({ p: p.value })}
                     className={`block px-4 py-2 rounded-lg ${
                       price === p.value
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted'
                     }`}
-                  >
-                    {p.name}
-                  </Link>
-                ))}
+              >
+                {p.name}
+              </Link>
+          ))}
               </div>
-            </div>
+      </div>
           </div>
-        </div>
-
+          </div>
+          
         {/* Search Results */}
         <div className="md:col-span-3">
           <div className="flex justify-between items-center mb-6">
@@ -254,27 +254,27 @@ const SearchPage = async (props: {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">Sort by:</span>
               <div className="flex space-x-2">
-                {sortOrders.map((s) => (
+            {sortOrders.map((s) => (
                   <Button
-                    key={s}
+                key={s}
                     variant={sort === s ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => {
                       window.location.href = getFilterUrl({ s: s as 'newest' | 'lowest' | 'highest' });
                     }}
-                  >
+              >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
                   </Button>
-                ))}
+            ))}
               </div>
-            </div>
           </div>
+        </div>
 
           <Suspense fallback={<SearchResultsSkeleton />}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tasksResult.data.map((task: Task) => (
-                <TaskCard key={task.id} task={task} />
-              ))}
+            <TaskCard key={task.id} task={task} />
+          ))}
             </div>
           </Suspense>
         </div>

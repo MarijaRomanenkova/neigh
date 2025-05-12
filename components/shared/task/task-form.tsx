@@ -149,7 +149,6 @@ const TaskForm = ({
           formData.append(key, String(value));
         }
       });
-      formData.append('userId', userId);
 
       const res = await createTask(formData);
 
@@ -228,7 +227,6 @@ const TaskForm = ({
                     <SelectValue placeholder='Select category' />
                   </SelectTrigger>
                   <SelectContent className='min-w-[200px]'>
-                    <SelectItem value="none">Select a category</SelectItem>
                     {categories?.map((category) => (
                       <SelectItem 
                         key={category.id} 

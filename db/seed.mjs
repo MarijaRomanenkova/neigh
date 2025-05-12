@@ -3,7 +3,6 @@
  * @description Database seeding script that populates the database with initial test data.
  * This is the ESM (ECMAScript Module) version of the seed script for environments that require ES modules.
  * This script creates categories, task statuses, users, tasks, and task assignments for testing purposes.
- * It first cleans any existing data to ensure a fresh start.
  * 
  * To run this script: node db/seed.mjs
  */
@@ -16,29 +15,26 @@ const prisma = new PrismaClient()
 /**
  * Main seeding function that populates the database with test data.
  * Executes in sequence:
- * 1. Cleans existing data
- * 2. Creates categories
- * 3. Creates task statuses
- * 4. Creates users with hashed passwords
- * 5. Creates tasks
- * 6. Creates task assignments
+ * 1. Creates:
+ *    - Categories
+ *    - Task statuses
+ *    - Users with hashed passwords
+ *    - Tasks
+ *    - Task assignments
  * 
  * @async
  * @returns {Promise<void>}
  */
 async function main() {
   try {
-    // Clean up existing data using transaction for atomicity
-    console.log('Cleaning up existing data...')
-    await prisma.$transaction([
-      prisma.taskAssignment.deleteMany(),
-      prisma.task.deleteMany(),
-      prisma.category.deleteMany(),
-      prisma.user.deleteMany(),
-      prisma.taskAssignmentStatus.deleteMany(),
-    ])
+    console.log('Starting seeding process...');
 
-    console.log('Seeding database...')
+    // Check if we already have data
+    const existingUsers = await prisma.user.count();
+    if (existingUsers > 0) {
+      console.log('Database already has data. Skipping seeding...');
+      return;
+    }
 
     // Create Categories
     const categories = await Promise.all([
@@ -66,7 +62,6 @@ async function main() {
           id: '38743520-6135-4506-a968-7ecd0bbc64ff', // Open status UUID
           name: 'OPEN',
           description: 'Task is open for contractors',
-          color: '#4CAF50',
           order: 1
         }
       }),

@@ -4,7 +4,7 @@
  * @module TaskAssignmentForm
  * @description A form component for creating or updating task assignments.
  * This component handles assigning tasks to contractors with specific statuses.
- * It supports both creation and update modes with conditional rendering of delete functionality.
+ * It supports both creation and update modes.
  */
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,9 +15,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { createTaskAssignment, deleteTaskAssignment } from '@/lib/actions/task-assignment.actions';
+import { createTaskAssignment } from '@/lib/actions/task-assignment.actions';
 import { Prisma } from '@prisma/client';
-import DeleteDialog from '@/components/shared/delete-dialog';
 
 /**
  * @interface TaskAssignmentFormProps
@@ -57,7 +56,6 @@ type TaskAssignmentFormProps = {
 /**
  * TaskAssignmentForm component for creating or updating task assignments.
  * Renders a form with contractor and status selection fields.
- * In update mode, also provides the option to delete the assignment.
  * 
  * @param {Object} props - Component props
  * @param {string} [props.taskId] - ID of the task to be assigned
@@ -66,7 +64,7 @@ type TaskAssignmentFormProps = {
  * @param {Array<{id: string; name: string}>} props.statuses - Available assignment statuses
  * @param {'Create' | 'Update'} props.type - Whether creating or updating an assignment
  * @param {Prisma.TaskAssignmentGetPayload} [props.assignment] - Existing assignment data (for updates)
- * @param {string} [props.assignmentId] - ID of the assignment (for updates and deletion)
+ * @param {string} [props.assignmentId] - ID of the assignment (for updates)
  * @returns {JSX.Element} A form for task assignment creation or management
  */
 export function TaskAssignmentForm({ 
@@ -188,17 +186,6 @@ export function TaskAssignmentForm({
           </Button>
         </form>
       </Form>
-
-      {/* Render delete dialog only in Update mode */}
-      {type === 'Update' && assignmentId && (
-        <div className="pt-6 border-t">
-          <DeleteDialog 
-            id={assignmentId}
-            action={deleteTaskAssignment}
-            variant="outline"
-          />
-        </div>
-      )}
     </div>
   );
 }

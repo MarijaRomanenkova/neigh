@@ -12,12 +12,62 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { Server as NetServer } from "http";
-import { NextApiRequest } from 'next';
 import { MessageData } from '@/types/chat/message.types';
 
 // Global Socket.IO instance
-let io: SocketIOServer | null = null;
+export let io: SocketIOServer | null = null;
 let httpServer: NetServer | null = null;
+
+// Initialize socket server
+const initializeSocketServer = () => {
+  if (!io) {
+    // Create a standalone HTTP server for Socket.IO
+    httpServer = createServer();
+    
+    // Initialize Socket.IO with proper configuration
+    io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        methods: ["GET", "POST"],
+        credentials: true
+      },
+      transports: ["websocket", "polling"],
+      path: '/api/socketio',
+      addTrailingSlash: false
+    });
+    
+    io.on("connection", (socket) => {   
+      console.log('Client connected:', socket.id);
+      
+      socket.on("join-conversation", (conversationId: string) => {
+        console.log('Client joined conversation:', conversationId);
+        socket.join(conversationId);
+      });
+      
+      socket.on("send-message", (data: MessageData) => {
+        console.log('Message sent:', data);
+        socket.to(data.conversationId).emit("new-message", data.message);
+      });
+
+      socket.on("disconnect", () => {
+        console.log('Client disconnected:', socket.id);
+      });
+
+      socket.on("error", (error) => {
+        console.error('Socket error:', error);
+      });
+    });
+    
+    // Start the server on port 3001
+    const PORT = 3001;
+    httpServer.listen(PORT);
+    console.log(`Socket.IO server running on port ${PORT}`);
+  }
+  return io;
+};
+
+// Initialize socket server on module load
+initializeSocketServer();
 
 /**
  * GET handler for Socket.IO initialization
@@ -29,35 +79,19 @@ let httpServer: NetServer | null = null;
  * @returns {Promise<NextResponse>} JSON response confirming initialization status
  */
 export async function GET() {
-  if (!io) {
-    // Create a standalone HTTP server for Socket.IO
-    httpServer = createServer();
+  try {
+    if (!io) {
+      io = initializeSocketServer();
+    }
     
-    // Initialize Socket.IO
-    io = new SocketIOServer(httpServer, {
-      cors: {
-        origin: process.env.NEXT_PUBLIC_APP_URL,
-        methods: ["GET", "POST"]
-      },
-      transports: ["websocket"]
-    });
-    
-    io.on("connection", (socket) => {   
-      socket.on("join-conversation", (conversationId: string) => {
-        socket.join(conversationId);
-       });
-      
-      socket.on("send-message", (data: MessageData) => {
-        socket.to(data.conversationId).emit("new-message", data.message);
-      });
-    });
-    
-    // Start the server on a port
-    const PORT = 3100;
-    httpServer.listen(PORT);
+    return NextResponse.json({ status: "Socket.IO initialized" });
+  } catch (error) {
+    console.error('Socket.IO initialization error:', error);
+    return NextResponse.json(
+      { error: "Failed to initialize Socket.IO" },
+      { status: 500 }
+    );
   }
-  
-  return NextResponse.json({ status: "Socket.IO initialized" });
 }
 
 /**
@@ -70,27 +104,38 @@ export async function GET() {
  * @returns {Promise<Response>} Raw response from the Socket.IO server
  */
 export async function POST(req: NextRequest) {
-  // Handle POST requests similarly
-  const url = new URL(req.url);
-  const searchParams = url.searchParams;
-  const body = await req.text();
-  
-  const PORT = global.SOCKET_PORT || 3100;
-  const response = await fetch(`http://localhost:${PORT}/socket.io/?${searchParams.toString()}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-    body,
-  });
-  
-  const data = await response.text();
-  
-  return new Response(data, {
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-  });
+  try {
+    if (!io) {
+      throw new Error('Socket.IO server not initialized');
+    }
+
+    const url = new URL(req.url);
+    const searchParams = url.searchParams;
+    const body = await req.text();
+    
+    const PORT = 3001;
+    const response = await fetch(`http://localhost:${PORT}/socket.io/?${searchParams.toString()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body,
+    });
+    
+    const data = await response.text();
+    
+    return new Response(data, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
+  } catch (error) {
+    console.error('Socket.IO POST error:', error);
+    return NextResponse.json(
+      { error: "Failed to handle Socket.IO request" },
+      { status: 500 }
+    );
+  }
 }
 
 // Add this to global.d.ts or declare it here
