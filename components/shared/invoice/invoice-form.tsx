@@ -333,12 +333,12 @@ const InvoiceForm = ({ type, invoice, prefillData }: InvoiceFormProps) => {
     try {
       setIsSubmitting(true);
       const result = await createInvoice(values);
-      if (result.success) {
+      if (result.success && result.data?.invoiceNumber) {
         toast({
           title: 'Invoice created',
           description: 'The invoice has been created successfully.',
         });
-        router.push(`/user/dashboard/contractor/invoices/${result.data}`);
+        router.push(`/user/dashboard/contractor/invoices/${result.data.invoiceNumber}`);
       } else {
         toast({
           title: 'Error',

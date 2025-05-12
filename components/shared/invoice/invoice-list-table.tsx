@@ -278,7 +278,7 @@ const InvoiceListTable = ({
 
     startTransition(async () => {
       sessionStorage.setItem('selectedInvoices', JSON.stringify(selectedInvoices.map(inv => inv.id)));
-      router.push('/payment');
+      router.push('/user/dashboard/client/payments/checkout');
     });
   };
 
