@@ -1,17 +1,24 @@
-FROM node:20-alpine
+FROM node:20.11.1-alpine
 
 WORKDIR /app
 
-# Copy only the socket server files and its package.json
-COPY socket-package.json ./package.json
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ gcc curl
+
+# Copy package files
+COPY socket/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy socket server code
 COPY socket-server.js ./
 
-# Install dependencies with network retry options
-RUN npm config set fetch-retries 5 && \
-    npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000 && \
-    npm install
+# Copy environment files
+COPY .env .env.local ./
 
+# Expose socket port
 EXPOSE 3001
 
+# Start the socket server
 CMD ["node", "socket-server.js"] 

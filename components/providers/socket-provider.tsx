@@ -84,9 +84,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const checkSocketServer = async () => {
       try {
         const response = await fetch('/api/socketio/health');
-        return response.ok;
+        if (!response.ok) {
+          console.log('Socket server health check failed:', response.status);
+          return false;
+        }
+        return true;
       } catch (error) {
-        console.error('Socket server health check failed:', error);
+        console.log('Socket server health check failed:', error);
         return false;
       }
     };
@@ -118,60 +122,93 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const socketInstance = ClientIO('http://localhost:3001', {
+      const socketInstance = ClientIO(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
         path: '/api/socketio',
         addTrailingSlash: false,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        transports: ['websocket', 'polling'],
-        autoConnect: true,
+        transports: ['polling', 'websocket'],
+        autoConnect: false,
         withCredentials: true,
-        timeout: 10000
+        timeout: 10000,
+        forceNew: true,
+        auth: async (cb) => {
+          try {
+            const response = await fetch('/api/auth/socket-token');
+            if (!response.ok) {
+              throw new Error('Failed to get socket token');
+            }
+            const { token } = await response.json();
+            cb({ token });
+          } catch (error) {
+            console.log('Error getting socket token:', error);
+            cb({ token: undefined });
+          }
+        }
       });
+
+      // Track message delivery status
+      const messageStatus = new Map<string, boolean>();
 
       socketInstance.on('connect', () => {
         if (!mounted) return;
         console.log('Socket connected:', socketInstance.id);
         setIsConnected(true);
+        // Clear any pending retry timeout
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = undefined;
+        }
       });
 
       socketInstance.on('disconnect', () => {
         if (!mounted) return;
         console.log('Socket disconnected');
         setIsConnected(false);
+        // Attempt to reconnect after delay
+        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
       });
 
       socketInstance.on('connect_error', (err) => {
         if (!mounted) return;
-        console.error('Socket connection error:', err);
+        console.log('Socket connection error:', err.message);
         setIsConnected(false);
-        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
-      });
-
-      // Handle new message events
-      socketInstance.on('new_message', (data) => {
-        if (!mounted) return;
-        // Only increment if the message is not from the current user
-        if (data.senderId !== session?.user?.id) {
-          console.log('New message received from other user, incrementing unread count');
-          incrementUnreadCount();
+        // Only retry if we haven't exceeded max attempts
+        const maxAttempts = socketInstance.io.opts.reconnectionAttempts || 5;
+        if (socketInstance.io.reconnectionAttempts() < maxAttempts) {
+          retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
+        } else {
+          console.log('Max reconnection attempts reached');
         }
       });
 
-      // Handle message read events
-      socketInstance.on('message_read', (data) => {
+      socketInstance.on('new-message', (message) => {
         if (!mounted) return;
-        // Only decrement if the message was read by the current user
-        if (data.readByUserId === session?.user?.id) {
-          console.log('Message read by current user, decrementing unread count');
-          decrementUnreadCount();
+        console.log('New message received:', message);
+        // Track message delivery
+        if (message.messageId) {
+          messageStatus.set(message.messageId, false);
+          // Acknowledge message receipt
+          socketInstance.emit('message-delivered', {
+            messageId: message.messageId,
+            conversationId: message.conversationId
+          });
         }
+        // Update unread count
+        setUnreadCount(prev => prev + 1);
+      });
+
+      socketInstance.on('message-delivered', ({ messageId }) => {
+        if (!mounted) return;
+        console.log('Message delivered:', messageId);
+        messageStatus.set(messageId, true);
       });
 
       if (mounted) {
         socketRef.current = socketInstance;
         setSocket(socketInstance);
+        socketInstance.connect(); // Explicitly connect after setting up handlers
       } else {
         socketInstance.disconnect();
       }

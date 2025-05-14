@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Install Python and other build dependencies
-RUN apk add --no-cache python3 make g++ gcc libc6-compat
+RUN apk add --no-cache python3 make g++ gcc libc6-compat curl
 
 WORKDIR /app
 
@@ -11,6 +11,9 @@ COPY prisma ./prisma/
 
 # Install dependencies
 RUN npm install
+
+# Copy environment files first
+COPY .env .env.local ./
 
 # Copy the rest of the application
 COPY . .
@@ -23,5 +26,5 @@ EXPOSE 3000
 # Initialize database and start the application
 CMD sh -c '\
   sh scripts/init-db.sh && \
-  npm run dev' 
+  NODE_ENV=development npm run dev' 
  
