@@ -6,7 +6,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 interface UserRatingDisplayProps {
   rating: number | null | undefined;
   size?: 'sm' | 'md' | 'lg';
-  showText?: boolean;
   tooltipText?: string;
 }
 
@@ -21,22 +20,21 @@ interface UserRatingDisplayProps {
 export default function UserRatingDisplay({ 
   rating, 
   size = 'sm',
-  showText = true,
   tooltipText
 }: UserRatingDisplayProps) {
-  if (!rating) return null;
+  // Convert rating to number and check if it's valid
+  const numericRating = Number(rating);
+  if (isNaN(numericRating) || numericRating === 0) return null;
   
   const starSize = size === 'sm' ? 14 : size === 'md' ? 18 : 24;
   const textClass = size === 'sm' ? 'text-xs' : size === 'md' ? 'text-sm' : 'text-base';
   
   const content = (
     <div className="flex items-center gap-1.5">
-      <StarRatingDisplay value={rating} size={starSize} />
-      {showText && (
-        <span className={`text-muted-foreground ${textClass}`}>
-          {rating.toFixed(1)}
-        </span>
-      )}
+      <StarRatingDisplay value={numericRating} size={starSize} />
+      <span className={`text-muted-foreground ${textClass}`}>
+        {numericRating.toFixed(1)}
+      </span>
     </div>
   );
   

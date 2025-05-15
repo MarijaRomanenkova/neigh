@@ -7,15 +7,16 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/neighbours
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
-      - NEXT_PUBLIC_SOCKET_URL=http://socket:3001
+      - NEXTAUTH_SECRET=your-secret-key
+      - SOCKET_URL=http://socket:3001
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - app-network
 
@@ -25,14 +26,20 @@ services:
       dockerfile: Dockerfile.socket
     ports:
       - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/neighbours
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-secret-key
+    depends_on:
+      - db
     networks:
       - app-network
 
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     ports:
       - "5432:5432"
     environment:
@@ -41,18 +48,12 @@ services:
       - POSTGRES_DB=neighbours
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     networks:
       - app-network
+
+volumes:
+  postgres_data:
 
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  postgres_data:
