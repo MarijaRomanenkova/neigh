@@ -23,10 +23,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import TaskContactButton from './task-contact-button';
 import { Pencil } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 /**
  * Props for the TaskActionButton component
@@ -49,11 +49,13 @@ interface TaskActionButtonProps {
  * @returns {JSX.Element} Either an edit button or a contact button based on user role
  */
 const TaskActionButton = ({ taskId, taskOwnerId, className }: TaskActionButtonProps) => {
-  const { data: session } = useSession();
   const router = useRouter();
+  const { data: session } = useSession();
   
-  // Check if current user is the task creator
-  const isOwner = session?.user?.id === taskOwnerId;
+  // Compare as strings for reliability
+  const currentUserId = session?.user?.id ? String(session.user.id) : '';
+  const ownerId = taskOwnerId ? String(taskOwnerId) : '';
+  const isOwner = currentUserId && ownerId && currentUserId === ownerId;
   
   /**
    * Handles the edit button click by navigating to the task edit page

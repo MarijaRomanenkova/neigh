@@ -7,21 +7,47 @@ const jwt = require('jsonwebtoken');
 // Track active connections and rooms
 const activeConnections = new Map();
 const activeRooms = new Map();
+let isServerReady = false;
 
 // Create HTTP server
 const httpServer = createServer((req, res) => {
   // Enhanced health check endpoint
-  if (req.url === '/health') {
+  if (req.url === '/socket-health') {
+    console.log('Socket health check requested, server ready:', isServerReady);
+    
     const healthData = {
-      status: 'ok',
+      status: isServerReady ? 'ok' : 'starting',
       connections: activeConnections.size,
       rooms: activeRooms.size,
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
     };
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+
+    // Always return 200, but with different status in the body
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
     res.end(JSON.stringify(healthData));
     return;
   }
+
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    res.end();
+    return;
+  }
+
+  // Handle 404 for other routes
+  res.writeHead(404);
+  res.end();
 });
 
 // Initialize Socket.IO
@@ -32,7 +58,7 @@ const io = new Server(httpServer, {
     credentials: true
   },
   transports: ["polling", "websocket"],
-  path: '/api/socketio',
+  path: '/socket.io',
   addTrailingSlash: false,
   pingTimeout: 60000,
   pingInterval: 25000,
@@ -151,6 +177,10 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     pingTimeout: io.engine.opts.pingTimeout,
     pingInterval: io.engine.opts.pingInterval
   });
+  
+  // Set server as ready after initialization
+  isServerReady = true;
+  console.log('Socket server is ready');
 }).on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`Port ${PORT} is already in use. Please ensure no other socket server is running.`);

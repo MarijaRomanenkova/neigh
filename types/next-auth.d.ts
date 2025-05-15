@@ -30,6 +30,19 @@ declare module 'next-auth' {
       
       /** User's address information, stored as a JSON object or string */
       address?: Record<string, unknown> | string | null;
+      
+      /** User's token if provided */
+      token?: string;
     } & DefaultSession['user'];
+  }
+
+  /**
+   * Extends the default NextAuth User type with custom user properties
+   * Used throughout the application to provide type safety for user object access
+   */
+  export interface User {
+    id: string;
+    role: string;
+    token?: string;
   }
 }

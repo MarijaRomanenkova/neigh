@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react';
  * @property {function} incrementUnreadCount - Function to increment the unread count
  * @property {function} decrementUnreadCount - Function to decrement the unread count
  * @property {function} resetUnreadCount - Function to reset the unread count
+ * @property {function} initializeSocket - Function to initialize the socket
  */
 interface SocketContextType {
   socket: Socket | null;
@@ -30,6 +31,7 @@ interface SocketContextType {
   incrementUnreadCount: () => void;
   decrementUnreadCount: () => void;
   resetUnreadCount: () => void;
+  initializeSocket: () => Promise<void>;
 }
 
 /**
@@ -42,7 +44,8 @@ const SocketContext = createContext<SocketContextType>({
   unreadCount: 0,
   incrementUnreadCount: () => {},
   decrementUnreadCount: () => {},
-  resetUnreadCount: () => {}
+  resetUnreadCount: () => {},
+  initializeSocket: async () => {}
 });
 
 /**
@@ -78,25 +81,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const decrementUnreadCount = () => setUnreadCount(prev => Math.max(0, prev - 1));
   const resetUnreadCount = () => setUnreadCount(0);
 
-  useEffect(() => {
-    let mounted = true;
+  const initializeSocket = async () => {
+    if (!session?.user?.token || socketRef.current?.connected) return;
 
-    const checkSocketServer = async () => {
-      try {
-        const response = await fetch('/api/socketio/health');
-        if (!response.ok) {
-          console.log('Socket server health check failed:', response.status);
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.log('Socket server health check failed:', error);
-        return false;
+    try {
+      // Check server health first
+      const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}/socket-health`);
+      const healthData = await healthResponse.json();
+      
+      if (healthData.status !== 'ok') {
+        console.log('Socket server not ready:', healthData);
+        return;
       }
-    };
-
-    const initializeSocket = async () => {
-      if (!mounted) return;
 
       // Clear any existing retry timeout
       if (retryTimeoutRef.current) {
@@ -108,22 +104,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketRef.current.disconnect();
       }
 
-      // Only proceed if user is authenticated
-      if (status !== 'authenticated') {
-        setSocket(null);
-        setIsConnected(false);
-        return;
-      }
-
-      const isServerReady = await checkSocketServer();
-      if (!isServerReady) {
-        console.log('Socket server not ready, retrying in 2 seconds...');
-        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
-        return;
-      }
-
       const socketInstance = ClientIO(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-        path: '/api/socketio',
+        path: '/socket.io',
         addTrailingSlash: false,
         reconnection: true,
         reconnectionAttempts: 5,
@@ -133,18 +115,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         withCredentials: true,
         timeout: 10000,
         forceNew: true,
-        auth: async (cb) => {
-          try {
-            const response = await fetch('/api/auth/socket-token');
-            if (!response.ok) {
-              throw new Error('Failed to get socket token');
-            }
-            const { token } = await response.json();
-            cb({ token });
-          } catch (error) {
-            console.log('Error getting socket token:', error);
-            cb({ token: undefined });
-          }
+        auth: {
+          token: session.user.token
         }
       });
 
@@ -152,7 +124,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const messageStatus = new Map<string, boolean>();
 
       socketInstance.on('connect', () => {
-        if (!mounted) return;
         console.log('Socket connected:', socketInstance.id);
         setIsConnected(true);
         // Clear any pending retry timeout
@@ -163,28 +134,29 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       });
 
       socketInstance.on('disconnect', () => {
-        if (!mounted) return;
         console.log('Socket disconnected');
         setIsConnected(false);
         // Attempt to reconnect after delay
-        retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
+        retryTimeoutRef.current = setTimeout(() => {
+          socketInstance.connect();
+        }, 2000);
       });
 
       socketInstance.on('connect_error', (err) => {
-        if (!mounted) return;
         console.log('Socket connection error:', err.message);
         setIsConnected(false);
         // Only retry if we haven't exceeded max attempts
         const maxAttempts = socketInstance.io.opts.reconnectionAttempts || 5;
         if (socketInstance.io.reconnectionAttempts() < maxAttempts) {
-          retryTimeoutRef.current = setTimeout(initializeSocket, 2000);
+          retryTimeoutRef.current = setTimeout(() => {
+            socketInstance.connect();
+          }, 2000);
         } else {
           console.log('Max reconnection attempts reached');
         }
       });
 
       socketInstance.on('new-message', (message) => {
-        if (!mounted) return;
         console.log('New message received:', message);
         // Track message delivery
         if (message.messageId) {
@@ -200,25 +172,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       });
 
       socketInstance.on('message-delivered', ({ messageId }) => {
-        if (!mounted) return;
         console.log('Message delivered:', messageId);
         messageStatus.set(messageId, true);
       });
 
-      if (mounted) {
-        socketRef.current = socketInstance;
-        setSocket(socketInstance);
-        socketInstance.connect(); // Explicitly connect after setting up handlers
-      } else {
-        socketInstance.disconnect();
-      }
-    };
+      socketRef.current = socketInstance;
+      setSocket(socketInstance);
+      socketInstance.connect(); // Explicitly connect after setting up handlers
+    } catch (error) {
+      console.error('Failed to initialize socket:', error);
+    }
+  };
 
-    // Initial connection attempt
-    initializeSocket();
-
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      mounted = false;
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
@@ -226,9 +194,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketRef.current.disconnect();
       }
     };
-  }, [status, session]); // Add status and session as dependencies
+  }, []);
 
-  // Always render children, even if socket is not connected
   return (
     <SocketContext.Provider value={{ 
       socket, 
@@ -236,7 +203,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       unreadCount,
       incrementUnreadCount,
       decrementUnreadCount,
-      resetUnreadCount
+      resetUnreadCount,
+      initializeSocket
     }}>
       {children}
     </SocketContext.Provider>

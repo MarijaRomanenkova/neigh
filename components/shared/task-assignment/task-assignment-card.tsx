@@ -168,9 +168,6 @@ function ContactButton({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Removed the ID check that caused the button to not appear
-  // We'll handle missing IDs in the handleContact function
-
   const handleContact = async () => {
     try {
       // Verify that we have the required IDs before proceeding
@@ -198,7 +195,7 @@ function ContactButton({
         // Conversation exists, navigate to it
         router.push(`/user/dashboard/messages/${conversations[0].id}`);
       } else {
-        // No existing conversation, create a new one
+        // No existing conversation, create a new one with both participants
         const createResponse = await fetch('/api/conversations', {
           method: 'POST',
           headers: {
