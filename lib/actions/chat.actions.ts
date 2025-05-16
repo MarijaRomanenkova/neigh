@@ -247,7 +247,31 @@ export async function getConversationById(conversationId: string) {
           select: {
             id: true,
             name: true,
-            createdById: true
+            createdById: true,
+            assignments: {
+              select: {
+                id: true,
+                status: {
+                  select: {
+                    name: true
+                  }
+                },
+                reviews: {
+                  where: {
+                    reviewType: {
+                      name: 'Client Review'
+                    }
+                  },
+                  select: {
+                    id: true
+                  }
+                }
+              },
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1
+            }
           }
         }
       }
@@ -257,7 +281,7 @@ export async function getConversationById(conversationId: string) {
       throw new Error('Conversation not found');
     }
 
-    return convertToPlainObject(conversation);
+    return conversation;
   } catch (error) {
     console.error('Error fetching conversation:', error);
     throw error;

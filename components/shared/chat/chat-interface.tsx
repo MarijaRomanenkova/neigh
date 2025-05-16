@@ -60,7 +60,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   const { data: session } = useSession();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, decrementUnreadCount } = useSocket();
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
@@ -129,6 +129,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                   next.delete(messageId);
                   return next;
                 });
+                decrementUnreadCount(); // Decrement the global unread count
               }, 1000);
             }
           }
@@ -150,7 +151,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     });
 
     return () => observer.disconnect();
-  }, [unreadMessages, session?.user]);
+  }, [unreadMessages, session?.user, decrementUnreadCount]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
