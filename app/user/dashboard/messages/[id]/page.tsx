@@ -11,8 +11,9 @@
 import { getConversationById } from '@/lib/actions/chat.actions';
 import { ChatPageClient } from '@/components/shared/chat/chat-page-client';
 
-export default async function ConversationPage({ params }: { params: { id: string } }) {
-  const conversation = await getConversationById(params.id);
+export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const conversation = await getConversationById(resolvedParams.id);
   const convertedConversation = {
     ...conversation,
     participants: conversation.participants.map(p => ({
@@ -23,5 +24,5 @@ export default async function ConversationPage({ params }: { params: { id: strin
       }
     }))
   };
-  return <ChatPageClient initialConversation={convertedConversation} id={params.id} />;
+  return <ChatPageClient initialConversation={convertedConversation} id={resolvedParams.id} />;
 } 

@@ -789,9 +789,59 @@ export async function createMessage(
       data: { updatedAt: new Date() }
     });
 
-    return message;
+    // Convert Decimal to number for ratings
+    return {
+      ...message,
+      sender: {
+        ...message.sender,
+        contractorRating: Number(message.sender.contractorRating),
+        clientRating: Number(message.sender.clientRating)
+      }
+    };
   } catch (error) {
     console.error('Error creating message:', error);
     throw error;
+  }
+}
+
+/**
+ * Gets the count of unread messages for the current user
+ * @returns {Promise<number>} The count of unread messages
+ */
+export async function getUnreadMessageCount() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return 0;
+    }
+
+    // Get all conversations where the user is a participant
+    const userConversations = await prisma.conversationParticipant.findMany({
+      where: {
+        userId: session.user.id
+      },
+      select: {
+        conversationId: true
+      }
+    });
+
+    const conversationIds = userConversations.map(c => c.conversationId);
+
+    // Count messages that are:
+    // 1. In conversations where the user is a participant
+    // 2. Not sent by the user
+    // 3. Have not been read (readAt is null)
+    const unreadCount = await prisma.message.count({
+      where: {
+        conversationId: { in: conversationIds },
+        senderId: { not: session.user.id },
+        readAt: null
+      }
+    });
+
+    return unreadCount;
+  } catch (error) {
+    console.error("Error counting unread messages:", error);
+    return 0;
   }
 } 

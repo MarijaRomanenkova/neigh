@@ -14,6 +14,7 @@ import { io, Socket } from 'socket.io-client';
 import { useSession } from 'next-auth/react';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getUnreadMessageCount } from '@/lib/actions/messages.actions';
 
 /**
  * Socket Context Type Definition
@@ -126,31 +127,32 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const messageStatus = useRef(new Map<string, boolean>());
   const { data: session } = useSession();
-
-  // Add session state logging
-  useEffect(() => {
-    console.log('Session state changed:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasToken: !!session?.user?.token,
-      userId: session?.user?.id,
-      conversationId
-    });
-  }, [session, conversationId]);
+  const [error, setError] = useState<string | null>(null);
 
   const incrementUnreadCount = () => setUnreadCount(prev => prev + 1);
   const decrementUnreadCount = () => setUnreadCount(prev => Math.max(0, prev - 1));
   const resetUnreadCount = () => setUnreadCount(0);
 
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await getUnreadMessageCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  // Add session state logging
+  useEffect(() => {
+    if (session?.user?.id) {
+      // Fetch initial unread count after authentication
+      fetchUnreadCount();
+    }
+  }, [session?.user?.id]);
+
   useEffect(() => {
     const initializeSocket = async () => {
       if (!session?.user?.id || socketRef.current?.connected) {
-        console.log('Skipping socket initialization:', {
-          hasUserId: !!session?.user?.id,
-          isConnected: !!socketRef.current?.connected,
-          userId: session?.user?.id,
-          conversationId
-        });
         return;
       }
 
@@ -165,20 +167,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
         const { token } = await tokenResponse.json();
         socketToken = token;
 
-        console.log('Initializing socket connection...', {
-          userId,
-          conversationId,
-          socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL,
-          hasToken: !!socketToken,
-          tokenLength: socketToken?.length,
-          sessionUserId: session?.user?.id
-        });
-
         // Check server health first
         const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}/socket-health`);
         const healthData = await healthResponse.json();
-        
-        console.log('Socket health check response:', healthData);
         
         if (healthData.status !== 'ok') {
           console.error('Socket server not ready:', healthData);
@@ -216,13 +207,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
         });
 
         socketInstance.on('connect', () => {
-          console.log('Socket connected successfully:', {
-            socketId: socketInstance.id,
-            userId,
-            conversationId,
-            hasToken: !!socketToken,
-            sessionUserId: session?.user?.id
-          });
           setIsConnected(true);
           if (retryTimeoutRef.current) {
             clearTimeout(retryTimeoutRef.current);
@@ -231,34 +215,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
         });
 
         socketInstance.on('disconnect', (reason) => {
-          console.log('Socket disconnected:', {
-            reason,
-            userId,
-            conversationId,
-            hasToken: !!socketToken,
-            sessionUserId: session?.user?.id
-          });
           setIsConnected(false);
           retryTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect socket...');
             socketInstance.connect();
           }, 2000);
         });
 
         socketInstance.on('connect_error', (err) => {
-          console.error('Socket connection error:', {
-            error: err.message,
-            userId,
-            conversationId,
-            hasToken: !!socketToken,
-            tokenLength: socketToken?.length,
-            sessionUserId: session?.user?.id
-          });
+          console.error('Socket connection error:', err.message);
           setIsConnected(false);
           const maxAttempts = socketInstance.io.opts.reconnectionAttempts || 5;
           if (socketInstance.io.reconnectionAttempts() < maxAttempts) {
             retryTimeoutRef.current = setTimeout(() => {
-              console.log('Retrying socket connection...');
               socketInstance.connect();
             }, 2000);
           } else {
@@ -267,38 +235,24 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
         });
 
         socketInstance.on('error', (error) => {
-          console.error('Socket error event:', {
-            error,
-            userId,
-            conversationId,
-            hasToken: !!socketToken,
-            sessionUserId: session?.user?.id
-          });
+          console.error('Socket error:', error);
         });
 
         socketRef.current = socketInstance;
         setSocket(socketInstance);
         socketInstance.connect();
       } catch (error) {
-        console.error('Failed to initialize socket:', {
-          error,
-          userId,
-          conversationId,
-          hasToken: !!socketToken,
-          sessionUserId: session?.user?.id
-        });
+        console.error('Failed to initialize socket:', error);
         setIsConnected(false);
       }
     };
 
-    // Initial health check
-    initializeSocket();
-
-    // Set up periodic health checks
-    const healthCheckInterval = setInterval(initializeSocket, 30000);
+    // Only initialize socket if we have a conversation ID
+    if (conversationId) {
+      initializeSocket();
+    }
 
     return () => {
-      clearInterval(healthCheckInterval);
       if (socketRef.current?.connected) {
         socketRef.current.disconnect();
       }
@@ -306,12 +260,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
   }, [session?.user?.id, userId, conversationId]);
 
   if (!isConnected && fallback) {
-    console.log('Socket not connected, showing fallback UI:', {
-      userId,
-      conversationId,
-      hasToken: !!session?.user?.token,
-      sessionUserId: session?.user?.id
-    });
     return <>{fallback}</>;
   }
 

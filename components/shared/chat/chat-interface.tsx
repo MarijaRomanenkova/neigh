@@ -127,6 +127,12 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                 setUnreadMessages(prev => {
                   const next = new Set(prev);
                   next.delete(messageId);
+                  
+                  // Emit messages-read event when all messages are read
+                  if (next.size === 0 && socket && isConnected) {
+                    socket.emit('messages-read', { conversationId });
+                  }
+                  
                   return next;
                 });
                 decrementUnreadCount(); // Decrement the global unread count
@@ -151,7 +157,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     });
 
     return () => observer.disconnect();
-  }, [unreadMessages, session?.user, decrementUnreadCount]);
+  }, [unreadMessages, session?.user, decrementUnreadCount, socket, isConnected, conversationId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -363,6 +369,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                             alt="Message image" 
                             className="object-contain cursor-pointer"
                             fill
+                            sizes="(max-width: 768px) 100vw, 384px"
                             onClick={() => window.open(message.imageUrl || '', '_blank')}
                           />
                         </div>

@@ -69,12 +69,6 @@ const io = new Server(httpServer, {
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-    console.log('Socket authentication attempt:', {
-      hasToken: !!token,
-      tokenLength: token?.length,
-      userId: socket.handshake.auth.userId,
-      conversationId: socket.handshake.auth.conversationId
-    });
 
     if (!token) {
       console.error('Authentication failed: Token missing');
@@ -104,12 +98,6 @@ io.use(async (socket, next) => {
       name: decoded.name
     };
 
-    console.log('Socket authentication successful:', {
-      socketId: socket.id,
-      userId: socket.user.id,
-      email: socket.user.email
-    });
-
     next();
   } catch (error) {
     console.error('Socket authentication error:', {
@@ -124,7 +112,6 @@ io.use(async (socket, next) => {
 
 // Socket.IO event handlers
 io.on("connection", (socket) => {   
-  console.log('Client connected:', socket.id, 'User:', socket.user.email);
   activeConnections.set(socket.id, {
     connectedAt: new Date(),
     rooms: new Set(),
@@ -132,7 +119,6 @@ io.on("connection", (socket) => {
   });
   
   socket.on("join-conversation", (conversationId) => {
-    console.log('Client joined conversation:', conversationId);
     socket.join(conversationId);
     
     // Track room membership
@@ -149,7 +135,6 @@ io.on("connection", (socket) => {
   });
   
   socket.on("send-message", (data) => {
-    console.log('Message sent:', data);
     // Add message delivery tracking
     const messageId = Date.now().toString();
     socket.to(data.conversationId).emit("new-message", {
@@ -167,8 +152,12 @@ io.on("connection", (socket) => {
     socket.to(conversationId).emit("message-delivered", { messageId });
   });
 
+  socket.on("messages-read", ({ conversationId }) => {
+    // Emit to all participants in the conversation
+    socket.to(conversationId).emit("messages-read");
+  });
+
   socket.on("disconnect", () => {
-    console.log('Client disconnected:', socket.id);
     // Clean up connection tracking
     const userConnections = activeConnections.get(socket.id);
     if (userConnections) {
@@ -188,12 +177,6 @@ io.on("connection", (socket) => {
 
   socket.on("error", (error) => {
     console.error('Socket error:', error);
-    // Log error details for monitoring
-    console.error({
-      socketId: socket.id,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
   });
 });
 
@@ -201,16 +184,7 @@ io.on("connection", (socket) => {
 const PORT = 3001;
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Socket.IO server running on port ${PORT}`);
-  console.log('Server configuration:', {
-    cors: io.engine.opts.cors,
-    transports: io.engine.opts.transports,
-    pingTimeout: io.engine.opts.pingTimeout,
-    pingInterval: io.engine.opts.pingInterval
-  });
-  
-  // Set server as ready after initialization
   isServerReady = true;
-  console.log('Socket server is ready');
 }).on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`Port ${PORT} is already in use. Please ensure no other socket server is running.`);

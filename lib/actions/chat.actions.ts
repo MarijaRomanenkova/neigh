@@ -13,6 +13,7 @@
 import { prisma } from '@/db/prisma';
 import { auth } from '@/auth';
 import { convertToPlainObject } from '@/lib/utils';
+import { Prisma } from '@prisma/client';
 
 /**
  * Gets an existing conversation or creates a new one between two users for a specific task
@@ -213,7 +214,44 @@ export const getOrCreateConversation = async (
  *   );
  * }
  */
-export async function getConversationById(conversationId: string) {
+export async function getConversationById(conversationId: string): Promise<{
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  taskId: string | null;
+  participants: Array<{
+    id: string;
+    userId: string;
+    conversationId: string;
+    joinedAt: Date;
+    user: {
+      id: string;
+      name: string;
+      image: string | null;
+      contractorRating: Prisma.Decimal;
+      clientRating: Prisma.Decimal;
+    };
+  }>;
+  task: {
+    id: string;
+    name: string;
+    createdById: string;
+    status?: {
+      name: string;
+    };
+    assignments: Array<{
+      id: string;
+      status: { name: string };
+      reviewedByClient: boolean;
+      reviews: Array<{
+        id: string;
+        content: string;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>;
+  } | null;
+}> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -263,7 +301,9 @@ export async function getConversationById(conversationId: string) {
                     }
                   },
                   select: {
-                    id: true
+                    id: true,
+                    description: true,
+                    createdAt: true
                   }
                 }
               },
@@ -281,7 +321,37 @@ export async function getConversationById(conversationId: string) {
       throw new Error('Conversation not found');
     }
 
-    return conversation;
+    // Transform the data to match the expected structure
+    const transformedConversation = {
+      ...conversation,
+      task: conversation.task ? {
+        ...conversation.task,
+        assignments: conversation.task.assignments.map((assignment: { 
+          id: string; 
+          status: { name: string }; 
+          reviews: Array<{ 
+            id: string; 
+            description: string; 
+            createdAt: Date; 
+          }>; 
+        }) => ({
+          ...assignment,
+          reviewedByClient: assignment.reviews.length > 0,
+          reviews: assignment.reviews.map((review: { 
+            id: string; 
+            description: string; 
+            createdAt: Date; 
+          }) => ({
+            id: review.id,
+            content: review.description,
+            createdAt: review.createdAt.toISOString(),
+            updatedAt: review.createdAt.toISOString() // Using createdAt as updatedAt since we don't have it
+          }))
+        }))
+      } : null
+    };
+
+    return transformedConversation;
   } catch (error) {
     console.error('Error fetching conversation:', error);
     throw error;

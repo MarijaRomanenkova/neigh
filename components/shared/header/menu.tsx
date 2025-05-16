@@ -7,7 +7,7 @@
 import { Button } from '@/components/ui/button';
 import ModeToggle from './mode-toggle';
 import Link from 'next/link';
-import { EllipsisVertical, ShoppingCart, MessageSquare } from 'lucide-react';
+import { EllipsisVertical, MessageSquare } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -21,28 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSocket } from '@/components/providers/socket-provider';
-
-/**
- * Fetches the count of unread messages for the current user
- */
-async function fetchUnreadCount(userId: string) {
-  try {
-    const response = await fetch('/api/messages/unread', {
-      cache: 'no-store',
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return typeof data.count === 'number' ? data.count : 0;
-  } catch (err) {
-    console.error('Error fetching unread count:', err);
-    return 0;
-  }
-}
+import { getUnreadMessageCount } from '@/lib/actions/messages.actions';
 
 /**
  * Responsive navigation menu component with user controls and notifications
@@ -50,47 +29,84 @@ async function fetchUnreadCount(userId: string) {
  */
 const Menu = () => {
   const { data: session, status } = useSession();
-  const { unreadCount, resetUnreadCount } = useSocket();
+  const { unreadCount, resetUnreadCount, socket, isConnected } = useSocket();
   const [initialCount, setInitialCount] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
 
+  // Listen for new messages
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.id) {
+    if (!socket || !isConnected || status !== 'authenticated') return;
+
+    const handleNewMessage = () => {
+      // Increment the unread count when a new message is received
+      setInitialCount(prev => prev + 1);
+    };
+
+    const handleMessagesRead = () => {
+      // Reset the unread count when messages are marked as read
+      setInitialCount(0);
+    };
+
+    socket.on('new-message', handleNewMessage);
+    socket.on('messages-read', handleMessagesRead);
+
+    return () => {
+      socket.off('new-message', handleNewMessage);
+      socket.off('messages-read', handleMessagesRead);
+    };
+  }, [socket, isConnected, status]);
+
+  // Only start counting after authentication is confirmed
+  useEffect(() => {
+    // Don't do anything if not authenticated
+    if (status !== 'authenticated') {
       return;
     }
 
+    // Don't do anything if we don't have a user ID
+    if (!session?.user?.id) {
+      return;
+    }
+
+    let isMounted = true;
     const fetchCount = async () => {
       try {
         setError(null);
-        const count = await fetchUnreadCount(session.user.id);
-        console.log('Fetched initial unread count:', count);
-        setInitialCount(count);
+        const count = await getUnreadMessageCount();
+        if (isMounted) {
+          setInitialCount(count);
+        }
       } catch (err) {
         console.error('Error in fetchCount:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch unread messages'));
+        }
       }
     };
 
-    // Initial fetch
-    fetchCount();
-  }, [session, session?.user?.id, status]);
+    // Initial fetch with a small delay to ensure server is ready
+    setTimeout(fetchCount, 1000);
 
-  const totalUnreadCount = initialCount + unreadCount;
-  console.log('Current unread counts:', { initialCount, unreadCount, totalUnreadCount });
+    // Set up an interval to refresh the count every minute
+    const interval = setInterval(fetchCount, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [status, session?.user?.id]);
+
+  // Only calculate total unread count if user is authenticated
+  const totalUnreadCount = status === 'authenticated' ? initialCount + unreadCount : 0;
   const hasUnreadMessages = totalUnreadCount > 0;
 
-  // Reset unread count when clicking on messages link
-  const handleMessagesClick = () => {
-    resetUnreadCount();
-  };
-  
   return (
     <div className='flex justify-end gap-3'>
       <nav className='hidden md:flex w-full max-w-xs gap-1'>
         <ModeToggle />
         <div className="relative">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/user/dashboard/messages" onClick={handleMessagesClick}>
+            <Link href="/user/dashboard/messages">
               <MessageSquare className="h-5 w-5" />
             </Link>
           </Button>
@@ -116,7 +132,7 @@ const Menu = () => {
             <SheetTitle>Menu</SheetTitle>
             <ModeToggle />
             <Button asChild variant='ghost' className="relative w-full justify-start">
-              <Link href='/user/dashboard/messages' onClick={handleMessagesClick}>
+              <Link href='/user/dashboard/messages'>
                 <MessageSquare className="h-5 w-5 mr-2" /> 
                 Messages
                 {hasUnreadMessages && (
