@@ -28,6 +28,28 @@ services:
       retries: 3
       start_period: 10s
 
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/neighbours_test
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-secret-key
+      - SOCKET_URL=http://socket:3001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+      - NODE_ENV=test
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    tty: true
+    stdin_open: true
+
   socket:
     build:
       context: .

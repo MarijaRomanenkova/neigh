@@ -44,7 +44,7 @@ jest.mock('next/navigation', () => ({
 const mockOnSubmit = jest.fn();
 const MockCredentialsSignInForm = () => (
   <div>
-    <form onSubmit={mockOnSubmit}>
+    <form onSubmit={mockOnSubmit} role="form">
       <label htmlFor="email">Email</label>
       <input id="email" name="email" type="email" data-testid="email-input" />
       
@@ -91,10 +91,11 @@ describe('CredentialsSignInForm', () => {
     await user.type(screen.getByTestId('email-input'), 'test@example.com');
     await user.type(screen.getByTestId('password-input'), 'password123');
     
-    // Submit the form
+    // Submit the form using the form element directly
+    const form = screen.getByRole('form');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
     
-    // Since we're using a mock component, we're just testing that the form can be interacted with
-    // In a real scenario, we would verify that signInWithCredentials was called
+    // Verify that the mock onSubmit was called
+    expect(mockOnSubmit).toHaveBeenCalled();
   });
 }); 
