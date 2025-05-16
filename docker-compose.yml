@@ -15,10 +15,18 @@ services:
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=your-secret-key
       - SOCKET_URL=http://socket:3001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   socket:
     build:
@@ -27,16 +35,25 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./socket:/app/socket
+      - /app/socket/node_modules
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/neighbours
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=your-secret-key
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/socket-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine
@@ -50,6 +67,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

@@ -36,15 +36,14 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get('taskId');
 
-    // Query conversations for this user related to the specific task
+    // Get all conversations where the user is a participant
     const conversations = await prisma.conversation.findMany({
       where: {
         participants: {
           some: {
             userId: session.user.id
           }
-        },
-        ...(taskId ? { taskId } : {})
+        }
       },
       include: {
         participants: {
@@ -54,18 +53,17 @@ export async function GET(req: Request) {
                 id: true,
                 name: true,
                 image: true,
-                contractorRating: true
+                contractorRating: true,
+                clientRating: true
               }
             }
           }
         },
-        task: true,
-        // Include the latest messages
         messages: {
-          take: 1,
           orderBy: {
             createdAt: 'desc'
           },
+          take: 1,
           include: {
             sender: {
               select: {
@@ -74,6 +72,12 @@ export async function GET(req: Request) {
               }
             }
           }
+        },
+        task: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       },
       orderBy: {
@@ -81,7 +85,37 @@ export async function GET(req: Request) {
       }
     });
 
-    return NextResponse.json(conversations);
+    // Transform the data to include other participant info and unread count
+    const transformedConversations = conversations.map(conversation => {
+      const otherParticipant = conversation.participants
+        .find(p => p.user.id !== session.user.id)
+        ?.user;
+
+      const unreadCount = conversation.messages.filter(
+        message => !message.readAt && message.senderId !== session.user.id
+      ).length;
+
+      return {
+        id: conversation.id,
+        otherParticipant: {
+          id: otherParticipant?.id,
+          name: otherParticipant?.name,
+          image: otherParticipant?.image,
+          contractorRating: otherParticipant?.contractorRating
+        },
+        lastMessage: conversation.messages[0] ? {
+          content: conversation.messages[0].content,
+          createdAt: conversation.messages[0].createdAt,
+          senderId: conversation.messages[0].senderId,
+          senderName: conversation.messages[0].sender.name
+        } : null,
+        unreadCount,
+        updatedAt: conversation.updatedAt,
+        task: conversation.task
+      };
+    });
+
+    return NextResponse.json(transformedConversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);
     return NextResponse.json(
@@ -209,9 +243,10 @@ export async function POST(req: Request) {
       data: {
         taskId,
         participants: {
-          create: [...new Set([...participantIds, session.user.id])].map(userId => ({
-            userId
-          }))
+          create: [
+            { userId: session.user.id },
+            ...participantIds.map(id => ({ userId: id }))
+          ]
         }
       },
       include: {
@@ -221,9 +256,17 @@ export async function POST(req: Request) {
               select: {
                 id: true,
                 name: true,
-                image: true
+                image: true,
+                contractorRating: true,
+                clientRating: true
               }
             }
+          }
+        },
+        task: {
+          select: {
+            id: true,
+            name: true
           }
         }
       }

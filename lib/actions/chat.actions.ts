@@ -11,13 +11,16 @@
 
 // Get or create a conversation between users
 import { prisma } from '@/db/prisma';
+import { auth } from '@/auth';
+import { convertToPlainObject } from '@/lib/utils';
 
 /**
  * Gets an existing conversation or creates a new one between two users for a specific task
  * 
  * @param currentUserId - The ID of the current user initiating the conversation
  * @param taskId - The ID of the task this conversation is related to
- * @param taskCreatorId - The ID of the user who created the task
+ * @param clientId - The ID of the client (task creator)
+ * @param contractorId - The ID of the contractor
  * @returns Object containing either conversation data or an error message
  * 
  * @example
@@ -26,7 +29,8 @@ import { prisma } from '@/db/prisma';
  *   const result = await getOrCreateConversation(
  *     session.user.id,
  *     task.id,
- *     task.createdById
+ *     task.createdById,
+ *     task.contractorId
  *   );
  *   
  *   if (result.error) {
@@ -59,20 +63,54 @@ import { prisma } from '@/db/prisma';
 export const getOrCreateConversation = async (
   currentUserId: string,
   taskId: string,
-  taskCreatorId: string
+  clientId: string,
+  contractorId: string
 ) => {
   try {
-    // Get fresh user data to ensure we have current info
-    const currentUser = await prisma.user.findUnique({
-      where: { id: currentUserId }
+    // Log the incoming parameters
+    console.log('Creating conversation with parameters:', {
+      currentUserId,
+      taskId,
+      clientId,
+      contractorId
     });
 
-    if (!currentUser) {
-      return { error: 'User not found' };
+    // Verify all users exist
+    const [currentUser, client, contractor] = await Promise.all([
+      prisma.user.findUnique({ where: { id: currentUserId } }),
+      prisma.user.findUnique({ where: { id: clientId } }),
+      prisma.user.findUnique({ where: { id: contractorId } })
+    ]);
+
+    // Log which users were found/not found with their details
+    console.log('User verification details:', {
+      currentUser: currentUser ? {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email
+      } : 'not found',
+      client: client ? {
+        id: client.id,
+        name: client.name,
+        email: client.email
+      } : 'not found',
+      contractor: contractor ? {
+        id: contractor.id,
+        name: contractor.name,
+        email: contractor.email
+      } : 'not found'
+    });
+
+    if (!currentUser || !client || !contractor) {
+      const missingUsers = [];
+      if (!currentUser) missingUsers.push('current user');
+      if (!client) missingUsers.push('client');
+      if (!contractor) missingUsers.push('contractor');
+      return { error: `One or more participants not found: ${missingUsers.join(', ')}` };
     }
 
     // Make sure we're not creating a conversation with ourselves
-    if (currentUserId === taskCreatorId) {
+    if (currentUserId === clientId || currentUserId === contractorId) {
       return { error: 'Cannot create a conversation with yourself' };
     }
 
@@ -83,7 +121,7 @@ export const getOrCreateConversation = async (
         participants: {
           every: {
             userId: {
-              in: [currentUserId, taskCreatorId]
+              in: [clientId, contractorId]
             }
           }
         }
@@ -95,10 +133,18 @@ export const getOrCreateConversation = async (
               select: {
                 id: true,
                 name: true,
-                image: true
+                image: true,
+                contractorRating: true,
+                clientRating: true
               }
             }
           }
+        },
+        messages: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1
         }
       }
     });
@@ -113,8 +159,8 @@ export const getOrCreateConversation = async (
         taskId,
         participants: {
           create: [
-            { userId: currentUserId },
-            { userId: taskCreatorId }
+            { userId: clientId },
+            { userId: contractorId }
           ]
         }
       },
@@ -125,10 +171,18 @@ export const getOrCreateConversation = async (
               select: {
                 id: true,
                 name: true,
-                image: true
+                image: true,
+                contractorRating: true,
+                clientRating: true
               }
             }
           }
+        },
+        messages: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1
         }
       }
     });
@@ -138,4 +192,74 @@ export const getOrCreateConversation = async (
     console.error('Error in getOrCreateConversation:', error);
     return { error: 'Failed to get or create conversation' };
   }
-}; 
+};
+
+/**
+ * Gets a conversation by ID
+ * 
+ * @param conversationId - The ID of the conversation to fetch
+ * @returns The conversation object with participants and task details
+ * 
+ * @example
+ * // In a conversation detail page
+ * const conversation = await getConversationById(conversationId);
+ * 
+ * if (conversation) {
+ *   return (
+ *     <div>
+ *       <h1>Conversation with {conversation.participants[0].user.name}</h1>
+ *       <ChatInterface conversationId={conversation.id} />
+ *     </div>
+ *   );
+ * }
+ */
+export async function getConversationById(conversationId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            userId: session.user.id
+          }
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                contractorRating: true,
+                clientRating: true
+              }
+            }
+          }
+        },
+        task: {
+          select: {
+            id: true,
+            name: true,
+            createdById: true
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    return convertToPlainObject(conversation);
+  } catch (error) {
+    console.error('Error fetching conversation:', error);
+    throw error;
+  }
+} 

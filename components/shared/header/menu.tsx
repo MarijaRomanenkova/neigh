@@ -128,11 +128,7 @@ const Menu = () => {
                 )}
               </Link>
             </Button>
-            <Button asChild variant='ghost'>
-              <Link href='/cart'>
-                <ShoppingCart className="h-5 w-5 mr-2" /> Cart
-              </Link>
-            </Button>
+           
             <UserButton />
             <SheetDescription></SheetDescription>
           </SheetContent>

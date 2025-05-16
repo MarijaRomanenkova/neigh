@@ -123,8 +123,7 @@ export default function ConversationList() {
                     {otherParticipants[0]?.id && (otherParticipants[0] as UserWithRating).contractorRating && (
                       <UserRatingDisplay 
                         rating={(otherParticipants[0] as UserWithRating).contractorRating} 
-                        size="sm"
-                        showText={false}
+                        size="sm"                       
                         tooltipText="Neighbour Rating"
                       />
                     )}

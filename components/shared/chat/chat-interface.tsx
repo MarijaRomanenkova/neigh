@@ -21,21 +21,10 @@ import MessageImageUpload from './message-image-upload';
 import Image from 'next/image';
 import { ImageIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Message, User } from '@/types/chat/message.types';
+import { Message, ExtendedMessage } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
-import { markMessageAsRead } from '@/lib/actions/messages.actions';
-
-
-// Add an extended user type that includes contractor rating
-interface UserWithRating extends User {
-  contractorRating?: number | null;
-  clientRating?: number | null;
-}
-
-// Update Message interface to use the extended user type
-interface MessageWithRatingData extends Omit<Message, 'sender'> {
-  sender: UserWithRating;
-}
+import { markMessageAsRead, getConversationMessages, createMessage } from '@/lib/actions/messages.actions';
+import { UserWithRating } from '@/types/user.types';
 
 /**
  * Props for the ChatInterface component
@@ -63,9 +52,7 @@ interface ChatInterfaceProps {
  * @returns {JSX.Element} The rendered chat interface
  */
 export default function ChatInterface({ conversationId, initialMessages }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<(Message & { sender: UserWithRating })[]>(
-    initialMessages as (Message & { sender: UserWithRating })[] || []
-  );
+  const [messages, setMessages] = useState<ExtendedMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -74,21 +61,96 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket, isConnected } = useSocket();
+  const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
-  // Mark messages as read when the conversation is opened
+  // Fetch messages when component mounts or conversationId changes
   useEffect(() => {
-    if (!session?.user) return;
-    
-    const markMessagesAsRead = async (messages: Message[]) => {
+    const fetchMessages = async () => {
+      setIsLoadingMessages(true);
       try {
-        await Promise.all(messages.map(message => markMessageAsRead(message.id)));
+        const fetchedMessages = await getConversationMessages(conversationId);
+        // Convert Decimal to number for ratings
+        const convertedMessages = fetchedMessages.map(msg => ({
+          ...msg,
+          sender: {
+            ...msg.sender,
+            contractorRating: Number(msg.sender.contractorRating),
+            clientRating: Number(msg.sender.clientRating)
+          }
+        })) as ExtendedMessage[];
+        setMessages(convertedMessages);
       } catch (error) {
-        // Handle error
+        console.error('Error fetching messages:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load messages. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingMessages(false);
       }
     };
+
+    // If we have initial messages, use them first
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages as ExtendedMessage[]);
+    }
     
-    markMessagesAsRead(messages);
-  }, [messages, session?.user]);
+    // Then fetch the latest messages
+    fetchMessages();
+  }, [conversationId, toast, initialMessages]);
+
+  // Track unread messages
+  useEffect(() => {
+    const unread = new Set(
+      messages
+        .filter(m => !m.readAt && m.senderId !== session?.user?.id)
+        .map(m => m.id)
+    );
+    setUnreadMessages(unread);
+  }, [messages, session?.user?.id]);
+
+  // Mark messages as read when they're scrolled into view
+  useEffect(() => {
+    if (!session?.user || unreadMessages.size === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.getAttribute('data-message-id');
+            if (messageId && unreadMessages.has(messageId)) {
+              // Add a small delay to ensure the user has actually seen the message
+              setTimeout(() => {
+                markMessageAsRead(messageId);
+                setUnreadMessages(prev => {
+                  const next = new Set(prev);
+                  next.delete(messageId);
+                  return next;
+                });
+              }, 1000);
+            }
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.5
+      }
+    );
+
+    // Observe all unread messages
+    unreadMessages.forEach(messageId => {
+      const element = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, [unreadMessages, session?.user]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -104,16 +166,13 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     
     // Handler for new messages
     const handleNewMessage = (message: Message) => {
-      // Only add if it's not from the current user
-      if (message.senderId !== session?.user?.id) {
-        setMessages(prev => {
-          // Check if message already exists in the previous state
-          if (prev.some(m => m.id === message.id)) {
-            return prev;
-          }
-          return [...prev, message as (Message & { sender: UserWithRating })];
-        });
-      }
+      setMessages(prev => {
+        // Check if message already exists in the previous state
+        if (prev.some(m => m.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message as ExtendedMessage];
+      });
     };
     
     // Listen for new messages
@@ -123,7 +182,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
       socket.off('new-message', handleNewMessage);
       socket.emit('leave-conversation', conversationId);
     };
-  }, [socket, isConnected, conversationId, session?.user?.id]);
+  }, [socket, isConnected, conversationId]);
 
   /**
    * Scrolls the message container to the bottom
@@ -141,7 +200,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSendMessage(newMessage, imageUrl);
     }
   };
 
@@ -172,53 +231,42 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   };
 
   /**
-   * Sends a new message
-   * Handles API request, updates local state, and emits socket event
+   * Handles sending a new message
+   * 
+   * @param {string} content - The text content of the message
+   * @param {string} imageUrl - The URL of the uploaded image
    */
-  const handleSendMessage = async () => {
-    // Don't send if there's no content and no image
-    if ((!newMessage.trim() && !imageUrl) || loading || !session?.user) return;
-    
+  const handleSendMessage = async (content: string, imageUrl?: string | null) => {
+    if (!content.trim() && !imageUrl || loading || !session?.user) return;
+
     setLoading(true);
-    
     try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: newMessage || ' ', // Send at least a space if there's only an image
-          imageUrl: imageUrl,
-          conversationId
-        }),
-      });
+      const message = await createMessage(content, conversationId, imageUrl || undefined);
+      // Convert Decimal to number for ratings
+      const convertedMessage = {
+        ...message,
+        sender: {
+          ...message.sender,
+          contractorRating: Number(message.sender.contractorRating),
+          clientRating: Number(message.sender.clientRating)
+        }
+      } as ExtendedMessage;
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Add the new message to the list
-      setMessages(prev => [...prev, data as (Message & { sender: UserWithRating })]);
-      
-      // If socket is connected, emit the message
-      if (socket && isConnected) {
-        socket.emit('send-message', { conversationId, message: data });
-      }
-      
-      // Clear the input and image
+      setMessages(prev => [...prev, convertedMessage]);
       setNewMessage('');
       setImageUrl(null);
       setShowImageUpload(false);
-    } catch (error: unknown) {
-      console.error('Error sending message:', error instanceof Error ? error.message : 'Unknown error');
-      
+
+      // If socket is connected, emit the message
+      if (socket && isConnected) {
+        socket.emit('send-message', { conversationId, message: convertedMessage });
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
       toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
         variant: 'destructive',
-        title: 'Failed to send message',
-        description: 'Please try again later',
       });
     } finally {
       setLoading(false);
@@ -226,10 +274,13 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   };
 
   return (
-    <div className="flex flex-col h-[60vh] border rounded-lg">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        
-        {messages.length === 0 ? (
+    <div className="flex flex-col h-[600px] border rounded-lg">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+        {isLoadingMessages ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Loading messages...
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             No messages yet. Start the conversation!
           </div>
@@ -266,66 +317,66 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             return (
               <div
                 key={message.id}
-                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                data-message-id={message.id}
+                className={cn(
+                  "flex gap-3",
+                  message.senderId === session?.user?.id ? "justify-end" : "justify-start"
+                )}
               >
-                <div className={`flex ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 max-w-[80%]`}>
+                {!isCurrentUser && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
+                    <AvatarFallback>
+                      {message.sender.name?.charAt(0) || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                
+                <div>
                   {!isCurrentUser && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
-                      <AvatarFallback>
-                        {message.sender.name?.charAt(0) || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  
-                  <div>
-                    {!isCurrentUser && (
-                      <div className="flex gap-2 items-center mb-1">
-                        <p className="text-sm font-medium">{message.sender.name}</p>
-                        {message.sender.contractorRating && (
-                          <UserRatingDisplay 
-                            rating={message.sender.contractorRating} 
-                            size="sm"
-                            showText={false}
-                            tooltipText="Neighbour Rating" 
-                          />
-                        )}
-                      </div>
-                    )}
-                    
-                    <div className={`${
-                      isCurrentUser 
-                      ? 'bg-primary text-primary-foreground rounded-tl-lg rounded-tr-none' 
-                      : 'bg-muted rounded-tr-lg rounded-tl-none'
-                    } p-3 rounded-bl-lg rounded-br-lg text-sm`}>
-                      {message.content}
-                      
-                      {/* Render image if present */}
-                      {message.imageUrl && (
-                        <div className="mt-2">
-                          <div className="relative rounded-md overflow-hidden h-48 w-full max-w-sm">
-                            <Image 
-                              src={message.imageUrl} 
-                              alt="Message image" 
-                              className="object-contain cursor-pointer"
-                              fill
-                              onClick={() => window.open(message.imageUrl || '', '_blank')}
-                            />
-                          </div>
-                        </div>
+                    <div className="flex gap-2 items-center mb-1">
+                      <p className="text-sm font-medium">{message.sender.name}</p>
+                      {message.sender.contractorRating && (
+                        <UserRatingDisplay 
+                          rating={message.sender.contractorRating} 
+                          size="sm"
+                          tooltipText="Neighbour Rating" 
+                        />
                       )}
                     </div>
+                  )}
+                  
+                  <div className={`${
+                    isCurrentUser 
+                    ? 'bg-primary text-primary-foreground rounded-tl-lg rounded-tr-none' 
+                    : 'bg-muted rounded-tr-lg rounded-tl-none'
+                  } p-3 rounded-bl-lg rounded-br-lg text-sm`}>
+                    {message.content}
                     
-                    <div className="text-xs text-muted-foreground mt-1 flex gap-1">
-                      {formatDistanceToNow(messageDate, { addSuffix: true })}
-                    </div>
+                    {/* Render image if present */}
+                    {message.imageUrl && (
+                      <div className="mt-2">
+                        <div className="relative rounded-md overflow-hidden h-48 w-full max-w-sm">
+                          <Image 
+                            src={message.imageUrl} 
+                            alt="Message image" 
+                            className="object-contain cursor-pointer"
+                            fill
+                            onClick={() => window.open(message.imageUrl || '', '_blank')}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground mt-1 flex gap-1">
+                    {formatDistanceToNow(messageDate, { addSuffix: true })}
                   </div>
                 </div>
               </div>
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
       
       {/* Message Input */}
@@ -369,7 +420,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
           />
           
           <Button
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage(newMessage, imageUrl)}
             disabled={(!newMessage.trim() && !imageUrl) || loading}
             className="bg-primary text-primary-foreground"
           >

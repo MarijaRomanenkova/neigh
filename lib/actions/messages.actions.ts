@@ -640,4 +640,158 @@ export async function getUserMessages() {
     console.error('Error fetching messages:', error);
     return [];
   }
+}
+
+/**
+ * Fetches messages for a specific conversation
+ * 
+ * @param conversationId - The ID of the conversation to fetch messages from
+ * @returns Array of messages with sender details
+ * 
+ * @example
+ * // In a chat interface component
+ * const messages = await getConversationMessages(conversationId);
+ * 
+ * return (
+ *   <div>
+ *     {messages.map(message => (
+ *       <MessageItem
+ *         key={message.id}
+ *         content={message.content}
+ *         sender={message.sender}
+ *         createdAt={message.createdAt}
+ *       />
+ *     ))}
+ *   </div>
+ * );
+ */
+export async function getConversationMessages(conversationId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    // Verify user is a participant in the conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            userId: session.user.id
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    // Fetch messages for the conversation
+    const messages = await prisma.message.findMany({
+      where: {
+        conversationId
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            contractorRating: true,
+            clientRating: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
+    return convertToPlainObject(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new message in a conversation
+ * 
+ * @param content - The message content
+ * @param conversationId - The ID of the conversation
+ * @param imageUrl - Optional URL of an attached image
+ * @returns The created message with sender details
+ * 
+ * @example
+ * // In a chat interface component
+ * const handleSendMessage = async (content: string, imageUrl?: string) => {
+ *   try {
+ *     const message = await createMessage(content, conversationId, imageUrl);
+ *     // Update UI with new message
+ *   } catch (error) {
+ *     // Handle error
+ *   }
+ * };
+ */
+export async function createMessage(
+  content: string,
+  conversationId: string,
+  imageUrl?: string
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized');
+    }
+
+    // Verify user is a participant in the conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            userId: session.user.id
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    // Create the message
+    const message = await prisma.message.create({
+      data: {
+        content,
+        imageUrl,
+        conversationId,
+        senderId: session.user.id
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            contractorRating: true,
+            clientRating: true
+          }
+        }
+      }
+    });
+
+    // Update conversation's last activity timestamp
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() }
+    });
+
+    return message;
+  } catch (error) {
+    console.error('Error creating message:', error);
+    throw error;
+  }
 } 

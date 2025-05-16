@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+import { getOrCreateConversation } from '@/lib/actions/chat.actions';
+import { useSession } from 'next-auth/react';
 
 interface ContactButtonProps {
   taskId: string;
@@ -18,19 +20,52 @@ export const ContactButton: React.FC<ContactButtonProps> = ({
   viewType = 'client'
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const Router = useRouter();
+  const router = useRouter();
+  const { data: session } = useSession();
   
   const handleContact = async () => {
+    if (!session?.user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to start a conversation.",
+        variant: "destructive",
+      });
+      router.push('/auth/signin');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Redirect to the chat page with the correct other user ID
-      const otherUserId = viewType === 'client' ? contractorId : clientId;
-      Router.push(`/user/dashboard/messages?taskId=${taskId}&otherUserId=${otherUserId}`);
+      // Log the IDs being passed
+      console.log('Starting conversation with IDs:', {
+        currentUserId: session.user.id,
+        taskId,
+        clientId,
+        contractorId
+      });
+
+      const result = await getOrCreateConversation(
+        session.user.id,
+        taskId,
+        clientId,
+        contractorId
+      );
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (!result.conversation) {
+        throw new Error('Failed to create conversation');
+      }
+
+      // Navigate to the conversation
+      router.push(`/user/dashboard/messages/${result.conversation.id}`);
     } catch (error) {
-      console.error('Failed to navigate to messages:', error);
+      console.error('Error starting conversation:', error);
       toast({
         title: "Error",
-        description: "Could not open chat at this time. Please try again later.",
+        description: error instanceof Error ? error.message : "Could not start conversation. Please try again later.",
         variant: "destructive",
       });
     } finally {

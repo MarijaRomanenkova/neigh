@@ -69,14 +69,32 @@ const io = new Server(httpServer, {
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
+    console.log('Socket authentication attempt:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      userId: socket.handshake.auth.userId,
+      conversationId: socket.handshake.auth.conversationId
+    });
+
     if (!token) {
+      console.error('Authentication failed: Token missing');
       return next(new Error('Authentication token missing'));
     }
 
     // Verify the JWT token
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET);
     if (!decoded) {
+      console.error('Authentication failed: Invalid token');
       return next(new Error('Invalid authentication token'));
+    }
+
+    // Verify user ID matches
+    if (decoded.sub !== socket.handshake.auth.userId) {
+      console.error('Authentication failed: User ID mismatch', {
+        tokenUserId: decoded.sub,
+        providedUserId: socket.handshake.auth.userId
+      });
+      return next(new Error('User ID mismatch'));
     }
 
     // Add user info to socket
@@ -85,9 +103,21 @@ io.use(async (socket, next) => {
       email: decoded.email,
       name: decoded.name
     };
+
+    console.log('Socket authentication successful:', {
+      socketId: socket.id,
+      userId: socket.user.id,
+      email: socket.user.email
+    });
+
     next();
   } catch (error) {
-    console.error('Socket authentication error:', error);
+    console.error('Socket authentication error:', {
+      error: error.message,
+      stack: error.stack,
+      userId: socket.handshake.auth.userId,
+      conversationId: socket.handshake.auth.conversationId
+    });
     next(new Error('Authentication failed'));
   }
 });

@@ -13,14 +13,19 @@ export interface Message {
   createdAt: Date;
   senderId: string;
   sender: User;
-  isSystemMessage?: boolean;
-  metadata?: {
-    eventType?: 'status-update' | 'invoice-created' | 'review-submitted';
-    taskAssignmentId?: string;
-    taskName?: string;
-    reviewRating?: number;
-    reviewFeedback?: string;
-  } | null;
+  isSystemMessage: boolean;
+  metadata?: MessageMetadata | null;
+}
+
+export interface ExtendedMessage extends Message {
+  sender: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    contractorRating: number;
+    clientRating: number;
+  };
+  readAt?: Date | null;
 }
 
 export interface DbMessage {
