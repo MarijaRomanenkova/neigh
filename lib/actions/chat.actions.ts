@@ -193,7 +193,7 @@ export const getOrCreateConversation = async (
     console.error('Error in getOrCreateConversation:', error);
     return { error: 'Failed to get or create conversation' };
   }
-};
+}; 
 
 /**
  * Gets a conversation by ID

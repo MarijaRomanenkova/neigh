@@ -18,6 +18,7 @@ import { getAllTasks, getAllCategories } from '@/lib/actions/task.actions';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Task } from '@/types';
+import SortButtons from '@/components/shared/search/sort-buttons';
 
 // Force dynamic rendering to avoid build-time database access
 export const dynamic = 'force-dynamic';
@@ -253,28 +254,20 @@ const SearchPage = async (props: {
             </h2>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">Sort by:</span>
-              <div className="flex space-x-2">
-            {sortOrders.map((s) => (
-                  <Button
-                key={s}
-                    variant={sort === s ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      window.location.href = getFilterUrl({ s: s as 'newest' | 'lowest' | 'highest' });
-                    }}
-              >
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </Button>
-            ))}
-              </div>
+              <SortButtons 
+                currentSort={validSort} 
+                onSortChange={(sort) => {
+                  window.location.href = getFilterUrl({ s: sort });
+                }} 
+              />
+            </div>
           </div>
-        </div>
 
           <Suspense fallback={<SearchResultsSkeleton />}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tasksResult.data.map((task: Task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
+                <TaskCard key={task.id} task={task} />
+              ))}
             </div>
           </Suspense>
         </div>

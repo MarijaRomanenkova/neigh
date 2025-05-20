@@ -139,7 +139,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
       setUnreadCount(count);
     } catch (error) {
       console.error('Error fetching unread count:', error);
-    }
+      }
   };
 
   // Add session state logging
@@ -151,7 +151,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
   }, [session?.user?.id]);
 
   useEffect(() => {
-    const initializeSocket = async () => {
+  const initializeSocket = async () => {
       if (!session?.user?.id || socketRef.current?.connected) {
         return;
       }
@@ -167,85 +167,85 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
         const { token } = await tokenResponse.json();
         socketToken = token;
 
-        // Check server health first
-        const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}/socket-health`);
-        const healthData = await healthResponse.json();
-        
-        if (healthData.status !== 'ok') {
+      // Check server health first
+      const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}/socket-health`);
+      const healthData = await healthResponse.json();
+      
+      if (healthData.status !== 'ok') {
           console.error('Socket server not ready:', healthData);
           setIsConnected(false);
-          return;
-        }
+        return;
+      }
 
-        // Clear any existing retry timeout
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-        }
+      // Clear any existing retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
 
-        // Disconnect existing socket if any
-        if (socketRef.current?.connected) {
-          socketRef.current.disconnect();
-        }
+      // Disconnect existing socket if any
+      if (socketRef.current?.connected) {
+        socketRef.current.disconnect();
+      }
 
         const socketInstance = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-          path: '/socket.io',
-          addTrailingSlash: false,
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-          transports: ['polling', 'websocket'],
-          autoConnect: false,
-          withCredentials: true,
-          timeout: 20000,
-          forceNew: true,
-          auth: {
+        path: '/socket.io',
+        addTrailingSlash: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        transports: ['polling', 'websocket'],
+        autoConnect: false,
+        withCredentials: true,
+        timeout: 20000,
+        forceNew: true,
+        auth: {
             token: socketToken,
             userId: userId,
             conversationId: conversationId
-          }
-        });
+        }
+      });
 
-        socketInstance.on('connect', () => {
-          setIsConnected(true);
-          if (retryTimeoutRef.current) {
-            clearTimeout(retryTimeoutRef.current);
-            retryTimeoutRef.current = undefined;
-          }
-        });
+      socketInstance.on('connect', () => {
+        setIsConnected(true);
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = undefined;
+        }
+      });
 
         socketInstance.on('disconnect', (reason) => {
-          setIsConnected(false);
+        setIsConnected(false);
+        retryTimeoutRef.current = setTimeout(() => {
+          socketInstance.connect();
+        }, 2000);
+      });
+
+      socketInstance.on('connect_error', (err) => {
+          console.error('Socket connection error:', err.message);
+        setIsConnected(false);
+        const maxAttempts = socketInstance.io.opts.reconnectionAttempts || 5;
+        if (socketInstance.io.reconnectionAttempts() < maxAttempts) {
           retryTimeoutRef.current = setTimeout(() => {
             socketInstance.connect();
           }, 2000);
-        });
-
-        socketInstance.on('connect_error', (err) => {
-          console.error('Socket connection error:', err.message);
-          setIsConnected(false);
-          const maxAttempts = socketInstance.io.opts.reconnectionAttempts || 5;
-          if (socketInstance.io.reconnectionAttempts() < maxAttempts) {
-            retryTimeoutRef.current = setTimeout(() => {
-              socketInstance.connect();
-            }, 2000);
-          } else {
+        } else {
             console.error('Max reconnection attempts reached');
-          }
-        });
+        }
+      });
 
         socketInstance.on('error', (error) => {
           console.error('Socket error:', error);
-        });
+      });
 
-        socketRef.current = socketInstance;
-        setSocket(socketInstance);
+      socketRef.current = socketInstance;
+      setSocket(socketInstance);
         socketInstance.connect();
-      } catch (error) {
-        console.error('Failed to initialize socket:', error);
+    } catch (error) {
+      console.error('Failed to initialize socket:', error);
         setIsConnected(false);
-      }
-    };
+    }
+  };
 
     // Only initialize socket if we have a conversation ID
     if (conversationId) {
@@ -265,21 +265,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
 
   return (
     <SocketErrorBoundary>
-      <SocketContext.Provider value={{
-        socket,
-        isConnected,
-        unreadCount,
-        incrementUnreadCount,
-        decrementUnreadCount,
-        resetUnreadCount,
+    <SocketContext.Provider value={{ 
+      socket, 
+      isConnected, 
+      unreadCount,
+      incrementUnreadCount,
+      decrementUnreadCount,
+      resetUnreadCount,
         initializeSocket: async () => {
           if (socketRef.current) {
             socketRef.current.connect();
           }
         }
-      }}>
-        {children}
-      </SocketContext.Provider>
+    }}>
+      {children}
+    </SocketContext.Provider>
     </SocketErrorBoundary>
   );
 }; 

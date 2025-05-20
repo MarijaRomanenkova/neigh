@@ -640,7 +640,7 @@ export async function getUserMessages() {
     console.error('Error fetching messages:', error);
     return [];
   }
-}
+} 
 
 /**
  * Fetches messages for a specific conversation

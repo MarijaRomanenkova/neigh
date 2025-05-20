@@ -38,127 +38,66 @@ import { useEffect, useState } from 'react';
  * 
  * @returns {JSX.Element|null} The rendered user button or null during hydration
  */
-const UserButton = () => {
+export default function UserButton() {
   const { data: session, status } = useSession();
-  const [isClient, setIsClient] = useState(false);
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
-  // Set client-side rendering flag and handle loading timeout
+  // Set mounted state after hydration
   useEffect(() => {
-    setIsClient(true);
-    
-    // If loading takes more than 3 seconds, show the sign-in button anyway
-    const timer = setTimeout(() => {
-      if (status === 'loading') {
-        setLoadingTimeout(true);
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [status]);
-   
-  // Don't render anything until client-side hydration is complete
-  if (!isClient) {
-    return null;
-  }
+    setMounted(true);
+  }, []);
   
-  // Show fallback UI if loading takes too long
-  if (status === 'loading' && !loadingTimeout) {
+  // Don't render anything until client-side hydration is complete
+  if (!mounted) {
     return (
       <Button variant="ghost" size="sm" className="focus-visible:ring-0 focus-visible:ring-offset-0">
         <UserIcon className="h-5 w-5" />
       </Button>
     );
   }
-
-  // If we have a session or loading timed out but we're authenticated
-  if (session) {
-    const firstInitial = session.user?.name?.charAt(0)?.toUpperCase() ?? 'U';
-    const isAdmin = session?.user?.role === 'admin';
-    
-    /**
-     * Handles user sign out
-     * Redirects to home page after successful sign out
-     */
-    const handleSignOut = async () => {
-      try {
-        // Use the server URL environment variable
-        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || '/';
-        await signOut({ callbackUrl: baseUrl });
-      } catch (error) {
-        console.error('Error signing out:', error);
-      }
-    };
-
+  
+  // Show loading state
+  if (status === 'loading') {
     return (
-      <div className='flex gap-2 items-center'>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant='ghost'
-              size="sm"
-              className='focus-visible:ring-0 focus-visible:ring-offset-0'
-            >
-              <UserIcon className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className='w-56' align='end'>
-            <DropdownMenuLabel className='font-normal'>
-              <div className='flex flex-col space-y-1'>
-                <div className='text-sm font-medium leading-none'>
-                  {session.user?.name}
-                </div>
-                <div className='text-sm text-muted-foreground leading-none'>
-                  {session.user?.email}
-                </div>
-                {isAdmin && (
-                  <div className='text-xs text-primary mt-1'>
-                    Administrator
-                  </div>
-                )}
-              </div>
-            </DropdownMenuLabel>
-
-            <DropdownMenuItem asChild>
-              <Link href='/user/profile' className='w-full cursor-pointer'>
-                <UserIcon className="h-5 w-5 mr-2" />
-                User Profile
-              </Link>
-            </DropdownMenuItem>
-            
-            {/* Admin users see the admin dashboard */}
-            {isAdmin && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href='/admin/overview' className='w-full cursor-pointer'>
-                    <ShieldCheck className="h-5 w-5 mr-2" />
-                    Admin Dashboard
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
-            
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onSelect={handleSignOut}>
-              <LogOut className="h-5 w-5 mr-2" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <Button variant="ghost" size="sm" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+        <UserIcon className="h-5 w-5" />
+      </Button>
     );
   }
   
-  // Otherwise show sign in button
-  return (
-    <Button variant="ghost" size="sm" asChild>
-      <Link href='/sign-in'>
-        <UserIcon className="h-5 w-5" />
+  // Show sign in button if not authenticated
+  if (!session?.user) {
+    return (
+      <Link href="/sign-in">
+        <Button variant="ghost" size="sm" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+          <UserIcon className="h-5 w-5" />
+        </Button>
       </Link>
-    </Button>
+    );
+  }
+  
+  // Show user menu if authenticated
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+          <UserIcon className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/user/dashboard">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/user/profile">Profile</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/api/auth/signout">Sign Out</Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
-};
-
-export default UserButton;
+}

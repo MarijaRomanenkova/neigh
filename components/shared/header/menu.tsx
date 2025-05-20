@@ -32,10 +32,16 @@ const Menu = () => {
   const { unreadCount, resetUnreadCount, socket, isConnected } = useSocket();
   const [initialCount, setInitialCount] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Listen for new messages
   useEffect(() => {
-    if (!socket || !isConnected || status !== 'authenticated') return;
+    if (!mounted || !socket || !isConnected || status !== 'authenticated') return;
 
     const handleNewMessage = () => {
       // Increment the unread count when a new message is received
@@ -54,10 +60,12 @@ const Menu = () => {
       socket.off('new-message', handleNewMessage);
       socket.off('messages-read', handleMessagesRead);
     };
-  }, [socket, isConnected, status]);
+  }, [socket, isConnected, status, mounted]);
 
   // Only start counting after authentication is confirmed
   useEffect(() => {
+    if (!mounted) return; // Don't fetch until after hydration
+
     // Don't do anything if not authenticated
     if (status !== 'authenticated') {
       return;
@@ -94,12 +102,12 @@ const Menu = () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [status, session?.user?.id]);
+  }, [status, session?.user?.id, mounted]);
 
-  // Only calculate total unread count if user is authenticated
-  const totalUnreadCount = status === 'authenticated' ? initialCount + unreadCount : 0;
+  // Only calculate total unread count if user is authenticated and component is mounted
+  const totalUnreadCount = mounted && status === 'authenticated' ? initialCount + unreadCount : 0;
   const hasUnreadMessages = totalUnreadCount > 0;
-
+  
   return (
     <div className='flex justify-end gap-3'>
       <nav className='hidden md:flex w-full max-w-xs gap-1'>
@@ -110,7 +118,7 @@ const Menu = () => {
               <MessageSquare className="h-5 w-5" />
             </Link>
           </Button>
-          {hasUnreadMessages && (
+          {mounted && hasUnreadMessages && (
             <Badge 
               className="absolute -top-1 -right-1 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
             >
@@ -135,7 +143,7 @@ const Menu = () => {
               <Link href='/user/dashboard/messages'>
                 <MessageSquare className="h-5 w-5 mr-2" /> 
                 Messages
-                {hasUnreadMessages && (
+                {mounted && hasUnreadMessages && (
                   <Badge 
                     className="ml-2 px-1.5 h-4 min-w-4 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px]"
                   >

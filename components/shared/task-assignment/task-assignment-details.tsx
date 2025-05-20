@@ -111,7 +111,9 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
         return 'Invalid date';
       }
       
-      return format(date, formatStr);
+      // Convert to UTC string first to ensure consistent server/client rendering
+      const utcDate = new Date(date.toUTCString());
+      return format(utcDate, formatStr);
     } catch (error) {
       console.error('Date formatting error:', error, 'for date:', dateString);
       return 'Date error';
@@ -156,7 +158,9 @@ export default function TaskAssignmentDetails({ assignment, userRole }: TaskAssi
         return 'Invalid date';
       }
       
-      return formatDistanceToNow(date, { addSuffix: true });
+      // Convert to UTC string first to ensure consistent server/client rendering
+      const utcDate = new Date(date.toUTCString());
+      return formatDistanceToNow(utcDate, { addSuffix: true });
     } catch (error) {
       console.error('Distance formatting error:', error, 'for date:', dateString);
       return 'Date error';

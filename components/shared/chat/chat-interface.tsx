@@ -21,20 +21,21 @@ import MessageImageUpload from './message-image-upload';
 import Image from 'next/image';
 import { ImageIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Message, ExtendedMessage } from '@/types/chat/message.types';
+import { Message, ExtendedMessage, MessageMetadata } from '@/types/chat/message.types';
 import UserRatingDisplay from '../ratings/user-rating-display';
 import { markMessageAsRead, getConversationMessages, createMessage } from '@/lib/actions/messages.actions';
 import { UserWithRating } from '@/types/user.types';
+import { Loader2, Send } from 'lucide-react';
 
 /**
  * Props for the ChatInterface component
  * @interface ChatInterfaceProps
  * @property {string} conversationId - ID of the current conversation
- * @property {Message[]} initialMessages - Initial set of messages to display
+ * @property {ExtendedMessage[]} initialMessages - Initial set of messages to display
  */
 interface ChatInterfaceProps {
   conversationId: string;
-  initialMessages: Message[];
+  initialMessages?: ExtendedMessage[];
 }
 
 /**
@@ -53,35 +54,83 @@ interface ChatInterfaceProps {
  */
 export default function ChatInterface({ conversationId, initialMessages }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ExtendedMessage[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [showImageUpload, setShowImageUpload] = useState(false);
-  const { data: session } = useSession();
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { socket, isConnected, decrementUnreadCount } = useSocket();
+  const [error, setError] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const { socket, isConnected, decrementUnreadCount } = useSocket();
+
+  // Set mounted state after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Initialize messages
+  useEffect(() => {
+    if (initialMessages) {
+      setMessages(initialMessages);
+      setIsLoadingMessages(false);
+    }
+  }, [initialMessages]);
 
   // Fetch messages when component mounts or conversationId changes
   useEffect(() => {
+    if (!mounted) return; // Don't fetch until after hydration
+
     const fetchMessages = async () => {
-      setIsLoadingMessages(true);
+      if (!conversationId) return;
+      
       try {
-        const fetchedMessages = await getConversationMessages(conversationId);
-        // Convert Decimal to number for ratings
-        const convertedMessages = fetchedMessages.map(msg => ({
-          ...msg,
+        setIsLoadingMessages(true);
+        const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+        if (!response.ok) throw new Error('Failed to fetch messages');
+        
+        const data = await response.json();
+        // Convert Decimal to number for ratings and ensure proper typing
+        const convertedMessages = data.map((msg: {
+          id: string;
+          content: string;
+          imageUrl: string | null;
+          createdAt: string;
+          senderId: string;
+          isSystemMessage: boolean;
+          metadata: MessageMetadata | null;
+          readAt: string | null;
           sender: {
-            ...msg.sender,
-            contractorRating: Number(msg.sender.contractorRating),
-            clientRating: Number(msg.sender.clientRating)
+            id: string;
+            name: string | null;
+            image: string | null;
+            contractorRating: number | null;
+            clientRating: number | null;
+          };
+        }) => ({
+          id: msg.id,
+          content: msg.content,
+          imageUrl: msg.imageUrl,
+          createdAt: msg.createdAt,
+          senderId: msg.senderId,
+          isSystemMessage: msg.isSystemMessage,
+          metadata: msg.metadata,
+          readAt: msg.readAt,
+          sender: {
+            id: msg.sender.id,
+            name: msg.sender.name,
+            image: msg.sender.image,
+            contractorRating: Number(msg.sender.contractorRating || 0),
+            clientRating: Number(msg.sender.clientRating || 0)
           }
         })) as ExtendedMessage[];
         setMessages(convertedMessages);
       } catch (error) {
         console.error('Error fetching messages:', error);
+        setError('Failed to load messages');
         toast({
           title: 'Error',
           description: 'Failed to load messages. Please try again.',
@@ -92,122 +141,134 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
       }
     };
 
-    // If we have initial messages, use them first
-    if (initialMessages && initialMessages.length > 0) {
-      setMessages(initialMessages as ExtendedMessage[]);
-    }
-    
-    // Then fetch the latest messages
     fetchMessages();
-  }, [conversationId, toast, initialMessages]);
+  }, [conversationId, toast, mounted]);
 
-  // Track unread messages
+  // Format message dates after hydration
   useEffect(() => {
-    const unread = new Set(
-      messages
-        .filter(m => !m.readAt && m.senderId !== session?.user?.id)
-        .map(m => m.id)
-    );
-    setUnreadMessages(unread);
-  }, [messages, session?.user?.id]);
+    if (!mounted) return; // Don't format until after hydration
 
-  // Mark messages as read when they're scrolled into view
-  useEffect(() => {
-    if (!session?.user || unreadMessages.size === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const messageId = entry.target.getAttribute('data-message-id');
-            if (messageId && unreadMessages.has(messageId)) {
-              // Add a small delay to ensure the user has actually seen the message
-              setTimeout(() => {
-                markMessageAsRead(messageId);
-                setUnreadMessages(prev => {
-                  const next = new Set(prev);
-                  next.delete(messageId);
-                  
-                  // Emit messages-read event when all messages are read
-                  if (next.size === 0 && socket && isConnected) {
-                    socket.emit('messages-read', { conversationId });
-                  }
-                  
-                  return next;
-                });
-                decrementUnreadCount(); // Decrement the global unread count
-              }, 1000);
-            }
-          }
-        });
-      },
-      {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.5
-      }
-    );
-
-    // Observe all unread messages
-    unreadMessages.forEach(messageId => {
-      const element = document.querySelector(`[data-message-id="${messageId}"]`);
-      if (element) {
-        observer.observe(element);
-      }
-    });
-
-    return () => observer.disconnect();
-  }, [unreadMessages, session?.user, decrementUnreadCount, socket, isConnected, conversationId]);
+    setMessages(prev => prev.map(msg => ({
+      ...msg,
+      createdAt: new Date(msg.createdAt),
+      readAt: msg.readAt ? new Date(msg.readAt) : null
+    })));
+  }, [mounted]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Socket.io event handlers
+  // Mark messages as read
   useEffect(() => {
-    if (!socket || !isConnected) return;
-    
-    // Join the conversation room
-    socket.emit('join-conversation', conversationId);
-    
-    // Handler for new messages
-    const handleNewMessage = (message: Message) => {
-      setMessages(prev => {
-        // Check if message already exists in the previous state
-        if (prev.some(m => m.id === message.id)) {
-          return prev;
+    const markMessagesAsRead = async () => {
+      if (!conversationId || !session?.user?.id) return;
+      
+      try {
+        await fetch(`/api/messages/read`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId }),
+        });
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    markMessagesAsRead();
+  }, [conversationId, session?.user?.id]);
+
+  // Track unread messages
+  useEffect(() => {
+    if (!socket || !isConnected || !session?.user?.id) return;
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) {
+              const messageId = node.dataset.messageId;
+              if (messageId && !unreadMessages.has(messageId)) {
+                setUnreadMessages(prev => new Set([...prev, messageId]));
+                decrementUnreadCount();
+              }
+            }
+          });
         }
-        return [...prev, message as ExtendedMessage];
       });
-    };
-    
-    // Listen for new messages
-    socket.on('new-message', handleNewMessage);
-    
-    return () => {
-      socket.off('new-message', handleNewMessage);
-      socket.emit('leave-conversation', conversationId);
-    };
-  }, [socket, isConnected, conversationId]);
+    });
+
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      observer.observe(messagesContainer, { childList: true, subtree: true });
+    }
+
+    return () => observer.disconnect();
+  }, [unreadMessages, session?.user, decrementUnreadCount, socket, isConnected]);
+
+  // Don't render anything until client-side hydration is complete
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-[600px] border rounded-lg">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Loading chat...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /**
-   * Scrolls the message container to the bottom
-   */
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  /**
-   * Handles keyboard events in the message input
-   * Sends the message when Enter is pressed without Shift
+   * Handles sending a new message
    * 
-   * @param {React.KeyboardEvent<HTMLTextAreaElement>} e - Keyboard event
+   * @param {string} content - The text content of the message
+   * @param {string} imageUrl - The URL of the uploaded image
    */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(newMessage, imageUrl);
+  const handleSendMessage = async (content: string, imageUrl?: string | null) => {
+    if (!content.trim() && !imageUrl || loading || !session?.user) return;
+    
+    setLoading(true);
+    try {
+      const message = await createMessage(content, conversationId, imageUrl || undefined);
+      // Convert Decimal to number for ratings and ensure proper typing
+      const convertedMessage: ExtendedMessage = {
+        id: message.id,
+        content: message.content,
+        imageUrl: message.imageUrl,
+        createdAt: new Date(message.createdAt),
+        senderId: message.senderId,
+        isSystemMessage: message.isSystemMessage,
+        metadata: message.metadata as MessageMetadata | null,
+        readAt: message.readAt ? new Date(message.readAt) : null,
+        sender: {
+          id: message.sender.id,
+          name: message.sender.name,
+          image: message.sender.image,
+          contractorRating: Number(message.sender.contractorRating || 0),
+          clientRating: Number(message.sender.clientRating || 0)
+        }
+      };
+      
+      setMessages(prev => [...prev, convertedMessage]);
+      setNewMessage('');
+      setImageUrl(null);
+      setShowImageUpload(false);
+
+      // If socket is connected, emit the message
+      if (socket && isConnected) {
+        socket.emit('new-message', convertedMessage);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -237,52 +298,9 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
     setImageUrl(null);
   };
 
-  /**
-   * Handles sending a new message
-   * 
-   * @param {string} content - The text content of the message
-   * @param {string} imageUrl - The URL of the uploaded image
-   */
-  const handleSendMessage = async (content: string, imageUrl?: string | null) => {
-    if (!content.trim() && !imageUrl || loading || !session?.user) return;
-
-    setLoading(true);
-    try {
-      const message = await createMessage(content, conversationId, imageUrl || undefined);
-      // Convert Decimal to number for ratings
-      const convertedMessage = {
-        ...message,
-        sender: {
-          ...message.sender,
-          contractorRating: Number(message.sender.contractorRating),
-          clientRating: Number(message.sender.clientRating)
-        }
-      } as ExtendedMessage;
-      
-      setMessages(prev => [...prev, convertedMessage]);
-      setNewMessage('');
-      setImageUrl(null);
-      setShowImageUpload(false);
-
-      // If socket is connected, emit the message
-      if (socket && isConnected) {
-        socket.emit('send-message', { conversationId, message: convertedMessage });
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send message. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex flex-col h-[600px] border rounded-lg">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
         {isLoadingMessages ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             Loading messages...
@@ -319,39 +337,36 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
                 </div>
               );
             }
-            
-            // Regular message display
+
             return (
               <div
                 key={message.id}
-                data-message-id={message.id}
                 className={cn(
-                  "flex gap-3",
-                  message.senderId === session?.user?.id ? "justify-end" : "justify-start"
+                  "flex",
+                  isCurrentUser ? "justify-end" : "justify-start"
                 )}
+                data-message-id={message.id}
               >
-                {!isCurrentUser && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={message.sender.image || ''} alt={message.sender.name || 'User'} />
-                    <AvatarFallback>
-                      {message.sender.name?.charAt(0) || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                
-                <div>
-                  {!isCurrentUser && (
-                    <div className="flex gap-2 items-center mb-1">
-                      <p className="text-sm font-medium">{message.sender.name}</p>
-                      {message.sender.contractorRating && (
-                        <UserRatingDisplay 
-                          rating={message.sender.contractorRating} 
-                          size="sm"
-                          tooltipText="Neighbour Rating" 
+                <div className={cn(
+                  "flex flex-col max-w-[80%]",
+                  isCurrentUser ? "items-end" : "items-start"
+                )}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {!isCurrentUser && (
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={message.sender.image || undefined}
+                          alt={message.sender.name || 'User'}
                         />
-                      )}
-                    </div>
-                  )}
+                        <AvatarFallback>
+                          {message.sender.name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <span className="text-sm font-medium">
+                      {isCurrentUser ? 'You' : message.sender.name || 'Unknown User'}
+                    </span>
+                  </div>
                   
                   <div className={`${
                     isCurrentUser 
@@ -385,6 +400,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             );
           })
         )}
+        <div ref={messagesEndRef} />
       </div>
       
       {/* Message Input */}
@@ -422,9 +438,13 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-10 resize-none"
-            disabled={loading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(newMessage, imageUrl);
+              }
+            }}
+            className="min-h-[48px] max-h-[200px] resize-none"
           />
           
           <Button
@@ -432,7 +452,11 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
             disabled={(!newMessage.trim() && !imageUrl) || loading}
             className="bg-primary text-primary-foreground"
           >
-            Send
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
