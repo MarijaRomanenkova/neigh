@@ -18,7 +18,7 @@ import { getAllTasks, getAllCategories } from '@/lib/actions/task.actions';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Task } from '@/types';
-import SortButtons from '@/components/shared/search/sort-buttons';
+import SortWrapper from '@/components/shared/search/sort-wrapper';
 
 // Force dynamic rendering to avoid build-time database access
 export const dynamic = 'force-dynamic';
@@ -254,12 +254,7 @@ const SearchPage = async (props: {
             </h2>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">Sort by:</span>
-              <SortButtons 
-                currentSort={validSort} 
-                onSortChange={(sort) => {
-                  window.location.href = getFilterUrl({ s: sort });
-                }} 
-              />
+              <SortWrapper currentSort={validSort} />
             </div>
           </div>
 
