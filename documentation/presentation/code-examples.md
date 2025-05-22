@@ -232,4 +232,84 @@ interface TaskCardProps {
 export default function TaskCard({ task, className = '' }: TaskCardProps) {
   // Component implementation...
 }
+```
+
+## 8. Database Filtering and Sorting
+```typescript
+// lib/actions/task.actions.ts
+export async function getAllTasks({
+  query = 'all',
+  category = 'all',
+  price = 'all',
+  sort = 'newest',
+  page = 1,
+}: GetAllTasksParams) {
+  try {
+    const conditions: Prisma.TaskWhereInput = {
+      isArchived: false
+    };
+    
+    // Category filter
+    if (category !== 'all') {
+      const categoryRecord = await prisma.category.findFirst({
+        where: { name: category }
+      });
+      
+      if (categoryRecord) {
+        conditions['categoryId'] = categoryRecord.id;
+      }
+    }
+
+    // Price filter
+    if (price !== 'all') {
+      const [min, max] = price.split('-').map(Number);
+      conditions['price'] = {
+        gte: min,
+        lte: max,
+      };
+    }
+
+    // Search query
+    if (query !== 'all') {
+      conditions.name = {
+        contains: query,
+        mode: 'insensitive'
+      };
+    }
+
+    // Get tasks with conditions and sorting
+    const tasks = await prisma.task.findMany({
+      where: conditions,
+      orderBy: [
+        ...(sort === 'newest' ? [{ createdAt: 'desc' as const }] : []),
+        ...(sort === 'lowest' ? [{ price: 'asc' as const }] : []),
+        ...(sort === 'highest' ? [{ price: 'desc' as const }] : []),
+      ],
+      include: {
+        category: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            clientRating: true
+          }
+        }
+      }
+    });
+
+    return {
+      data: tasks.map(task => ({
+        // ... task mapping
+      })),
+      totalPages: Math.ceil(tasks.length / PAGE_SIZE)
+    };
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    return {
+      data: [],
+      totalPages: 0
+    };
+  }
+}
 ``` 

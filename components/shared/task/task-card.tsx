@@ -36,15 +36,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import TaskPrice from './task-price';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Task } from '@/types';
 import { UserIcon, ArrowRight, Pencil, MoveRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import TaskArchiveButton from './task-archive-button';
 import UserRatingDisplay from '../ratings/user-rating-display';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/utils';
-import { useState, useEffect } from 'react';
 
 /**
  * Task Card Component
@@ -64,40 +61,59 @@ import { useState, useEffect } from 'react';
  * @returns {JSX.Element} The rendered task card
  */
 const TaskCard = ({ task }: { task: Task }) => {
-  const { data: session } = useSession();
-  const [mounted, setMounted] = useState(false);
-  const isAuthenticated = session?.user;
-  const isOwner = task.author?.id === session?.user?.id;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <Card className="h-[200px] animate-pulse bg-muted" />
-    );
-  }
+  const { data: session, status } = useSession();
+  // Ensure we're comparing by ID (not by name) and handle potential undefined values
+  const isOwner = !!session?.user?.id && !!task.author?.id && session.user.id === task.author.id;
+  const isAuthenticated = status === 'authenticated';
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="line-clamp-1">{task.name}</CardTitle>
-          <Badge variant="outline" className="whitespace-nowrap">
-            {formatCurrency(task.price)}
-          </Badge>
+    <Card className='w-full max-w-m'>
+      <CardHeader className='p-0 relative'>
+        {/* Price positioned in top right corner */}
+        <div className='absolute top-2 right-2 p-2 text-right'>
+          {task.price ? (
+            <TaskPrice value={Number(task.price)} className="text-xl font-medium" />
+          ) : (
+            <p className="text-xl font-medium">For negotiation</p>
+          )}
         </div>
-        <CardDescription className="line-clamp-2">
-          {task.description}
-        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Category: {task.category?.name || 'Uncategorized'}</span>
+      <CardContent className='p-4 grid gap-4'>
+        <div className="space-y-2 min-w-0">
+          <Link href={`/user/dashboard/client/tasks/${task.id}`}>
+            <h2 className='text-xl font-medium line-clamp-1'>{task.name}</h2>
+          </Link>
+          <div className="h-[2.5rem]">
+            {task.description ? (
+              <p className="text-sm text-muted-foreground line-clamp-2 break-words">{task.description}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">No description</p>
+            )}
+          </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-4 pt-0 flex justify-between items-center gap-2">
+        {/* Author information - only shown to authenticated users */}
+        {isAuthenticated ? (
+          <div className="flex items-center text-base text-muted-foreground">
+            <UserIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+            <span className="truncate font-medium">
+              {isOwner ? "My task" : (task.author?.name || 'Anonymous')}
+            </span>
+            {!isOwner && task.author?.clientRating && Number(task.author.clientRating) > 0 ? (
+              <div className="ml-1.5 flex items-center">
+                <UserRatingDisplay 
+                  rating={typeof task.author.clientRating === 'number' ? task.author.clientRating : Number(task.author.clientRating)}
+                  size="sm" 
+                  tooltipText="Client rating" 
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex-1"></div> /* Spacer when not authenticated */
+        )}
+        
         <div className="flex gap-2">
           {isAuthenticated && isOwner && !task.isArchived && (
             <TaskArchiveButton taskId={task.id} />

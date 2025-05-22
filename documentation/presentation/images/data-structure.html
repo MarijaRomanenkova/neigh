@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Structure - Task Type</title>
+    <style>
+        body {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        code {
+            color: #333;
+        }
+        .keyword { color: #0033b3; }
+        .string { color: #008000; }
+        .comment { color: #808080; }
+        .type { color: #0033b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Data Structure - Task Type</h1>
+        <pre><code>// types/task.types.ts
+export interface Task {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  author: {
+    id: string;
+    name: string;
+    clientRating: number;
+  };
+  category: {
+    id: string;
+    name: string;
+  };
+  isArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}</code></pre>
+    </div>
+</body>
+</html>

@@ -346,3 +346,17 @@ export interface TaskAssignmentInvoice {
   createdAt: string;
 }
 
+export interface ExtendedMessage {
+  id: string;
+  content: string;
+  senderId: string;
+  receiverId: string;
+  conversationId: string;
+  createdAt: Date;
+  sender?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+

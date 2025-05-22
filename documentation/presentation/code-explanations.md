@@ -92,6 +92,29 @@ The documentation shows our commitment to:
 - Type safety documentation
 - Code organization
 
+## 8. Database Filtering and Sorting
+This code demonstrates:
+- Combined filtering and sorting in database queries
+- Efficient data retrieval using Prisma ORM
+- Dynamic query building based on parameters
+- Type-safe database operations
+- Error handling and fallbacks
+- Pagination support
+
+The implementation shows how we handle complex data operations by:
+- Building dynamic where conditions for filters
+- Applying multiple sort criteria
+- Including related data efficiently
+- Handling edge cases and errors
+- Maintaining type safety throughout
+
+This approach is more efficient than frontend sorting because:
+- Reduces data transfer by filtering at the database level
+- Uses database indexing for better performance
+- Handles large datasets efficiently
+- Maintains consistency with pagination
+- Provides better scalability
+
 ## Key Technical Aspects Demonstrated
 
 1. **Type Safety**
@@ -143,6 +166,14 @@ The documentation shows our commitment to:
    - Type documentation
    - Code organization
 
+10. **Database Operations**
+    - Efficient querying
+    - Dynamic filtering
+    - Sorting implementation
+    - Related data inclusion
+    - Error handling
+    - Type safety
+
 These code examples showcase the application's architecture, focusing on:
 - Clean code principles
 - Type safety
@@ -152,6 +183,7 @@ These code examples showcase the application's architecture, focusing on:
 - Real-time functionality
 - Testing practices
 - Documentation standards
+- Database optimization
 
 ## Additional Technical Aspects Demonstrated
 

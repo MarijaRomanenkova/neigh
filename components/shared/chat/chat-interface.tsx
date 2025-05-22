@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
-import { useSocket } from '@/components/providers/socket-provider';
+import { useSocket } from '@/hooks/use-socket';
 import MessageImageUpload from './message-image-upload';
 import Image from 'next/image';
 import { ImageIcon, X } from 'lucide-react';
@@ -31,11 +31,13 @@ import { Loader2, Send } from 'lucide-react';
  * Props for the ChatInterface component
  * @interface ChatInterfaceProps
  * @property {string} conversationId - ID of the current conversation
+ * @property {string} receiverId - ID of the receiver
  * @property {ExtendedMessage[]} initialMessages - Initial set of messages to display
  */
 interface ChatInterfaceProps {
   conversationId: string;
-  initialMessages?: ExtendedMessage[];
+  receiverId: string;
+  initialMessages: ExtendedMessage[];
 }
 
 /**
@@ -52,8 +54,12 @@ interface ChatInterfaceProps {
  * @param {ChatInterfaceProps} props - Component properties
  * @returns {JSX.Element} The rendered chat interface
  */
-export default function ChatInterface({ conversationId, initialMessages }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ExtendedMessage[]>([]);
+export default function ChatInterface({ 
+  conversationId, 
+  receiverId,
+  initialMessages 
+}: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<ExtendedMessage[]>(initialMessages);
   const [mounted, setMounted] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,7 +71,7 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const { toast } = useToast();
-  const { socket, isConnected, decrementUnreadCount } = useSocket();
+  const { socket, isConnected, sendMessage } = useSocket();
 
   // Set mounted state after hydration
   useEffect(() => {
@@ -183,29 +189,18 @@ export default function ChatInterface({ conversationId, initialMessages }: ChatI
   useEffect(() => {
     if (!socket || !isConnected || !session?.user?.id) return;
 
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node instanceof HTMLElement) {
-              const messageId = node.dataset.messageId;
-              if (messageId && !unreadMessages.has(messageId)) {
-                setUnreadMessages(prev => new Set([...prev, messageId]));
-                decrementUnreadCount();
-              }
-            }
-          });
-        }
-      });
-    });
+    const handleNewMessage = (message: ExtendedMessage) => {
+      setMessages(prev => [...prev, message]);
+      if (message.senderId !== session?.user?.id) {
+        setUnreadMessages(prev => new Set([...prev, message.id]));
+      }
+    };
 
-    const messagesContainer = document.querySelector('.messages-container');
-    if (messagesContainer) {
-      observer.observe(messagesContainer, { childList: true, subtree: true });
-    }
-
-    return () => observer.disconnect();
-  }, [unreadMessages, session?.user, decrementUnreadCount, socket, isConnected]);
+    socket.on('new-message', handleNewMessage);
+    return () => {
+      socket.off('new-message', handleNewMessage);
+    };
+  }, [unreadMessages, session?.user, socket, isConnected]);
 
   // Don't render anything until client-side hydration is complete
   if (!mounted) {

@@ -247,6 +247,7 @@ export function ChatPageClient({ initialConversation, id }: ChatPageClientProps)
         
         <ChatInterface 
           conversationId={id} 
+          receiverId={otherParticipant?.id || ''}
           initialMessages={[]} 
         />
       </div>
