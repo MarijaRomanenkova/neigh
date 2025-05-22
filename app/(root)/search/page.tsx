@@ -18,16 +18,24 @@ import SearchWrapper from '@/components/shared/search/search-wrapper';
 // Force dynamic rendering to avoid build-time database access
 export const dynamic = 'force-dynamic';
 
+interface SearchPageProps {
+  searchParams: {
+    q?: string;
+    category?: string;
+    price?: string;
+    sort?: string;
+    page?: string;
+  };
+}
+
 export default async function SearchPage({
   searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const q = typeof searchParams.q === 'string' ? searchParams.q : 'all';
-  const category = typeof searchParams.category === 'string' ? searchParams.category : 'all';
-  const price = typeof searchParams.price === 'string' ? searchParams.price : 'all';
-  const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'newest';
-  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+}: SearchPageProps) {
+  const q = searchParams.q || 'all';
+  const category = searchParams.category || 'all';
+  const price = searchParams.price || 'all';
+  const sort = searchParams.sort || 'newest';
+  const page = searchParams.page ? parseInt(searchParams.page) : 1;
 
   const validSort = ['newest', 'lowest', 'highest'].includes(sort) 
     ? sort as 'newest' | 'lowest' | 'highest'
