@@ -38,8 +38,7 @@ graph TB
     end
 
     subgraph NeighboursPlatform[Neighbours Platform]
-        web_app[Web Application<br/>Next.js, React<br/>+ Admin Routes/Views]
-        api[API Application<br/>Next.js API Routes]
+        next_app[Next.js Application<br/>Frontend + API Routes]
         websocket[WebSocket Server<br/>Socket.io]
         database[(Database<br/>PostgreSQL)]
     end
@@ -50,15 +49,14 @@ graph TB
         uploadthing[UploadThing<br/>File Storage]
     end
 
-    user --> web_app
-    admin --> web_app
-    web_app --> api
-    web_app --> websocket
-    api --> database
+    user --> next_app
+    admin --> next_app
+    next_app --> websocket
+    next_app --> database
     websocket --> database
-    api --> resend
-    api --> payment
-    api --> uploadthing
+    next_app --> resend
+    next_app --> payment
+    next_app --> uploadthing
 ```
 
 ## Level 3: Component Diagram
@@ -70,10 +68,12 @@ graph TB
         auth_ui[Auth UI<br/>Login/Register]
         profile_ui[Profile UI<br/>User Information]
         task_ui[Task UI<br/>Task Management]
-        task_assignment_ui[Task Assignment UI<br/>Status & Invoicing]
+        task_assignment_ui[Task Assignment UI]
+        invoice_ui[Invoice UI]
         chat_ui[Chat UI<br/>Real-time Chat]
         payment_ui[Payment UI<br/>Checkout]
         admin_ui[Admin UI<br/>Dashboard]
+        user_ui[Dashboard]
     end
 
     subgraph API[API Application]
@@ -108,12 +108,17 @@ graph TB
     admin_ui --> task_api
     admin_ui --> task_assignment_api
     admin_ui --> profile_api
+    user_ui -->  invoice_api
+    user_ui -->  task_assignment_api
+    user_ui -->  task_api
+    user_ui -->  chat_api
+
 
     %% Web App to WebSocket connections
     chat_ui --> chat_handler
     task_assignment_ui --> status_handler
-    auth_ui --> notification_handler
     task_assignment_ui --> notification_handler
+    invoice_ui --> notification_handler
 
     %% API Component interactions
     auth --> user_management
